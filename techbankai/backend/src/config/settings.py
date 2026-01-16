@@ -1,14 +1,10 @@
 """Centralized settings management using Pydantic Settings."""
 from pydantic_settings import BaseSettings
-from typing import Optional, Any, List
+from typing import Optional, Any
 from urllib.parse import quote_plus
-import os
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
-    
-    # Environment Configuration
-    environment: str = "development"  # development, staging, production
     
     # PostgreSQL Configuration
     postgres_host: str = "localhost"
@@ -48,40 +44,11 @@ class Settings(BaseSettings):
     max_file_size_mb: int = 10
     
     # CORS Configuration
-    cors_origins: str = "*"  # Comma-separated origins (e.g., "http://localhost:3000,http://localhost:3001") or "*" for all
+    cors_origins: str = "*"  # Comma-separated origins or "*" for all
 
     # Google OAuth Configuration
     google_client_id: Optional[str] = None
     google_client_secret: Optional[str] = None
-    
-    # SMTP Email Configuration
-    smtp_host: Optional[str] = None
-    smtp_port: int = 587
-    smtp_user: Optional[str] = None
-    smtp_password: Optional[str] = None
-    smtp_from_email: Optional[str] = None
-    smtp_from_name: str = "TechBank.ai"
-    smtp_use_tls: bool = True
-    smtp_use_ssl: bool = False
-    
-    @property
-    def is_production(self) -> bool:
-        """Check if running in production environment."""
-        return self.environment.lower() == "production"
-    
-    @property
-    def is_development(self) -> bool:
-        """Check if running in development environment."""
-        return self.environment.lower() == "development"
-    
-    @property
-    def cors_origins_list(self) -> List[str]:
-        """Parse CORS origins from comma-separated string."""
-        if not self.cors_origins or not self.cors_origins.strip() or self.cors_origins == "*":
-            return []  # Empty list means use allow_origin_regex
-        # Split by comma and strip whitespace
-        origins = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
-        return origins
     
     @property
     def _clean_postgres_host(self) -> str:

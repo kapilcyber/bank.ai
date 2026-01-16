@@ -1,20 +1,17 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from starlette.requests import Request
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
+from typing import Dict
 from starlette.responses import Response
 
 from src.models.user import UserCreate, UserLogin, UserResponse
 from src.models.user_db import User
-from src.models.password_reset_token import PasswordResetToken
 from src.config.database import get_postgres_db
 from src.middleware.auth_middleware import create_access_token, get_current_user, blacklist_token, decode_access_token
-from src.middleware.rate_limit_middleware import limiter
-from src.services.email_service import send_password_reset_email
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -46,6 +43,9 @@ class ResetPasswordRequest(BaseModel):
     email: EmailStr
     code: str
     new_password: str
+
+
+_reset_tokens: Dict[str, Dict[str, datetime]] = {}
 
 
 def _generate_reset_code() -> str:
@@ -297,9 +297,7 @@ async def logout(
 
 
 @router.post("/forgot-password/send-code")
-@limiter.limit("5/minute")
 async def send_password_reset_code(
-    request: Request,
     payload: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_postgres_db)
 ):
@@ -307,52 +305,20 @@ async def send_password_reset_code(
     Send a password reset verification code to the user's email.
     """
     try:
-        # Find user
         query = select(User).where(User.email == payload.email.lower())
         result = await db.execute(query)
         user = result.scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=404, detail="User with this email was not found")
 
-        # Clean up expired tokens for this email
-        await db.execute(
-            delete(PasswordResetToken).where(
-                PasswordResetToken.email == payload.email.lower()
-            ).where(
-                PasswordResetToken.expires_at < datetime.utcnow()
-            )
-        )
-        await db.commit()
-
-        # Generate new code
         code = _generate_reset_code()
         expires_at = datetime.utcnow() + timedelta(minutes=10)
+        _reset_tokens[payload.email.lower()] = {"code": code, "expires_at": expires_at}
 
-        # Create token record in database
-        reset_token = PasswordResetToken(
-            email=payload.email.lower(),
-            code=code,
-            expires_at=expires_at,
-            used=False
-        )
-        db.add(reset_token)
-        await db.commit()
-        await db.refresh(reset_token)
+        # For development: log the code so it can be used in the frontend
+        logger.info(f"Password reset code for {payload.email}: {code}")
 
-        # Send email with verification code
-        email_sent = send_password_reset_email(payload.email.lower(), code)
-        
-        if email_sent:
-            logger.info(f"✅ Password reset code sent via email to {payload.email}")
-            return {"message": "Verification code has been sent to your email address."}
-        else:
-            # Fallback: log the code if email sending fails (for development/testing)
-            logger.warning(f"⚠️ Email sending failed. Password reset code for {payload.email}: {code}")
-            logger.warning("⚠️ Please configure SMTP settings in .env file to enable email delivery.")
-            return {
-                "message": "Verification code generated. Please check server logs for the code (SMTP not configured).",
-                "code": code  # Only include in development mode when email fails
-            }
+        return {"message": "Verification code sent to your email (simulated in server logs)."}
     except HTTPException:
         raise
     except Exception as e:
@@ -361,31 +327,21 @@ async def send_password_reset_code(
 
 
 @router.post("/forgot-password/verify-code")
-@limiter.limit("5/minute")
-async def verify_password_reset_code(
-    request: Request, 
-    payload: VerifyCodeRequest,
-    db: AsyncSession = Depends(get_postgres_db)
-):
+async def verify_password_reset_code(payload: VerifyCodeRequest):
     """
     Verify the password reset code for the given email.
     """
     try:
-        # Find valid token in database
-        query = select(PasswordResetToken).where(
-            PasswordResetToken.email == payload.email.lower()
-        ).where(
-            PasswordResetToken.code == payload.code
-        ).where(
-            PasswordResetToken.used == False
-        ).where(
-            PasswordResetToken.expires_at > datetime.utcnow()
-        )
-        result = await db.execute(query)
-        token = result.scalar_one_or_none()
-
-        if not token:
+        record = _reset_tokens.get(payload.email.lower())
+        if not record:
             raise HTTPException(status_code=400, detail="Invalid or expired verification code")
+
+        if record["expires_at"] < datetime.utcnow():
+            _reset_tokens.pop(payload.email.lower(), None)
+            raise HTTPException(status_code=400, detail="Verification code has expired")
+
+        if record["code"] != payload.code:
+            raise HTTPException(status_code=400, detail="Invalid verification code")
 
         return {"message": "Verification code is valid"}
     except HTTPException:
@@ -396,9 +352,7 @@ async def verify_password_reset_code(
 
 
 @router.post("/forgot-password/reset")
-@limiter.limit("5/minute")
 async def reset_password(
-    request: Request,
     payload: ResetPasswordRequest,
     db: AsyncSession = Depends(get_postgres_db)
 ):
@@ -406,37 +360,24 @@ async def reset_password(
     Reset the user's password using a verified code.
     """
     try:
-        # Find valid token in database
-        query = select(PasswordResetToken).where(
-            PasswordResetToken.email == payload.email.lower()
-        ).where(
-            PasswordResetToken.code == payload.code
-        ).where(
-            PasswordResetToken.used == False
-        ).where(
-            PasswordResetToken.expires_at > datetime.utcnow()
-        )
-        result = await db.execute(query)
-        token = result.scalar_one_or_none()
-
-        if not token:
+        record = _reset_tokens.get(payload.email.lower())
+        if not record or record["code"] != payload.code or record["expires_at"] < datetime.utcnow():
             raise HTTPException(status_code=400, detail="Invalid or expired verification code")
 
         # Find user
-        user_query = select(User).where(User.email == payload.email.lower())
-        user_result = await db.execute(user_query)
-        user = user_result.scalar_one_or_none()
+        query = select(User).where(User.email == payload.email.lower())
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
         # Update password
         user.password_hash = hash_password(payload.new_password)
-        
-        # Mark token as used
-        token.used = True
-        
         await db.commit()
         await db.refresh(user)
+
+        # Invalidate the used token
+        _reset_tokens.pop(payload.email.lower(), None)
 
         logger.info(f"Password reset for user: {user.email}")
         return {"message": "Password has been reset successfully"}

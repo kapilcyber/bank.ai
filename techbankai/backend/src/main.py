@@ -23,32 +23,8 @@ from src.routes import user_profile_api
 # Import logger and middleware
 from src.utils.logger import get_logger
 from src.middleware.error_middleware import TraceIDMiddleware, create_error_response
-from src.middleware.rate_limit_middleware import limiter, rate_limit_handler
-from src.middleware.security_middleware import SecurityHeadersMiddleware
-from slowapi.errors import RateLimitExceeded
 
 logger = get_logger(__name__)
-
-# Background task to clean up expired password reset tokens
-async def cleanup_expired_tokens():
-    """Background task to clean up expired password reset tokens."""
-    from src.config.database import AsyncSessionLocal
-    from src.models.password_reset_token import PasswordResetToken
-    from sqlalchemy import delete
-    from datetime import datetime
-    
-    async with AsyncSessionLocal() as db:
-        try:
-            await db.execute(
-                delete(PasswordResetToken).where(
-                    PasswordResetToken.expires_at < datetime.utcnow()
-                )
-            )
-            await db.commit()
-            logger.info("Cleaned up expired password reset tokens")
-        except Exception as e:
-            logger.error(f"Error cleaning up expired tokens: {e}")
-            await db.rollback()
 
 # Lifespan context manager for startup and shutdown events
 @asynccontextmanager
@@ -62,23 +38,9 @@ async def lifespan(app: FastAPI):
     logger.info("PostgreSQL database initialized")
     logger.info(f"Server running on http://{settings.host}:{settings.port}")
     
-    # Start background cleanup task (runs every hour)
-    import asyncio
-    async def periodic_cleanup():
-        while True:
-            await asyncio.sleep(3600)  # 1 hour
-            await cleanup_expired_tokens()
-    
-    cleanup_task = asyncio.create_task(periodic_cleanup())
-    
     yield
     
     # Shutdown
-    cleanup_task.cancel()
-    try:
-        await cleanup_task
-    except asyncio.CancelledError:
-        pass
     logger.info("Shutting down TechBank.ai Backend...")
     logger.info("Shutdown complete")
 
@@ -91,38 +53,18 @@ app = FastAPI(
 )
 
 # CORS Configuration
-# Use environment-based allowed origins if specified, otherwise allow all
-cors_origins = settings.cors_origins_list
-if cors_origins:
-    # Use specific origins list for better security
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=cors_origins,
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-        allow_headers=["*"],
-        max_age=3600,
-    )
-else:
-    # Fallback to allow all origins (for development)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=".*",  # Allows all origins
-        allow_credentials=True,   # Allows cookies and auth headers
-        allow_methods=["*"],      # Allows all methods
-        allow_headers=["*"],      # Allows all headers
-        max_age=3600,
-    )
-
-# Add security headers middleware (before other middleware)
-app.add_middleware(SecurityHeadersMiddleware)
+# Use allow_origin_regex to allow all origins WITH credentials
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=".*",  # Allows all origins
+    allow_credentials=True,   # Allows cookies and auth headers
+    allow_methods=["*"],      # Allows all methods
+    allow_headers=["*"],      # Allows all headers
+    max_age=3600,
+)
 
 # Add trace ID middleware after CORS
 app.add_middleware(TraceIDMiddleware)
-
-# Add rate limiting
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
 # Mount static files (for serving uploaded files)
 if os.path.exists("uploads"):
