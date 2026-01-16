@@ -1,0 +1,241 @@
+"""Main FastAPI application entry point."""
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
+import os
+from dotenv import load_dotenv
+from starlette.responses import JSONResponse, Response
+from starlette.middleware.base import BaseHTTPMiddleware
+
+# Load environment variables
+load_dotenv()
+
+# Import database config
+from src.config.database import init_postgres_db
+from src.config.settings import settings
+
+# Import routes
+from src.routes import auth, resume, jd_analysis, admin
+from src.routes.resumes import company, admin as resume_admin, user_profile, gmail
+from src.routes import user_profile_api
+
+# Import logger and middleware
+from src.utils.logger import get_logger
+from src.middleware.error_middleware import TraceIDMiddleware, create_error_response
+from src.middleware.rate_limit_middleware import limiter, rate_limit_handler
+from src.middleware.security_middleware import SecurityHeadersMiddleware
+from slowapi.errors import RateLimitExceeded
+
+logger = get_logger(__name__)
+
+# Background task to clean up expired password reset tokens
+async def cleanup_expired_tokens():
+    """Background task to clean up expired password reset tokens."""
+    from src.config.database import AsyncSessionLocal
+    from src.models.password_reset_token import PasswordResetToken
+    from sqlalchemy import delete
+    from datetime import datetime
+    
+    async with AsyncSessionLocal() as db:
+        try:
+            await db.execute(
+                delete(PasswordResetToken).where(
+                    PasswordResetToken.expires_at < datetime.utcnow()
+                )
+            )
+            await db.commit()
+            logger.info("Cleaned up expired password reset tokens")
+        except Exception as e:
+            logger.error(f"Error cleaning up expired tokens: {e}")
+            await db.rollback()
+
+# Lifespan context manager for startup and shutdown events
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Starting TechBank.ai Backend...")
+    
+    # Initialize PostgreSQL tables (includes users, resumes, jd_analysis, etc.)
+    await init_postgres_db()
+    
+    logger.info("PostgreSQL database initialized")
+    logger.info(f"Server running on http://{settings.host}:{settings.port}")
+    
+    # Start background cleanup task (runs every hour)
+    import asyncio
+    async def periodic_cleanup():
+        while True:
+            await asyncio.sleep(3600)  # 1 hour
+            await cleanup_expired_tokens()
+    
+    cleanup_task = asyncio.create_task(periodic_cleanup())
+    
+    yield
+    
+    # Shutdown
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
+    logger.info("Shutting down TechBank.ai Backend...")
+    logger.info("Shutdown complete")
+
+# Create FastAPI app
+app = FastAPI(
+    title="TechBank.ai API",
+    description="AI-Powered Resume Management and JD Analysis System",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# CORS Configuration
+# Use environment-based allowed origins if specified, otherwise allow all
+cors_origins = settings.cors_origins_list
+if cors_origins:
+    # Use specific origins list for better security
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=["*"],
+        max_age=3600,
+    )
+else:
+    # Fallback to allow all origins (for development)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=".*",  # Allows all origins
+        allow_credentials=True,   # Allows cookies and auth headers
+        allow_methods=["*"],      # Allows all methods
+        allow_headers=["*"],      # Allows all headers
+        max_age=3600,
+    )
+
+# Add security headers middleware (before other middleware)
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Add trace ID middleware after CORS
+app.add_middleware(TraceIDMiddleware)
+
+# Add rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+
+# Mount static files (for serving uploaded files)
+if os.path.exists("uploads"):
+    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+# Include routers
+app.include_router(auth.router)
+
+# CRITICAL: Register parse-only route directly on app BEFORE including resume router
+# This ensures it's matched before any parameterized routes like /{resume_id}
+from src.routes.resume import parse_resume_only
+
+# Register the route directly on app to ensure it's matched first
+app.add_api_route(
+    "/api/resumes/parse-only",
+    parse_resume_only,
+    methods=["POST"],
+    status_code=200,
+    summary="Parse Resume for Autofill",
+    description="Parse resume and return extracted data without saving to database. Used for autofilling form fields in the frontend. No authentication required. Works for all user types: Company Employee, Freelancer, and Guest User.",
+    tags=["Resumes"],
+    response_description="Parsed resume data for autofill"
+)
+
+app.include_router(resume.router)  # Main resume routes (search, list, get, delete)
+app.include_router(company.router)  # Company employee uploads
+app.include_router(resume_admin.router)  # Admin bulk uploads
+app.include_router(user_profile.router)  # User profile uploads
+app.include_router(gmail.router)  # Gmail webhook
+app.include_router(jd_analysis.router)
+app.include_router(admin.router)
+app.include_router(user_profile_api.router)
+
+# Debug: Log registered routes for parse-only endpoint
+logger.info("Registered routes for /api/resumes:")
+for route in app.routes:
+    if hasattr(route, 'path') and '/api/resumes' in route.path:
+        methods = getattr(route, 'methods', set())
+        logger.info(f"  {route.path} - Methods: {methods}")
+        if 'parse-only' in route.path:
+            logger.info(f"  ✅ FOUND parse-only route: {route.path} with methods: {methods}")
+
+# Request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all requests."""
+    trace_id = getattr(request.state, 'trace_id', 'N/A')
+    logger.info(f"{request.method} {request.url.path} [Trace: {trace_id}]")
+    try:
+        response = await call_next(request)
+        logger.info(f"Completed {request.method} {request.url.path} -> {response.status_code} [Trace: {trace_id}]")
+        return response
+    except Exception as e:
+        logger.error(f"Error handling {request.method} {request.url.path} [Trace: {trace_id}]: {e}")
+        raise
+
+
+# Centralized exception handlers
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    trace_id = getattr(request.state, 'trace_id', None)
+    return create_error_response(
+        status_code=exc.status_code,
+        message=exc.detail or "HTTP error",
+        trace_id=trace_id
+    )
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    trace_id = getattr(request.state, 'trace_id', None)
+    logger.error(f"Unhandled error on {request.url.path} [Trace: {trace_id}]: {exc}")
+    return create_error_response(
+        status_code=500,
+        message="Internal server error",
+        trace_id=trace_id
+    )
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "service": "TechBank.ai Backend",
+        "version": "1.0.0"
+    }
+
+# Root endpoint
+@app.get("/")
+async def root():
+    """Root endpoint with API information."""
+    return {
+        "message": "Welcome to TechBank.ai API",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "health": "/health",
+        "features": [
+            "User Authentication (JWT)",
+            "Resume Upload & Parsing (AI-Powered)",
+            "JD Analysis & Matching (GPT-4)",
+            "Intelligent Candidate Scoring",
+            "Admin Dashboard"
+        ]
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    uvicorn.run(
+        "src.main:app",
+        host=settings.host,
+        port=settings.port,
+        reload=True,  # Enabled for dev
+        log_level="info"
+    )
+
