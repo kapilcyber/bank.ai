@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     
     # OpenAI Configuration
     openai_api_key: Optional[str] = None
-    openai_model: str = "gpt-4o"
+    openai_model: str = "gpt-4o-mini"  # Default to gpt-4o-mini for cost efficiency
     openai_max_tokens: int = 4096
     
     # Google Drive Configuration

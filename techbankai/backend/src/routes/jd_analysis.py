@@ -76,8 +76,36 @@ async def analyze_jd(
         logger.info(f"Proceeding with JD text (length: {len(jd_text)})")
         
         # Step 4: Extract JD requirements using OpenAI
-        logger.info("Analyzing JD with OpenAI GPT-4")
-        jd_requirements = await openai_service.extract_jd_requirements(jd_text)
+        logger.info(f"Analyzing JD with OpenAI {settings.openai_model}")
+        try:
+            jd_requirements = await openai_service.extract_jd_requirements(jd_text)
+        except ValueError as e:
+            # API key not configured
+            logger.error(f"OpenAI API key not configured: {e}")
+            raise HTTPException(
+                status_code=503, 
+                detail="AI analysis service is not configured. Please contact administrator."
+            )
+        except Exception as e:
+            error_str = str(e)
+            if "insufficient_quota" in error_str or "429" in error_str:
+                logger.error(f"OpenAI quota exceeded: {e}")
+                raise HTTPException(
+                    status_code=503,
+                    detail="AI analysis service quota exceeded. Please check your OpenAI account billing or contact administrator."
+                )
+            elif "rate_limit" in error_str.lower() or "rate limit" in error_str.lower():
+                logger.error(f"OpenAI rate limit exceeded: {e}")
+                raise HTTPException(
+                    status_code=429,
+                    detail="AI analysis service is temporarily unavailable due to rate limits. Please try again in a few minutes."
+                )
+            else:
+                logger.error(f"OpenAI service error: {e}")
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"AI analysis service error: {str(e)}"
+                )
         
         # Step 5: Generate unique job ID
         job_id = f"JOB-{uuid.uuid4().hex[:8].upper()}"

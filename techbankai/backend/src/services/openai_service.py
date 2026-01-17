@@ -1,6 +1,7 @@
 """OpenAI service for AI-powered parsing and matching."""
 import json
 from openai import AsyncOpenAI
+from openai import RateLimitError, APIError, APIConnectionError
 from typing import Dict, List
 from src.utils.logger import get_logger
 from src.config.settings import settings
@@ -153,9 +154,23 @@ IMPORTANT EXTRACTION RULES:
         result.setdefault("resume_certificates", [])
         result.setdefault("all_skills", [])
         
-        logger.info(f"Successfully parsed resume with GPT-4")
+        logger.info(f"Successfully parsed resume with {OPENAI_MODEL}")
         return result
     
+    except RateLimitError as e:
+        error_msg = str(e)
+        if "insufficient_quota" in error_msg.lower() or "quota" in error_msg.lower():
+            logger.error(f"OpenAI quota exceeded: {e}")
+            raise ValueError(f"OpenAI API quota exceeded. Please check your billing: {e}")
+        else:
+            logger.error(f"OpenAI rate limit exceeded: {e}")
+            raise ValueError(f"OpenAI rate limit exceeded. Please try again later: {e}")
+    except APIConnectionError as e:
+        logger.error(f"OpenAI API connection error: {e}")
+        raise ValueError(f"OpenAI API connection failed: {e}")
+    except APIError as e:
+        logger.error(f"OpenAI API error: {e}")
+        raise ValueError(f"OpenAI API error: {e}")
     except Exception as e:
         logger.error(f"GPT-4 resume parsing failed: {e}")
         raise
@@ -288,9 +303,23 @@ Decompose into the strict JSON format required.
             "weights": {k: v.get("weight", 0) for k, v in result.items() if isinstance(v, dict)}
         }
         
-        logger.info(f"Successfully extracted JD requirements with GPT-4")
+        logger.info(f"Successfully extracted JD requirements with {OPENAI_MODEL}")
         return flattened_result
     
+    except RateLimitError as e:
+        error_msg = str(e)
+        if "insufficient_quota" in error_msg.lower() or "quota" in error_msg.lower():
+            logger.error(f"OpenAI quota exceeded: {e}")
+            raise ValueError(f"OpenAI API quota exceeded. Please check your billing: {e}")
+        else:
+            logger.error(f"OpenAI rate limit exceeded: {e}")
+            raise ValueError(f"OpenAI rate limit exceeded. Please try again later: {e}")
+    except APIConnectionError as e:
+        logger.error(f"OpenAI API connection error: {e}")
+        raise ValueError(f"OpenAI API connection failed: {e}")
+    except APIError as e:
+        logger.error(f"OpenAI API error: {e}")
+        raise ValueError(f"OpenAI API error: {e}")
     except Exception as e:
         logger.error(f"GPT-4 JD extraction failed: {e}")
         raise
@@ -430,9 +459,23 @@ Return ONLY the JSON structure specified in the system prompt.
         )
         
         result = json.loads(response.choices[0].message.content)
-        logger.info(f"Successfully calculated intelligent match with GPT-4")
+        logger.info(f"Successfully calculated intelligent match with {OPENAI_MODEL}")
         return result
     
+    except RateLimitError as e:
+        error_msg = str(e)
+        if "insufficient_quota" in error_msg.lower() or "quota" in error_msg.lower():
+            logger.error(f"OpenAI quota exceeded: {e}")
+            raise ValueError(f"OpenAI API quota exceeded. Please check your billing: {e}")
+        else:
+            logger.error(f"OpenAI rate limit exceeded: {e}")
+            raise ValueError(f"OpenAI rate limit exceeded. Please try again later: {e}")
+    except APIConnectionError as e:
+        logger.error(f"OpenAI API connection error: {e}")
+        raise ValueError(f"OpenAI API connection failed: {e}")
+    except APIError as e:
+        logger.error(f"OpenAI API error: {e}")
+        raise ValueError(f"OpenAI API error: {e}")
     except Exception as e:
         logger.error(f"GPT-4 matching failed: {e}")
         raise
