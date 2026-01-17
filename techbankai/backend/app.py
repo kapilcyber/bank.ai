@@ -47,10 +47,20 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Configuration
+# CORS Configuration - use specific origins (production-safe)
+# Set CORS_ORIGINS in .env: comma-separated, e.g. "https://app.example.com,https://admin.example.com"
+_CORS_DEV_ORIGINS = [
+    "http://localhost:3000", "http://localhost:3003", "http://localhost:3004", "http://localhost:8000",
+    "http://127.0.0.1:3000", "http://127.0.0.1:3003", "http://127.0.0.1:3004", "http://127.0.0.1:8000",
+]
+_raw = (os.getenv("CORS_ORIGINS") or "*").strip()
+_cors_origins = [o.strip() for o in _raw.split(",") if o.strip()]
+if not _cors_origins or _cors_origins == ["*"]:
+    _cors_origins = _CORS_DEV_ORIGINS
+    logger.warning("CORS_ORIGINS is '*' or empty. Using development origins. Set CORS_ORIGINS for production.")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

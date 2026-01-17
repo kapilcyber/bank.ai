@@ -30,14 +30,17 @@ def create_database_if_not_exists():
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         cursor = conn.cursor()
         
-        # Check if database exists
-        cursor.execute(f"SELECT 1 FROM pg_database WHERE datname = '{POSTGRES_DB}'")
+        # Check if database exists (parameterized query - prevents SQL injection)
+        cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (POSTGRES_DB,))
         exists = cursor.fetchone()
         
         if not exists:
-            # Create database
-            cursor.execute(f'CREATE DATABASE "{POSTGRES_DB}"')
-            print(f"✅ Created database '{POSTGRES_DB}'")
+            # Validate DB name: only alphanumeric, underscore, hyphen (CREATE DATABASE has no params)
+            _db = POSTGRES_DB.strip()
+            if not _db or not _db.replace("_", "").replace("-", "").isalnum():
+                raise ValueError(f"Invalid database name: {POSTGRES_DB!r}")
+            cursor.execute('CREATE DATABASE "{}"'.format(_db.replace('"', "")))
+            print(f"Created database '{_db}'")
         else:
             print(f"✅ Database '{POSTGRES_DB}' already exists")
         

@@ -43,8 +43,8 @@ class Settings(BaseSettings):
     upload_dir: str = "uploads"
     max_file_size_mb: int = 10
     
-    # CORS Configuration
-    cors_origins: str = "*"  # Comma-separated origins or "*" for all
+    # CORS Configuration (production: set CORS_ORIGINS to comma-separated frontend URLs)
+    cors_origins: str = "*"  # "*" or empty => use dev localhost origins; set explicitly for production
 
     # Google OAuth Configuration
     google_client_id: Optional[str] = None
