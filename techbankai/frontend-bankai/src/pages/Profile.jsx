@@ -19,6 +19,9 @@ const Profile = () => {
     email: userProfile?.email || '',
     phone: userProfile?.phone || '',
     dateOfBirth: userProfile?.dateOfBirth || '',
+    state: userProfile?.state || '',
+    city: userProfile?.city || '',
+    pincode: userProfile?.pincode || '',
     role: userProfile?.role || '',
     skills: userProfile?.skills || ''
   })
@@ -35,6 +38,12 @@ const Profile = () => {
           id: profile.id,
           name: profile.name,
           email: profile.email,
+          phone: profile.phone,
+          dateOfBirth: profile.dob || userProfile?.dateOfBirth,
+          dob: profile.dob,
+          state: profile.state,
+          city: profile.city,
+          pincode: profile.pincode,
           mode: profile.mode,
           role: profile.role,
           employment_type: profile.employment_type,
@@ -49,7 +58,10 @@ const Profile = () => {
           name: mergedProfile.name || '',
           email: mergedProfile.email || '',
           phone: mergedProfile.phone || '',
-          dateOfBirth: mergedProfile.dateOfBirth || '',
+          dateOfBirth: mergedProfile.dateOfBirth || mergedProfile.dob || '',
+          state: mergedProfile.state || '',
+          city: mergedProfile.city || '',
+          pincode: mergedProfile.pincode || '',
           role: mergedProfile.role || '',
           skills: mergedProfile.skills || ''
         })
@@ -162,8 +174,11 @@ const Profile = () => {
       // Prepare data for backend (only fields it knows)
       const payload = {
         name: editedProfile.name,
+        phone: editedProfile.phone || '',
         dob: editedProfile.dateOfBirth || '',
-        // state, city, pincode could be added here later
+        state: editedProfile.state || '',
+        city: editedProfile.city || '',
+        pincode: editedProfile.pincode || '',
       }
 
       const updated = await updateProfile(payload)
@@ -173,6 +188,12 @@ const Profile = () => {
         ...editedProfile,
         name: updated.name,
         email: updated.email,
+        phone: updated.phone,
+        dateOfBirth: updated.dob || editedProfile.dateOfBirth,
+        dob: updated.dob,
+        state: updated.state,
+        city: updated.city,
+        pincode: updated.pincode,
         mode: updated.mode || userProfile?.mode,
         created_at: updated.created_at || userProfile?.created_at,
         createdAt: updated.created_at || userProfile?.created_at,
@@ -223,6 +244,11 @@ const Profile = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
+          <div className="profile-top-actions">
+            <button className="action-button secondary" onClick={() => navigate('/dashboard')}>
+              Back to Dashboard
+            </button>
+          </div>
           <div className="profile-header-section">
             <div className="profile-avatar-container">
               {getProfileImageUrl() ? (
@@ -365,6 +391,52 @@ const Profile = () => {
                     </span>
                   )}
                 </div>
+                <div className="info-item">
+                  <span className="info-label">State</span>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="state"
+                      value={editedProfile.state}
+                      onChange={handleChange}
+                      className="profile-input"
+                      placeholder="Enter your state"
+                    />
+                  ) : (
+                    <span className="info-value">{userProfile?.state || 'Not set'}</span>
+                  )}
+                </div>
+                <div className="info-item">
+                  <span className="info-label">City</span>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="city"
+                      value={editedProfile.city}
+                      onChange={handleChange}
+                      className="profile-input"
+                      placeholder="Enter your city"
+                    />
+                  ) : (
+                    <span className="info-value">{userProfile?.city || 'Not set'}</span>
+                  )}
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Pincode</span>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="pincode"
+                      value={editedProfile.pincode}
+                      onChange={handleChange}
+                      className="profile-input"
+                      placeholder="Enter your pincode"
+                      maxLength="6"
+                    />
+                  ) : (
+                    <span className="info-value">{userProfile?.pincode || 'Not set'}</span>
+                  )}
+                </div>
               </div>
             </motion.div>
 
@@ -377,23 +449,28 @@ const Profile = () => {
               <h2>Account Information</h2>
               <div className="info-grid">
                 <div className="info-item">
-                  <span className="info-label">User ID</span>
-                  <span className="info-value">{userProfile?.id || 'N/A'}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Member Since</span>
+                  <span className="info-label">Account Created Date</span>
                   <span className="info-value">
-                    {userProfile?.createdAt
-                      ? new Date(userProfile.createdAt).toLocaleDateString()
-                      : new Date().toLocaleDateString()}
+                    {userProfile?.created_at || userProfile?.createdAt
+                      ? new Date(userProfile.created_at || userProfile.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                      : 'Not available'}
                   </span>
                 </div>
                 <div className="info-item">
-                  <span className="info-label">Last Login</span>
+                  <span className="info-label">Account Created Time</span>
                   <span className="info-value">
-                    {userProfile?.lastLogin
-                      ? new Date(userProfile.lastLogin).toLocaleDateString()
-                      : 'Today'}
+                    {userProfile?.created_at || userProfile?.createdAt
+                      ? new Date(userProfile.created_at || userProfile.createdAt).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: true
+                        })
+                      : 'Not available'}
                   </span>
                 </div>
               </div>
@@ -445,16 +522,13 @@ const Profile = () => {
           </div>
 
           <div className="profile-actions">
-            <button className="action-button secondary" onClick={() => navigate('/dashboard')}>
-              Back to Dashboard
-            </button>
             <button className="action-button danger" onClick={handleLogout}>
               Logout
             </button>
           </div>
         </motion.div>
-      </div >
-    </div >
+      </div>
+    </div>
   )
 }
 

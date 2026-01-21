@@ -1,8 +1,9 @@
+/* Futuristic Glass-Morphism Admin Container */
 .admin-container {
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f4c75 0%, #3282b8 25%, #bbe1fa 50%, #1b262c 75%, #0f4c75 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
   background-size: 400% 400%;
   animation: gradientShift 20s ease infinite;
   padding-bottom: 3rem;
@@ -12,14 +13,26 @@
   0% {
     background-position: 0% 50%;
   }
-
   50% {
     background-position: 100% 50%;
   }
-
   100% {
     background-position: 0% 50%;
   }
+}
+
+/* Sunset/Sunrise overlay effect */
+.admin-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(ellipse at top, rgba(255, 159, 64, 0.25) 0%, transparent 50%),
+              radial-gradient(ellipse at bottom, rgba(236, 72, 153, 0.2) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .admin-content {
@@ -32,124 +45,130 @@
 
 .admin-header {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 3rem;
   padding: 0 1rem;
 }
 
 .admin-header h1 {
-  font-size: 3.5rem;
+  font-size: 4rem;
   font-weight: 900;
   margin: 0;
-  background: linear-gradient(135deg, #1b262c 0%, #0f4c75 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 50%, #ffffff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: -1.5px;
+  letter-spacing: -2px;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .admin-header p {
-  font-size: 1.1rem;
-  color: #3282b8;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
-  margin-top: 0.5rem;
-  opacity: 0.9;
+  margin-top: 0.75rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .admin-tabs {
   display: flex;
   gap: 1.25rem;
-  margin-bottom: 2.5rem;
+  margin-bottom: 3rem;
   flex-wrap: wrap;
   justify-content: center;
-  padding: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+  max-width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .admin-tab {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.875rem 1.75rem;
-  background: rgba(255, 255, 255, 0.6);
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 16px;
   font-weight: 700;
-  font-size: 0.95rem;
-  color: #1b262c;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .admin-tab:hover {
   transform: translateY(-4px) scale(1.02);
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  color: #ffffff;
 }
 
 .admin-tab.active {
-  background: #ffffff;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
   transform: translateY(-2px);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .admin-tab.tab-dashboard.active {
-  color: #3282b8;
-  border-color: #3282b8;
+  background: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.admin-tab.tab-records.active {
+  background: rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.5);
 }
 
 .admin-tab.tab-search-talent.active {
-  color: #6366f1;
-  border-color: #6366f1;
+  background: rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.5);
 }
 
 .admin-tab.tab-search-jd.active {
-  color: #f59e0b;
-  border-color: #f59e0b;
+  background: rgba(251, 191, 36, 0.3);
+  border-color: rgba(251, 191, 36, 0.5);
 }
 
 .admin-tab.tab-add-resume.active {
-  color: #ec4899;
-  border-color: #ec4899;
+  background: rgba(236, 72, 153, 0.3);
+  border-color: rgba(236, 72, 153, 0.5);
 }
 
-.tab-icon {
-  font-size: 1.3rem;
-}
-
-.tab-label {
-  font-size: 1rem;
-}
-
-.admin-content-area {
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 25px;
-  padding: 2.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  min-height: 500px;
-}
-
-/* Responsive Design */
+/* Responsive */
 @media (max-width: 768px) {
   .admin-header h1 {
-    font-size: 2rem;
+    font-size: 2.5rem;
+  }
+
+  .admin-header p {
+    font-size: 1rem;
   }
 
   .admin-tabs {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .admin-tab {
-    width: 100%;
     justify-content: center;
-  }
-
-  .admin-content-area {
-    padding: 1.5rem;
   }
 }

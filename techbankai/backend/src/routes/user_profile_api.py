@@ -24,6 +24,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 class UserProfileUpdate(BaseModel):
     """Fields that a user is allowed to update on their profile."""
     name: Optional[str] = Field(None, min_length=2, max_length=100)
+    phone: Optional[str] = None
     dob: Optional[str] = None
     state: Optional[str] = None
     city: Optional[str] = None
@@ -48,6 +49,11 @@ async def get_profile(
             id=user.id,
             name=user.name,
             email=user.email,
+            phone=user.phone,
+            dob=user.dob,
+            state=user.state,
+            city=user.city,
+            pincode=user.pincode,
             mode=user.mode or "user",
             employment_type=user.employment_type,
             employee_id=user.employee_id,
@@ -79,6 +85,8 @@ async def update_profile(
         # Apply updates only for provided fields
         if profile_update.name is not None:
             user.name = profile_update.name
+        if profile_update.phone is not None:
+            user.phone = profile_update.phone
         if profile_update.dob is not None:
             user.dob = profile_update.dob
         if profile_update.state is not None:
@@ -99,6 +107,11 @@ async def update_profile(
             id=user.id,
             name=user.name,
             email=user.email,
+            phone=user.phone,
+            dob=user.dob,
+            state=user.state,
+            city=user.city,
+            pincode=user.pincode,
             mode=user.mode or "user",
             employment_type=user.employment_type,
             employee_id=user.employee_id,

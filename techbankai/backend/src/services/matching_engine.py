@@ -84,10 +84,6 @@ async def calculate_match_score(resume_data: Dict, jd_requirements: Dict) -> Dic
         import traceback
         traceback.print_exc()
         return _calculate_traditional_fallback(resume_data, jd_requirements)
-    except Exception as e:
-        logger.error(f"Universal Fit Score calculation failed, using fallback: {e}")
-        # Fallback to traditional scoring if Universal Fit Scorer fails
-        return _calculate_traditional_fallback(resume_data, jd_requirements)
 
 
 def _calculate_traditional_fallback(resume_data: Dict, jd_requirements: Dict) -> Dict:

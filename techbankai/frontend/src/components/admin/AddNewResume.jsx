@@ -75,11 +75,26 @@ const AddNewResume = () => {
 
       const response = await uploadFile(API_ENDPOINTS.ADMIN_UPLOAD_RESUMES, formData)
 
-      setUploadStatus('success')
-      setMessage(`Successfully uploaded ${response.success} resumes. ${response.failed} failed.`)
-      setFiles([])
+      console.log('📤 Upload response:', response)
+      
+      if (response.success === 0 && response.failed > 0) {
+        // All uploads failed
+        setUploadStatus('error')
+        setMessage(`Failed to upload resumes. Errors: ${response.errors?.join(', ') || 'Unknown error'}`)
+      } else {
+        setUploadStatus('success')
+        setMessage(`Successfully uploaded ${response.success} resumes. ${response.failed} failed.`)
+        setFiles([])
 
-      // The dashboard will refresh when the user navigates back to it because it fetches data on mount
+        // Trigger a custom event to refresh dashboard and records
+        console.log('🔄 Dispatching resumeUploaded event with count:', response.success)
+        window.dispatchEvent(new CustomEvent('resumeUploaded', { detail: { count: response.success } }))
+        
+        // Also force a small delay and refresh to ensure data is updated
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('resumeUploaded', { detail: { count: response.success } }))
+        }, 1000)
+      }
     } catch (err) {
       console.error('Upload failed:', err)
       setUploadStatus('error')

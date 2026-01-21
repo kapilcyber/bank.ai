@@ -10,6 +10,7 @@ class UserCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
     password: str = Field(..., min_length=6)
+    phone: Optional[str] = None
     dob: str
     state: str
     city: str
@@ -35,6 +36,11 @@ class UserResponse(BaseModel):
     id: int
     name: str
     email: str
+    phone: Optional[str] = None
+    dob: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
+    pincode: Optional[str] = None
     mode: str
     employment_type: Optional[str] = None
     employee_id: Optional[str] = None

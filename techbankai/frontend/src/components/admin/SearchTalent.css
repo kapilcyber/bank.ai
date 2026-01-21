@@ -1,4 +1,4 @@
-/* Main Container Glassmorphism */
+/* Futuristic Glass-Morphism Search Talent */
 .search-talent {
   display: flex;
   flex-direction: column;
@@ -17,49 +17,48 @@
 .search-header h2 {
   font-size: 2.5rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #fff 0%, #00f2ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #1a1a1a;
   margin: 0 0 0.75rem 0;
   letter-spacing: -1px;
-  text-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .search-header p {
   font-size: 1.1rem;
-  color: #94a3b8;
+  color: rgba(26, 26, 26, 0.8);
   font-weight: 500;
   letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Enhanced Filters Section */
 .search-filters-section {
-  background: rgba(10, 25, 47, 0.08);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
   padding: 2.5rem;
-  border: 1px solid rgba(0, 242, 255, 0.1);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
 }
 
 .search-filters-section h3 {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 800;
-  color: #fff;
+  color: #1a1a1a;
   margin-bottom: 2.5rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  text-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
 }
 
 .filters-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2.5rem 2rem;
-  /* Consistent row and column gap */
   margin-bottom: 2.5rem;
 }
 
@@ -71,11 +70,12 @@
 
 .filter-group label {
   font-weight: 700;
-  color: #94a3b8;
+  color: rgba(26, 26, 26, 0.8);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .filter-group input,
@@ -84,77 +84,93 @@
 .hybrid-input-wrapper input {
   height: 48px;
   padding: 0 1.25rem;
-  border: 1px solid rgba(0, 242, 255, 0.2);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
   font-size: 0.95rem;
-  color: #fff;
-  background: rgba(10, 25, 47, 0.6);
+  color: #1a1a1a;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   box-sizing: border-box;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.filter-group input::placeholder {
+  color: rgba(26, 26, 26, 0.5);
 }
 
 .filter-group input:focus,
 .filter-group select:focus,
 .hybrid-input:focus {
-  border-color: #00f2ff;
-  background: rgba(10, 25, 47, 0.8);
-  box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2),
+              0 8px 16px rgba(0, 0, 0, 0.15);
+  outline: none;
 }
 
 .filter-actions {
   display: flex;
   gap: 1.5rem;
   padding-top: 2rem;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .search-btn {
   padding: 1.1rem 3.5rem;
-  background: linear-gradient(135deg, #00f2ff 0%, #4f46e5 100%);
-  color: #020617;
-  border: none;
-  border-radius: 8px;
-  font-family: 'Orbitron', sans-serif;
-  font-weight: 900;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  font-weight: 800;
   font-size: 0.95rem;
   text-transform: uppercase;
   letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .search-btn:hover {
   transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 0 30px rgba(0, 242, 255, 0.5);
-  filter: brightness(1.2);
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .search-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
-  filter: grayscale(1);
+  transform: none;
 }
 
 .clear-btn {
   padding: 1rem 2rem;
-  background: rgba(255, 255, 255, 0.05);
-  color: #94a3b8;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(26, 26, 26, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .clear-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  color: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* RESULTS SECTION - PROFESSIONALLY REDESIGNED */
+/* RESULTS SECTION */
 .results-header {
   margin-bottom: 2rem;
   display: flex;
@@ -165,18 +181,23 @@
 .results-header h3 {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #fff;
+  color: #1a1a1a;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .results-count {
-  background: rgba(0, 242, 255, 0.1);
-  color: #00f2ff;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #1a1a1a;
   padding: 0.5rem 1.25rem;
-  border-radius: 6px;
+  border-radius: 12px;
   font-size: 0.85rem;
   font-weight: 800;
-  border: 1px solid rgba(0, 242, 255, 0.2);
-  box-shadow: 0 0 10px rgba(0, 242, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .results-list {
@@ -185,14 +206,15 @@
   gap: 2rem;
 }
 
-/* PREMIUM CANDIDATE CARD - CYBER REDESIGN */
+/* PREMIUM CANDIDATE CARD */
 .talent-premium-card {
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-radius: 15px;
-  border: 1px solid rgba(0, 242, 255, 0.15);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -207,16 +229,17 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #00f2ff, transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
   transform: translateX(-100%);
   transition: transform 0.6s ease;
 }
 
 .talent-premium-card:hover {
   transform: translateY(-10px) scale(1.02);
-  box-shadow: 0 0 30px rgba(0, 242, 255, 0.25);
-  border-color: rgba(0, 242, 255, 0.4);
-  background: rgba(15, 23, 42, 0.7);
+  box-shadow: 0 16px 48px 0 rgba(31, 38, 135, 0.5),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .talent-premium-card:hover::before {
@@ -226,8 +249,10 @@
 /* Card Header - Profile Section */
 .talent-card-header {
   padding: 1.5rem;
-  background: rgba(0, 242, 255, 0.03);
-  border-bottom: 1px solid rgba(0, 242, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .talent-profile-main {
@@ -239,59 +264,56 @@
 .talent-avatar {
   width: 64px;
   height: 64px;
-  background: rgba(15, 23, 42, 0.8);
-  color: #00f2ff;
-  border: 2px solid rgba(0, 242, 255, 0.3);
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #1a1a1a;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Orbitron', sans-serif;
   font-size: 1.6rem;
   font-weight: 900;
-  text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
-  box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
 }
 
 .talent-avatar.company_employee {
-  border-color: #00f2ff;
-  color: #00f2ff;
-  background: linear-gradient(135deg, rgba(0, 242, 255, 0.1) 0%, transparent 100%);
+  background: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.5);
 }
 
 .talent-avatar.freelancer {
-  border-color: #a855f7;
-  color: #a855f7;
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, transparent 100%);
+  background: rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.5);
 }
 
 .talent-avatar.guest_user {
-  border-color: #eab308;
-  color: #eab308;
-  background: linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, transparent 100%);
+  background: rgba(251, 191, 36, 0.3);
+  border-color: rgba(251, 191, 36, 0.5);
 }
 
 .talent-avatar.candidate {
-  border-color: #22c55e;
-  color: #22c55e;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, transparent 100%);
+  background: rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.5);
 }
 
 .talent-premium-card:hover .talent-avatar {
   transform: rotate(5deg) scale(1.1);
-  border-color: #00f2ff;
-  box-shadow: 0 0 25px rgba(0, 242, 255, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .talent-title-area h4 {
   margin: 0 0 0.4rem 0;
-  font-family: 'Orbitron', sans-serif;
   font-size: 1.2rem;
   font-weight: 700;
-  color: #fff;
+  color: #1a1a1a;
   letter-spacing: 1px;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .talent-type-badge {
@@ -301,37 +323,36 @@
   padding: 4px 12px;
   border-radius: 50px;
   letter-spacing: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(26, 26, 26, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .talent-type-badge.company_employee {
-  background: rgba(0, 242, 255, 0.1);
-  color: #00f2ff;
-  border-color: rgba(0, 242, 255, 0.3);
-  box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+  background: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #1a1a1a;
 }
 
 .talent-type-badge.freelancer {
-  background: rgba(168, 85, 247, 0.1);
-  color: #a855f7;
-  border-color: rgba(168, 85, 247, 0.3);
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+  background: rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #1a1a1a;
 }
 
 .talent-type-badge.guest_user {
-  background: rgba(234, 179, 8, 0.1);
-  color: #eab308;
-  border-color: rgba(234, 179, 8, 0.3);
-  box-shadow: 0 0 10px rgba(234, 179, 8, 0.2);
+  background: rgba(251, 191, 36, 0.3);
+  border-color: rgba(251, 191, 36, 0.5);
+  color: #1a1a1a;
 }
 
 .talent-type-badge.candidate {
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-  border-color: rgba(34, 197, 94, 0.3);
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+  background: rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #1a1a1a;
 }
 
 /* Card Body - Metric Grid */
@@ -347,10 +368,12 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: 1rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .talent-metric {
@@ -364,38 +387,39 @@
 }
 
 .talent-metric label {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: #00f2ff;
+  color: rgba(26, 26, 26, 0.7);
   text-transform: uppercase;
   letter-spacing: 1px;
-  opacity: 0.7;
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .talent-metric p {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #1a1a1a;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .role-text-highlight {
-  color: #fff !important;
+  color: #1a1a1a !important;
   font-weight: 800 !important;
-  text-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
 }
 
 /* Skills Layout */
 .talent-skills-section label {
   display: block;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  color: #00f2ff;
+  color: rgba(26, 26, 26, 0.8);
   text-transform: uppercase;
   margin-bottom: 0.75rem;
   letter-spacing: 1.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .talent-skills-list {
@@ -405,72 +429,82 @@
 }
 
 .talent-skill-badge {
-  background: rgba(0, 242, 255, 0.05);
-  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(26, 26, 26, 0.9);
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 600;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .talent-skill-badge.matched {
-  background: rgba(0, 242, 255, 0.15);
-  color: #fff;
-  border-color: #00f2ff;
-  box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+  background: rgba(255, 255, 255, 0.2);
+  color: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 /* Card Footer - Match & Action */
 .talent-card-footer {
   padding: 1rem 1.75rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .match-pill {
-  background: rgba(0, 255, 170, 0.05);
-  border: 1px solid rgba(0, 255, 170, 0.2);
+  background: rgba(16, 185, 129, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(16, 185, 129, 0.4);
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .match-value {
-  font-family: 'Orbitron', sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #00ffaa;
-  text-shadow: 0 0 5px rgba(0, 255, 170, 0.4);
+  color: #15803d;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .talent-action-btn {
   text-decoration: none;
-  background: linear-gradient(135deg, #00f2ff 0%, #4f46e5 100%);
-  color: #020617;
-  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 0.6rem 1.5rem;
-  border-radius: 8px;
-  font-family: 'Orbitron', sans-serif;
+  border-radius: 10px;
   font-size: 0.75rem;
   font-weight: 900;
   display: flex;
   align-items: center;
   gap: 0.6rem;
   transition: all 0.3s ease;
-  box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .talent-action-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 25px rgba(0, 242, 255, 0.4);
-  filter: brightness(1.2);
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 /* Responsive Overrides */

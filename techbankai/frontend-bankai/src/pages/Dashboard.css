@@ -6,6 +6,45 @@
   background-attachment: fixed;
 }
 
+.page-logos {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 2rem;
+  z-index: 1010;
+  pointer-events: none;
+  background: transparent;
+  isolation: isolate;
+}
+
+.logo-left,
+.logo-right {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  pointer-events: auto;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1011;
+}
+
+.logo-left:hover,
+.logo-right:hover {
+  transform: scale(1.05);
+}
+
+.logo-left {
+  margin-right: auto;
+}
+
+.logo-right {
+  margin-left: auto;
+}
+
 /* Hide scrollbars ONLY for the dashboard */
 .dashboard-container::-webkit-scrollbar {
   display: none;
@@ -233,6 +272,14 @@
 }
 
 @media (max-width: 768px) {
+  .page-logos {
+    padding: 1rem 1rem;
+  }
+
+  .logo-left,
+  .logo-right {
+    height: 40px;
+  }
   .hero-glass {
     padding: 1.5rem 1.5rem;
   }

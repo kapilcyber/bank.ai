@@ -149,7 +149,7 @@ def format_resume_response(resume: Resume) -> Dict[str, Any]:
                 'end_date': exp.end_date,
                 'is_current': bool(exp.is_current),
                 'description': exp.description
-            } for exp in getattr(resume, 'work_history', [])
+            } for exp in (getattr(resume, 'work_history', None) or [])
         ],
         'certificates': [
             {
@@ -158,7 +158,20 @@ def format_resume_response(resume: Resume) -> Dict[str, Any]:
                 'issuer': cert.issuer,
                 'date_obtained': cert.date_obtained,
                 'expiry_date': cert.expiry_date
-            } for cert in getattr(resume, 'certificates', [])
+            } for cert in (getattr(resume, 'certificates', None) or [])
+        ],
+        'educations': [
+            {
+                'id': edu.id,
+                'degree': edu.degree,
+                'institution': edu.institution,
+                'field_of_study': edu.field_of_study,
+                'start_date': edu.start_date,
+                'end_date': edu.end_date,
+                'is_completed': bool(edu.is_completed) if edu.is_completed is not None else True,
+                'grade': edu.grade,
+                'description': edu.description
+            } for edu in (getattr(resume, 'educations', None) or [])
         ]
     }
 

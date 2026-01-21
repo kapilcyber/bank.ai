@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 from datetime import datetime, timedelta
-from src.models.resume import Resume
+from src.models.resume import Resume, Education
 from src.models.jd_analysis import JDAnalysis, MatchResult
 from src.models.user_db import User
 from src.config.database import get_postgres_db
@@ -34,11 +34,16 @@ async def get_dashboard_stats(
         total_matches_result = await db.execute(select(func.count(MatchResult.id)))
         total_matches = total_matches_result.scalar()
         
+        # Get total education entries count
+        total_education_result = await db.execute(select(func.count(Education.id)))
+        total_education = total_education_result.scalar()
+        
         # Get all resumes with formatted responses and prefetch relationships
         from sqlalchemy.orm import selectinload
         all_resumes_query = select(Resume).options(
             selectinload(Resume.work_history),
-            selectinload(Resume.certificates)
+            selectinload(Resume.certificates),
+            selectinload(Resume.educations)
         ).order_by(Resume.uploaded_at.desc())
         all_resumes_result = await db.execute(all_resumes_query)
         all_resumes = all_resumes_result.scalars().all()
@@ -66,6 +71,8 @@ async def get_dashboard_stats(
         # Last 365 days for comprehensive trends
         one_year_ago = datetime.utcnow() - timedelta(days=365)
 
+        # Initialize user type counts for ALL user types (not just target types)
+        # This ensures admin uploads and other types are also counted
         user_type_counts = {ut: 0 for ut in target_user_types}
         user_type_skills = {ut: {} for ut in target_user_types}
         skill_count = {}
@@ -103,9 +110,14 @@ async def get_dashboard_stats(
             meta = resume.meta_data or {}
             user_type = normalize_user_type(meta.get('user_type') or get_user_type_from_source_type(resume.source_type))
             
+            # Count ALL user types (including Admin Uploads, Gmail Resume, etc.)
+            # Initialize the count if it doesn't exist
+            if user_type not in user_type_counts:
+                user_type_counts[user_type] = 0
+            user_type_counts[user_type] += 1
+            
             # Global and Type-based counts/skills (for existing dashboard cards)
             if user_type in target_user_types:
-                user_type_counts[user_type] += 1
                 
                 # Robust skill extraction
                 skills_list = resume.skills or []
@@ -212,13 +224,19 @@ async def get_dashboard_stats(
         recent_jd_result = await db.execute(recent_jd_query)
         recent_jd = recent_jd_result.scalars().all()
 
+        # Log the counts for debugging
+        logger.info(f"Dashboard stats - Total resumes: {total_resumes}, Total users: {total_users}")
+        logger.info(f"User type breakdown: {user_type_counts}")
+        
         return {
             'total_users': total_users,
             'total_records': total_resumes, # Renamed for frontend consistency
+            'total_resumes': total_resumes, # Also include original key for compatibility
             'total_jd_analyses': total_jd_analyses,
             'total_matches': total_matches,
+            'total_education': total_education,
             'departmentDistribution': user_type_counts, # Keep name for backwards compatibility during transition
-            'user_type_breakdown': user_type_counts,
+            'user_type_breakdown': user_type_counts, # Now includes ALL user types (Admin Uploads, Gmail Resume, etc.)
             'top_skills': [{'skill': skill, 'count': count} for skill, count in top_skills],
             'top_skills_by_user_type': {
                 ut: [{'skill': skill, 'count': count} for skill, count in skills_list]
@@ -240,7 +258,7 @@ async def get_dashboard_stats(
             'trends': formatted_trends,
             'recentResumes': [ # Renamed for frontend consistency
                 format_resume_response(r)
-                for r in all_resumes[:50] # Limit to latest 50 for performance
+                for r in all_resumes # Return all resumes, frontend can paginate if needed
             ],
             'recent_jd_analyses': [
                 {

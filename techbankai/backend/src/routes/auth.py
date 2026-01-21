@@ -155,6 +155,7 @@ async def signup(user: UserCreate, db: AsyncSession = Depends(get_postgres_db)):
             name=user.name,
             email=user.email.lower(),
             password_hash=hash_password(user.password),
+            phone=user.phone,
             dob=user.dob,
             state=user.state,
             city=user.city,

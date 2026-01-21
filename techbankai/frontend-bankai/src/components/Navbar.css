@@ -1,15 +1,14 @@
 
 .navbar {
   position: sticky;
-  top: 15px; /* Floating from top */
+  top: 0;
   z-index: 1000;
-  padding: 0 1.5rem;
   width: 100%;
 }
 
 .navbar-container {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   
   background: rgba(255, 255, 255, 0.45);
   backdrop-filter: blur(25px) saturate(180%);
@@ -19,13 +18,27 @@
     0 8px 32px 0 rgba(31, 19, 0, 0.15),
     inset 0 0 0 1px rgba(255, 255, 255, 0.2);
   
-  border-radius: 24px;
+  border-radius: 0;
   padding: 0.75rem 2rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navbar-logo-left,
+.navbar-logo-right {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.navbar-logo-left:hover,
+.navbar-logo-right:hover {
+  transform: scale(1.05);
 }
 
 .navbar-container:hover {
@@ -48,6 +61,8 @@
   margin: 0;
   position: relative;
   transition: all 0.3s ease;
+  flex: 1;
+  text-align: center;
 }
 
 .navbar-heading::after {
@@ -74,6 +89,7 @@
   display: flex;
   align-items: center;
   gap: 1.25rem;
+  flex-shrink: 0;
 }
 
 .profile-button {
@@ -141,13 +157,16 @@
 
 @media (max-width: 768px) {
   .navbar {
-    top: 10px;
-    padding: 0 1rem;
+    top: 0;
   }
   
   .navbar-container {
-    padding: 0.6rem 1.25rem;
-    border-radius: 18px;
+    padding: 0.6rem 1rem;
+  }
+  
+  .navbar-logo-left,
+  .navbar-logo-right {
+    height: 35px;
   }
   
   .navbar-heading {

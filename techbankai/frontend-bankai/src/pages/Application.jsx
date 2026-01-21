@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
+import ResumeNotificationModal from '../components/ResumeNotificationModal'
 import { uploadResumeWithProfile, parseResumeOnly } from '../config/api'
 import { useApp } from '../context/AppContext'
 import './Application.css'
@@ -19,9 +20,10 @@ const Application = () => {
     country: '',
     zipCode: '',
     experience: '',
+    experiences: [],
     skills: '',
     role: '',
-    education: '',
+    education: [],
     linkedIn: '',
     portfolio: '',
     currentlyWorking: true,
@@ -33,6 +35,8 @@ const Application = () => {
   const [submitting, setSubmitting] = useState(false)
   const [autoFilledFields, setAutoFilledFields] = useState(new Set())
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [showNotification, setShowNotification] = useState(false)
+  const [notificationFields, setNotificationFields] = useState([])
   const navigate = useNavigate()
   const { selectedEmploymentType, userProfile } = useApp()
 
@@ -186,7 +190,15 @@ const Application = () => {
         }
         
         if (parsed.education && parsed.education.trim()) {
-          updates.education = parsed.education
+          // Convert single education string to array format
+          updates.education = [{
+            degree: parsed.education.trim(),
+            institution: 'Detected',
+            field_of_study: '',
+            start_date: '',
+            end_date: '',
+            grade: ''
+          }]
           filledFields.add('education')
         }
         
@@ -201,26 +213,8 @@ const Application = () => {
           // Show success message
           console.log('✅ Resume parsed successfully! Form fields auto-filled.')
           setTimeout(() => {
-            const filledFieldsList = Array.from(filledFields).map(f => {
-            const fieldNames = {
-              firstName: 'First Name',
-              lastName: 'Last Name',
-              email: 'Email',
-              phone: 'Phone',
-              address: 'Address',
-              city: 'City',
-              country: 'Country',
-              zipCode: 'Zip Code',
-              role: 'Role',
-              currentCompany: 'Current Company',
-              experience: 'Experience',
-              skills: 'Skills',
-              education: 'Education'
-            }
-              return fieldNames[f] || f
-            }).join(', ')
-            
-            alert(`✅ Resume parsed successfully!\n\n📝 Auto-filled ${filledFields.size} field(s):\n${filledFieldsList}\n\n✏️ You can now review and edit any field as needed.\n\nFields with ✨ icon are auto-filled and can be edited.`)
+            setNotificationFields(Array.from(filledFields))
+            setShowNotification(true)
           }, 500)
         } else {
           alert('⚠️ Resume parsed but no extractable data found for autofill.')
@@ -269,10 +263,11 @@ const Application = () => {
         city: formData.city || '',
         country: formData.country || '',
         experience: formData.experience || '0',
+        experiences: JSON.stringify(formData.experiences || []),
         skills: formData.skills || '',
         role: formData.role || '',
         location: [formData.city, formData.country].filter(Boolean).join(', '),
-        education: formData.education || '',
+        education: JSON.stringify(formData.education || []),
         noticePeriod: parseInt(formData.noticePeriod) || 0,
         currentlyWorking: formData.currentlyWorking,
         currentCompany: formData.currentCompany,
@@ -402,18 +397,12 @@ const Application = () => {
             </div>
           </motion.div>
 
-          {/* Auto-fill notification */}
-          {file && autoFilledFields.size > 0 && (
-            <motion.div
-              className="autofill-notification"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="notification-content">
-                ✨ {autoFilledFields.size} field(s) auto-filled from resume. Review and edit any field as needed.
-              </div>
-            </motion.div>
-          )}
+          {/* Resume parsing notification */}
+          <ResumeNotificationModal
+            isOpen={showNotification}
+            onClose={() => setShowNotification(false)}
+            autoFilledFields={notificationFields}
+          />
 
           {/* Personal Information Section */}
           <motion.div
@@ -597,6 +586,223 @@ const Application = () => {
                 min="0"
               />
             </div>
+            {selectedEmploymentType?.id !== 'guest-user' && (
+              <div className="form-group">
+                <label>
+                  Work Experience
+                  {isAutoFilled('experiences') && (
+                    <span className="auto-filled-badge" title="Auto-filled from resume">✨</span>
+                  )}
+                </label>
+                {formData.experiences.map((exp, index) => (
+                  <div key={index} className="experience-entry" style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid rgba(50, 130, 184, 0.3)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <h4 style={{ margin: 0, color: '#3282b8', fontSize: '0.9rem' }}>Experience {index + 1}</h4>
+                      {formData.experiences.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newExperiences = formData.experiences.filter((_, i) => i !== index)
+                            setFormData({ ...formData, experiences: newExperiences })
+                          }}
+                          style={{
+                            background: '#ff4444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem'
+                          }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label htmlFor={`experience-role-${index}`}>Job Title/Role *</label>
+                        <input
+                          type="text"
+                          id={`experience-role-${index}`}
+                          value={exp.role || ''}
+                          onChange={(e) => {
+                            const newExperiences = [...formData.experiences]
+                            newExperiences[index] = { ...newExperiences[index], role: e.target.value }
+                            setFormData({ ...formData, experiences: newExperiences })
+                          }}
+                          placeholder="e.g., Software Engineer, Senior Developer"
+                          required
+                        />
+                      </div>
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label htmlFor={`experience-company-${index}`}>Company Name *</label>
+                        <input
+                          type="text"
+                          id={`experience-company-${index}`}
+                          value={exp.company || ''}
+                          onChange={(e) => {
+                            const newExperiences = [...formData.experiences]
+                            newExperiences[index] = { ...newExperiences[index], company: e.target.value }
+                            setFormData({ ...formData, experiences: newExperiences })
+                          }}
+                          placeholder="Company name"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label htmlFor={`experience-location-${index}`}>Location</label>
+                        <input
+                          type="text"
+                          id={`experience-location-${index}`}
+                          value={exp.location || ''}
+                          onChange={(e) => {
+                            const newExperiences = [...formData.experiences]
+                            newExperiences[index] = { ...newExperiences[index], location: e.target.value }
+                            setFormData({ ...formData, experiences: newExperiences })
+                          }}
+                          placeholder="e.g., Mumbai, India"
+                        />
+                      </div>
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label htmlFor={`experience-start-${index}`}>Start Date</label>
+                        <input
+                          type="text"
+                          id={`experience-start-${index}`}
+                          value={exp.start_date || ''}
+                          onChange={(e) => {
+                            const newExperiences = [...formData.experiences]
+                            newExperiences[index] = { ...newExperiences[index], start_date: e.target.value }
+                            setFormData({ ...formData, experiences: newExperiences })
+                          }}
+                          placeholder="e.g., Jan 2020 or 2020-01"
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label htmlFor={`experience-end-${index}`}>End Date</label>
+                        <input
+                          type="text"
+                          id={`experience-end-${index}`}
+                          value={exp.end_date || ''}
+                          onChange={(e) => {
+                            const newExperiences = [...formData.experiences]
+                            newExperiences[index] = { ...newExperiences[index], end_date: e.target.value, is_current: false }
+                            setFormData({ ...formData, experiences: newExperiences })
+                          }}
+                          placeholder="e.g., Dec 2022 or Present"
+                        />
+                      </div>
+                      <div className="form-group" style={{ flex: 1, display: 'flex', alignItems: 'center', paddingTop: '1.5rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={exp.is_current || false}
+                            onChange={(e) => {
+                              const newExperiences = [...formData.experiences]
+                              newExperiences[index] = { 
+                                ...newExperiences[index], 
+                                is_current: e.target.checked,
+                                end_date: e.target.checked ? 'Present' : newExperiences[index].end_date
+                              }
+                              setFormData({ ...formData, experiences: newExperiences })
+                            }}
+                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                          />
+                          <span>Currently working here</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor={`experience-description-${index}`}>Job Description</label>
+                      <textarea
+                        id={`experience-description-${index}`}
+                        value={exp.description || ''}
+                        onChange={(e) => {
+                          const newExperiences = [...formData.experiences]
+                          newExperiences[index] = { ...newExperiences[index], description: e.target.value }
+                          setFormData({ ...formData, experiences: newExperiences })
+                        }}
+                        placeholder="Describe your responsibilities and achievements"
+                        rows="3"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData({
+                      ...formData,
+                      experiences: [...formData.experiences, {
+                        role: '',
+                        company: '',
+                        location: '',
+                        start_date: '',
+                        end_date: '',
+                        is_current: false,
+                        description: ''
+                      }]
+                    })
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'rgba(50, 130, 184, 0.1)',
+                    color: '#3282b8',
+                    border: '2px dashed #3282b8',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    marginTop: '0.5rem',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'rgba(50, 130, 184, 0.2)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'rgba(50, 130, 184, 0.1)'
+                  }}
+                >
+                  + Add Another Experience
+                </button>
+                {formData.experiences.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        experiences: [{
+                          role: '',
+                          company: '',
+                          location: '',
+                          start_date: '',
+                          end_date: '',
+                          is_current: false,
+                          description: ''
+                        }]
+                      })
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: 'rgba(50, 130, 184, 0.1)',
+                      color: '#3282b8',
+                      border: '2px dashed #3282b8',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      marginTop: '0.5rem'
+                    }}
+                  >
+                    + Add Work Experience
+                  </button>
+                )}
+              </div>
+            )}
             <div className="form-group">
               <label htmlFor="role">
                 Professional Role *
@@ -787,21 +993,197 @@ const Application = () => {
             )}
             {selectedEmploymentType?.id !== 'guest-user' && (
               <div className="form-group">
-                <label htmlFor="education">
+                <label>
                   Education
                   {isAutoFilled('education') && (
                     <span className="auto-filled-badge" title="Auto-filled from resume">✨</span>
                   )}
                 </label>
-                <textarea
-                  id="education"
-                  name="education"
-                  value={formData.education}
-                  onChange={handleChange}
-                  className={isAutoFilled('education') ? 'auto-filled' : ''}
-                  rows="3"
-                  placeholder="Enter your educational background"
-                />
+                {formData.education.map((edu, index) => (
+                  <div key={index} className="education-entry" style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid rgba(50, 130, 184, 0.3)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <h4 style={{ margin: 0, color: '#3282b8', fontSize: '0.9rem' }}>Education {index + 1}</h4>
+                      {formData.education.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newEducation = formData.education.filter((_, i) => i !== index)
+                            setFormData({ ...formData, education: newEducation })
+                          }}
+                          style={{
+                            background: '#ff4444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem'
+                          }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label htmlFor={`education-degree-${index}`}>Degree/Qualification *</label>
+                        <input
+                          type="text"
+                          id={`education-degree-${index}`}
+                          value={edu.degree || ''}
+                          onChange={(e) => {
+                            const newEducation = [...formData.education]
+                            newEducation[index] = { ...newEducation[index], degree: e.target.value }
+                            setFormData({ ...formData, education: newEducation })
+                          }}
+                          placeholder="e.g., 10th, 12th, B.Tech, M.Tech, MBA"
+                          required
+                        />
+                      </div>
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label htmlFor={`education-institution-${index}`}>School/College/University</label>
+                        <input
+                          type="text"
+                          id={`education-institution-${index}`}
+                          value={edu.institution || ''}
+                          onChange={(e) => {
+                            const newEducation = [...formData.education]
+                            newEducation[index] = { ...newEducation[index], institution: e.target.value }
+                            setFormData({ ...formData, education: newEducation })
+                          }}
+                          placeholder="Institution name"
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label htmlFor={`education-field-${index}`}>Field of Study</label>
+                        <input
+                          type="text"
+                          id={`education-field-${index}`}
+                          value={edu.field_of_study || ''}
+                          onChange={(e) => {
+                            const newEducation = [...formData.education]
+                            newEducation[index] = { ...newEducation[index], field_of_study: e.target.value }
+                            setFormData({ ...formData, education: newEducation })
+                          }}
+                          placeholder="e.g., Computer Science, Mathematics"
+                        />
+                      </div>
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label htmlFor={`education-grade-${index}`}>Grade/CGPA/Percentage</label>
+                        <input
+                          type="text"
+                          id={`education-grade-${index}`}
+                          value={edu.grade || ''}
+                          onChange={(e) => {
+                            const newEducation = [...formData.education]
+                            newEducation[index] = { ...newEducation[index], grade: e.target.value }
+                            setFormData({ ...formData, education: newEducation })
+                          }}
+                          placeholder="e.g., 8.5 CGPA, 85%"
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label htmlFor={`education-start-${index}`}>Start Year</label>
+                        <input
+                          type="text"
+                          id={`education-start-${index}`}
+                          value={edu.start_date || ''}
+                          onChange={(e) => {
+                            const newEducation = [...formData.education]
+                            newEducation[index] = { ...newEducation[index], start_date: e.target.value }
+                            setFormData({ ...formData, education: newEducation })
+                          }}
+                          placeholder="e.g., 2018"
+                        />
+                      </div>
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label htmlFor={`education-end-${index}`}>End Year</label>
+                        <input
+                          type="text"
+                          id={`education-end-${index}`}
+                          value={edu.end_date || ''}
+                          onChange={(e) => {
+                            const newEducation = [...formData.education]
+                            newEducation[index] = { ...newEducation[index], end_date: e.target.value }
+                            setFormData({ ...formData, education: newEducation })
+                          }}
+                          placeholder="e.g., 2022 or Present"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData({
+                      ...formData,
+                      education: [...formData.education, {
+                        degree: '',
+                        institution: '',
+                        field_of_study: '',
+                        start_date: '',
+                        end_date: '',
+                        grade: ''
+                      }]
+                    })
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'rgba(50, 130, 184, 0.1)',
+                    color: '#3282b8',
+                    border: '2px dashed #3282b8',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    marginTop: '0.5rem',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'rgba(50, 130, 184, 0.2)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'rgba(50, 130, 184, 0.1)'
+                  }}
+                >
+                  + Add Another Education
+                </button>
+                {formData.education.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        education: [{
+                          degree: '',
+                          institution: '',
+                          field_of_study: '',
+                          start_date: '',
+                          end_date: '',
+                          grade: ''
+                        }]
+                      })
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: 'rgba(50, 130, 184, 0.1)',
+                      color: '#3282b8',
+                      border: '2px dashed #3282b8',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      marginTop: '0.5rem'
+                    }}
+                  >
+                    + Add Education
+                  </button>
+                )}
               </div>
             )}
           </motion.div>

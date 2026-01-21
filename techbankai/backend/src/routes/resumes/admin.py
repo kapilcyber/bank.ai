@@ -1,6 +1,8 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+from datetime import datetime
+import uuid
 from src.models.resume import Resume
 from src.config.database import get_postgres_db
 from src.middleware.auth_middleware import get_admin_user
@@ -72,12 +74,15 @@ async def bulk_upload_resumes(
                 # Clean null bytes from parsed data
                 parsed_data = clean_dict_values(parsed_data)
                 
+                # Generate unique source_id for admin uploads to avoid unique constraint violation
+                admin_source_id = f"admin_{uuid.uuid4().hex[:16]}_{int(datetime.utcnow().timestamp() * 1000)}"
+                
                 # Create resume record
                 resume = Resume(
                     filename=file.filename,
                     file_url=file_url,
                     source_type='admin',
-                    source_id=None,
+                    source_id=admin_source_id,
                     raw_text=clean_null_bytes(parsed_data.get('raw_text', '')),
                     parsed_data=parsed_data,
                     skills=parsed_data.get('all_skills', parsed_data.get('resume_technical_skills', [])),

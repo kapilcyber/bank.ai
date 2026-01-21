@@ -3,10 +3,12 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, or_, func, cast, String
+from sqlalchemy.orm import selectinload
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from datetime import datetime
 import asyncio
 import os
+import uuid
 from src.models.resume import Resume
 from src.config.database import get_postgres_db
 from src.middleware.auth_middleware import get_admin_user, get_current_user, decode_access_token, is_token_blacklisted
@@ -291,7 +293,8 @@ async def search_resumes(
         # Execute query
         query = query.options(
             selectinload(Resume.work_history),
-            selectinload(Resume.certificates)
+            selectinload(Resume.certificates),
+            selectinload(Resume.educations)
         ).order_by(Resume.uploaded_at.desc()).limit(500)  # Increased limit for search
         result = await db.execute(query)
         results = result.scalars().all()
@@ -389,61 +392,48 @@ async def upload_resumes(
                 # Clean null bytes from parsed data
                 parsed_data = clean_dict_values(parsed_data)
                 
-                # Check for duplicate by email
-                resume_email = parsed_data.get('resume_contact_info')
-                existing_resume = None
-                if resume_email:
-                    stmt = select(Resume).where(Resume.parsed_data['resume_contact_info'].astext == resume_email)
-                    result = await db.execute(stmt)
-                    existing_resume = result.scalar_one_or_none()
-
-                if existing_resume:
-                    logger.info(f"Updating existing resume for {resume_email} (ID: {existing_resume.id})")
-                    existing_resume.filename = file.filename
-                    existing_resume.file_url = file_url
-                    existing_resume.raw_text = clean_null_bytes(parsed_data.get('raw_text', ''))
-                    existing_resume.parsed_data = parsed_data
-                    existing_resume.skills = parsed_data.get('resume_technical_skills', parsed_data.get('all_skills', []))
-                    existing_resume.experience_years = parsed_data.get('resume_experience', parsed_data.get('experience_years', 0))
-                    existing_resume.uploaded_by = current_user['email']
-                    existing_resume.uploaded_at = datetime.utcnow()
-                    existing_resume.meta_data = {
+                # For admin uploads, always create new records (don't check for duplicates)
+                # This allows admins to upload multiple versions or same person's resume multiple times
+                # Generate unique source_id for admin uploads to avoid unique constraint violation
+                import uuid
+                admin_source_id = f"admin_{uuid.uuid4().hex[:16]}_{int(datetime.utcnow().timestamp() * 1000)}"
+                
+                # Create new resume record
+                logger.info(f"Creating new resume record for admin upload: {file.filename} (source_id: {admin_source_id})")
+                resume = Resume(
+                    filename=file.filename,
+                    file_url=file_url,
+                    source_type='admin',
+                    source_id=admin_source_id,
+                    raw_text=clean_null_bytes(parsed_data.get('raw_text', '')),
+                    parsed_data=parsed_data,
+                    skills=parsed_data.get('resume_technical_skills', parsed_data.get('all_skills', [])),
+                    experience_years=parsed_data.get('resume_experience', parsed_data.get('experience_years', 0)),
+                    uploaded_by=current_user['email'],
+                    meta_data={
                         'parsing_method': parsed_data.get('parsing_method', 'unknown'),
                         'file_size': file.size if hasattr(file, 'size') else 0,
                         'user_type': get_user_type_from_source_type('admin'),
-                        'is_update': True,
                         'notice_period': parsed_data.get('notice_period', 0),
                         'ready_to_relocate': parsed_data.get('ready_to_relocate', False)
                     }
-                    resume = existing_resume
-                else:
-                    # Create new resume record
-                    resume = Resume(
-                        filename=file.filename,
-                        file_url=file_url,
-                        source_type='admin',
-                        source_id=None,
-                        raw_text=clean_null_bytes(parsed_data.get('raw_text', '')),
-                        parsed_data=parsed_data,
-                        skills=parsed_data.get('resume_technical_skills', parsed_data.get('all_skills', [])),
-                        experience_years=parsed_data.get('resume_experience', parsed_data.get('experience_years', 0)),
-                        uploaded_by=current_user['email'],
-                        meta_data={
-                            'parsing_method': parsed_data.get('parsing_method', 'unknown'),
-                            'file_size': file.size if hasattr(file, 'size') else 0,
-                            'user_type': get_user_type_from_source_type('admin'),
-                            'notice_period': parsed_data.get('notice_period', 0),
-                            'ready_to_relocate': parsed_data.get('ready_to_relocate', False)
-                        }
-                    )
-                    db.add(resume)
+                )
+                db.add(resume)
                 
                 await db.commit()
                 await db.refresh(resume)
                 
+                logger.info(f"Resume saved to database with ID: {resume.id}")
+                
                 # Save structured data (Experience/Certification)
                 await save_structured_resume_data(db, resume.id, parsed_data, clear_existing=True)
                 await db.commit()
+                
+                # Verify the resume was saved by counting total resumes
+                from sqlalchemy import func
+                count_result = await db.execute(select(func.count(Resume.id)))
+                total_count = count_result.scalar()
+                logger.info(f"Total resumes in database after upload: {total_count}")
                 
                 uploaded_resumes.append({
                     'id': resume.id,
@@ -453,7 +443,7 @@ async def upload_resumes(
                     'experience_years': resume.experience_years
                 })
                 
-                logger.info(f"Successfully uploaded resume: {file.filename}")
+                logger.info(f"Successfully uploaded resume: {file.filename} (ID: {resume.id}, Total count: {total_count})")
             
             except Exception as e:
                 logger.error(f"Failed to process {file.filename}: {e}")
@@ -531,7 +521,12 @@ async def get_resume(
 ):
     """Get specific resume details"""
     try:
-        query = select(Resume).where(Resume.id == resume_id)
+        from sqlalchemy.orm import selectinload
+        query = select(Resume).where(Resume.id == resume_id).options(
+            selectinload(Resume.work_history),
+            selectinload(Resume.certificates),
+            selectinload(Resume.educations)
+        )
         result = await db.execute(query)
         resume = result.scalar_one_or_none()
         
@@ -637,7 +632,8 @@ async def upload_user_profile_resume(
     skills: str = Form(None),
     location: str = Form(None),
     role: str = Form(None),
-    education: str = Form(None),
+    education: str = Form(None),  # JSON string of education array
+    experiences: str = Form(None),  # JSON string of experiences array
     noticePeriod: int = Form(0),
     currentlyWorking: bool = Form(True),
     currentCompany: str = Form(None),
@@ -691,6 +687,7 @@ async def upload_user_profile_resume(
             'location': location,
             'role': role,
             'education': education,
+            'experiences': experiences,
             'noticePeriod': noticePeriod,
             'currentlyWorking': currentlyWorking,
             'currentCompany': currentCompany,
@@ -786,8 +783,28 @@ async def upload_user_profile_resume(
         await db.commit()
         await db.refresh(resume)
         
-        # Save structured data (Experience/Certification)
-        await save_structured_resume_data(db, resume.id, parsed_data, clear_existing=True)
+        # Parse education JSON if provided
+        education_data = None
+        if education:
+            import json
+            try:
+                education_data = json.loads(education) if isinstance(education, str) else education
+            except (json.JSONDecodeError, TypeError):
+                # If not JSON, treat as single string
+                education_data = education
+        
+        # Parse experiences JSON if provided
+        experiences_data = None
+        if experiences:
+            import json
+            try:
+                experiences_data = json.loads(experiences) if isinstance(experiences, str) else experiences
+            except (json.JSONDecodeError, TypeError):
+                # If not JSON, skip (experiences should be structured)
+                experiences_data = None
+        
+        # Save structured data (Experience/Certification/Education)
+        await save_structured_resume_data(db, resume.id, parsed_data, clear_existing=True, form_education=education_data, form_experiences=experiences_data)
         await db.commit()
         
         logger.info(f"Successfully processed user profile resume: {file.filename}")

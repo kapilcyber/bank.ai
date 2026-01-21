@@ -3,6 +3,43 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
+.page-logos {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 2rem;
+  z-index: 1010;
+  pointer-events: none;
+}
+
+.logo-left,
+.logo-right {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  pointer-events: auto;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1011;
+}
+
+.logo-left:hover,
+.logo-right:hover {
+  transform: scale(1.05);
+}
+
+.logo-left {
+  margin-right: auto;
+}
+
+.logo-right {
+  margin-left: auto;
+}
+
 .cv-upload-content {
   max-width: 900px;
   margin: 0 auto;
@@ -202,3 +239,13 @@
   cursor: not-allowed;
 }
 
+@media (max-width: 768px) {
+  .page-logos {
+    padding: 1rem 1rem;
+  }
+
+  .logo-left,
+  .logo-right {
+    height: 40px;
+  }
+}

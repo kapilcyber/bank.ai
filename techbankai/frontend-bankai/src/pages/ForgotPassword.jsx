@@ -180,6 +180,10 @@ const ForgotPassword = () => {
 
   return (
     <div className="forgot-password-container">
+      <div className="page-logos">
+        <img src="/women.png" alt="Women Owned" className="logo-left" />
+        <img src="/cache.png" alt="Cache" className="logo-right" />
+      </div>
       <motion.div
         className="auth-page-wrapper"
         initial={{ rotateY: 180, opacity: 0 }}
@@ -194,31 +198,12 @@ const ForgotPassword = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <h1 className="brand-title">Techbank.Ai</h1>
-            <p className="brand-tagline">Resume Screening Platform</p>
+            <h1 className="brand-title">TechBankAI</h1>
+            <div className="brand-tagline">
+              <span className="powered-by-text">powered by</span>
+              <img src="/cache.png" alt="Cache" className="cache-logo" />
+            </div>
           </motion.div>
-
-          <motion.h2
-            className="forgot-password-title"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            {step === 1 && 'Forgot Password'}
-            {step === 2 && 'Verify Code'}
-            {step === 3 && 'Reset Password'}
-          </motion.h2>
-
-          <motion.p
-            className="forgot-password-subtitle"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            {step === 1 && 'Enter your email to receive a verification code'}
-            {step === 2 && `We've sent a 6-digit code to ${email}`}
-            {step === 3 && 'Enter your new password'}
-          </motion.p>
 
           <AnimatePresence mode="wait">
             {step === 1 && (
@@ -245,7 +230,7 @@ const ForgotPassword = () => {
                   className="form-group"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
+                  transition={{ delay: 0.2 }}
                 >
                   <label htmlFor="email">Email Address</label>
                   <input
@@ -271,7 +256,7 @@ const ForgotPassword = () => {
                   whileTap={validateEmail(email) && !isLoading ? { scale: 0.98 } : {}}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
+                  transition={{ delay: 0.3 }}
                 >
                   {isLoading ? 'Sending Code...' : 'Send Verification Code'}
                 </motion.button>
@@ -280,7 +265,7 @@ const ForgotPassword = () => {
                   className="forgot-password-footer"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
+                  transition={{ delay: 0.4 }}
                 >
                   <p>
                     Remember your password?{' '}
@@ -316,7 +301,7 @@ const ForgotPassword = () => {
                   className="form-group"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
+                  transition={{ delay: 0.2 }}
                 >
                   <label htmlFor="verificationCode">Verification Code</label>
                   <input
@@ -358,7 +343,7 @@ const ForgotPassword = () => {
                   whileTap={verificationCode.length === 6 && !isLoading ? { scale: 0.98 } : {}}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
+                  transition={{ delay: 0.3 }}
                 >
                   {isLoading ? 'Verifying...' : 'Verify Code'}
                 </motion.button>
@@ -367,7 +352,7 @@ const ForgotPassword = () => {
                   className="forgot-password-footer"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
+                  transition={{ delay: 0.4 }}
                 >
                   <p>
                     <button
@@ -406,7 +391,7 @@ const ForgotPassword = () => {
                   className="form-group"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
+                  transition={{ delay: 0.2 }}
                 >
                   <label htmlFor="newPassword">New Password</label>
                   <div className="password-input-wrapper">
@@ -437,7 +422,7 @@ const ForgotPassword = () => {
                   className="form-group"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 }}
+                  transition={{ delay: 0.3 }}
                 >
                   <label htmlFor="confirmPassword">Confirm Password</label>
                   <div className="password-input-wrapper">
@@ -472,7 +457,7 @@ const ForgotPassword = () => {
                   whileTap={newPassword && confirmPassword && newPassword === confirmPassword && !isLoading ? { scale: 0.98 } : {}}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
+                  transition={{ delay: 0.4 }}
                 >
                   {isLoading ? 'Resetting Password...' : 'Reset Password'}
                 </motion.button>
@@ -481,7 +466,7 @@ const ForgotPassword = () => {
                   className="forgot-password-footer"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 }}
+                  transition={{ delay: 0.5 }}
                 >
                   <p>
                     <button

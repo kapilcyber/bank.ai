@@ -130,6 +130,24 @@ async def init_postgres_db():
                 await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_match_results_score ON match_results (match_score DESC);"))
                 await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_match_results_source_type ON match_results (source_type);"))
                 
+                # Fix match_explanation column type if it's VARCHAR(100) instead of TEXT
+                try:
+                    check_result = await conn.execute(text("""
+                        SELECT data_type, character_maximum_length
+                        FROM information_schema.columns
+                        WHERE table_name = 'match_results'
+                        AND column_name = 'match_explanation'
+                    """))
+                    row = check_result.fetchone()
+                    if row and row[0] == 'character varying' and row[1] == 100:
+                        await conn.execute(text("""
+                            ALTER TABLE match_results
+                            ALTER COLUMN match_explanation TYPE TEXT
+                        """))
+                        print("✅ Fixed match_explanation column type from VARCHAR(100) to TEXT")
+                except Exception as e:
+                    print(f"⚠️ Could not check/fix match_explanation column: {e}")
+                
                 # User indexes
                 await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);"))
                 

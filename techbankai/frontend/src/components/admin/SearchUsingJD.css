@@ -1,4 +1,4 @@
-/* Main Container */
+/* Futuristic Glass-Morphism Search Using JD */
 .search-using-jd {
   padding: 2rem;
   max-width: 1400px;
@@ -7,31 +7,31 @@
 
 /* Page Header */
 .search-using-jd h2 {
-  font-size: 2.2rem;
+  font-size: 2.5rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #fff 0%, #00f2ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #1a1a1a;
   margin-bottom: 0.5rem;
-  text-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  letter-spacing: -1px;
 }
 
 .search-using-jd p {
-  color: #94a3b8;
+  color: rgba(26, 26, 26, 0.8);
   margin-bottom: 2rem;
   font-size: 1.1rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Upload JD Section - Glassmorphism */
 .upload-jd-section {
-  background: rgba(10, 25, 47, 0.08);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
   padding: 2.5rem;
-  border: 1px solid rgba(0, 242, 255, 0.1);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
   margin-bottom: 3rem;
 }
 
@@ -40,19 +40,21 @@
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
-  padding: 4px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
   width: fit-content;
-  border: 1px solid rgba(0, 242, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .jd-tab {
   padding: 0.75rem 1.75rem;
-  border-radius: 8px;
+  border-radius: 12px;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: rgba(26, 26, 26, 0.8);
   font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
@@ -60,106 +62,135 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .jd-tab.active {
-  background: #00f2ff;
-  color: #050505;
-  box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #1a1a1a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .jd-tab:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.5);
-  color: #334155;
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(26, 26, 26, 1);
 }
 
 /* Drop Zone & Textarea */
 .jd-drop-zone {
-  border: 2px dashed rgba(0, 242, 255, 0.2);
+  border: 2px dashed rgba(255, 255, 255, 0.3);
   border-radius: 20px;
   padding: 4rem;
   text-align: center;
   margin-bottom: 2rem;
   transition: all 0.3s;
   cursor: pointer;
-  background: rgba(0, 0, 0, 0.2);
-  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(26, 26, 26, 0.9);
 }
 
 .jd-drop-zone.drag-active {
-  border-color: #00f2ff;
-  background: rgba(0, 242, 255, 0.05);
-  box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
 }
 
 .upload-icon {
   font-size: 3rem;
   margin-bottom: 1.25rem;
+  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
 }
 
 .browse-jd-btn {
   display: inline-block;
-  background: #00f2ff;
-  color: #050505;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #1a1a1a;
   padding: 0.8rem 2.25rem;
-  border-radius: 8px;
+  border-radius: 12px;
   font-weight: 800;
   cursor: pointer;
   margin-top: 1.5rem;
   transition: all 0.3s;
-  box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .browse-jd-btn:hover {
-  background: #00e0ed;
-  box-shadow: 0 0 25px rgba(0, 242, 255, 0.5);
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .jd-textarea {
   width: 100%;
   padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 242, 255, 0.2);
-  background: rgba(10, 25, 47, 0.6);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   font-family: inherit;
   font-size: 1rem;
-  color: #fff;
+  color: #1a1a1a;
   resize: vertical;
   min-height: 250px;
   margin-bottom: 2rem;
   transition: all 0.2s;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.jd-textarea::placeholder {
+  color: rgba(26, 26, 26, 0.5);
 }
 
 .jd-textarea:focus {
   outline: none;
-  border-color: #00f2ff;
-  background: rgba(10, 25, 47, 0.8);
-  box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2),
+              0 8px 16px rgba(0, 0, 0, 0.15);
 }
 
 .find-candidates-btn {
   width: 100%;
   max-width: 320px;
-  background: #0f172a;
-  color: white;
-  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 1rem;
-  border-radius: 12px;
+  border-radius: 16px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .find-candidates-btn:hover:not(:disabled) {
-  background: #000;
-  transform: translateY(-2px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .find-candidates-btn:disabled {
-  background: #cbd5e0;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(26, 26, 26, 0.5);
   cursor: not-allowed;
   box-shadow: none;
 }
@@ -179,7 +210,8 @@
 .results-header h3 {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #1a1a1a;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .results-summary-badges {
@@ -192,30 +224,40 @@
   border-radius: 30px;
   font-size: 0.85rem;
   font-weight: 800;
-  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #1a1a1a;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .summary-badge.total {
-  background: #f1f5f9;
-  color: #475569;
+  background: rgba(255, 255, 255, 0.2);
+  color: #1a1a1a;
 }
 
 /* Requirements Board */
 .extracted-requirements {
-  background: #f8fafc;
-  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
   padding: 1.75rem;
   margin-bottom: 3rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
 }
 
 .extracted-requirements h4 {
   font-size: 0.85rem;
   font-weight: 800;
-  color: #64748b;
+  color: rgba(26, 26, 26, 0.8);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 1.25rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .jd-skills-tags {
@@ -226,21 +268,26 @@
 
 .jd-skill-tag {
   padding: 8px 16px;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 0.9rem;
   font-weight: 700;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #1a1a1a;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .jd-skill-tag.required {
-  background: rgba(0, 242, 255, 0.1);
-  color: #00f2ff;
-  border: 1px solid rgba(0, 242, 255, 0.3);
+  background: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.5);
 }
 
 .jd-skill-tag.preferred {
-  background: rgba(255, 255, 255, 0.05);
-  color: #94a3b8;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(26, 26, 26, 0.8);
 }
 
 /* Result Cards List */
@@ -253,14 +300,23 @@
 .results-sidebar {
   position: sticky;
   top: 2rem;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
 }
 
 .results-sidebar .filter-group h4 {
   font-size: 0.8rem;
   font-weight: 800;
-  color: #334155;
+  color: rgba(26, 26, 26, 0.9);
   text-transform: uppercase;
   margin-bottom: 1rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-search-box {
@@ -271,16 +327,26 @@
   width: 100%;
   padding: 0.875rem 2.5rem 0.875rem 1.25rem;
   border-radius: 12px;
-  border: 1.5px solid #e2e8f0;
-  background: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   font-size: 0.95rem;
   font-weight: 600;
+  color: #1a1a1a;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-search-box input::placeholder {
+  color: rgba(26, 26, 26, 0.5);
 }
 
 .sidebar-search-box input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2),
+              0 8px 16px rgba(0, 0, 0, 0.15);
 }
 
 .search-icon-sm {
@@ -288,7 +354,8 @@
   right: 14px;
   top: 50%;
   transform: translateY(-50%);
-  opacity: 0.5;
+  opacity: 0.7;
+  color: rgba(26, 26, 26, 0.8);
 }
 
 /* PREMIUM MATCH CARD STRUCTURE */
@@ -299,11 +366,13 @@
 }
 
 .result-card {
-  background: rgba(10, 25, 47, 0.08);
-  backdrop-filter: blur(5px);
-  border-radius: 20px;
-  border: 1px solid rgba(0, 242, 255, 0.1);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -313,9 +382,10 @@
 
 .result-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0, 242, 255, 0.1);
-  border-color: rgba(0, 242, 255, 0.3);
-  background: rgba(10, 25, 47, 0.3);
+  box-shadow: 0 16px 48px 0 rgba(31, 38, 135, 0.5),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Match Score Pill */
@@ -323,16 +393,21 @@
   position: absolute;
   top: 1.25rem;
   right: 1.25rem;
-  background: white;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: 0.5rem 0.85rem;
   border-radius: 20px;
   font-weight: 800;
   font-size: 0.75rem;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border: 1px solid #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #1a1a1a;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   z-index: 2;
 }
 
@@ -360,8 +435,10 @@
 /* Card Top Header */
 .card-top-info {
   padding: 1.75rem;
-  background: linear-gradient(to bottom right, #ffffff, #f9fafb);
-  border-bottom: 1px solid #f1f5f9;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   gap: 1.25rem;
@@ -370,15 +447,20 @@
 .candidate-initials {
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.2) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #1a1a1a;
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.4rem;
   font-weight: 800;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
 }
 
@@ -386,8 +468,9 @@
   margin: 0;
   font-size: 1.15rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #1a1a1a;
   letter-spacing: -0.2px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .meta-badges {
@@ -402,18 +485,26 @@
   font-weight: 800;
   text-transform: uppercase;
   padding: 3px 8px;
-  border-radius: 6px;
-  background: #f1f5f9;
-  color: #475569;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(26, 26, 26, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .match-detail-badge {
   font-size: 0.6rem;
   font-weight: 800;
-  background: #e0f2fe;
-  color: #0369a1;
+  background: rgba(59, 130, 246, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #1a1a1a;
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* Metric Grid */
@@ -433,17 +524,19 @@
 .info-block .info-label {
   font-size: 0.65rem;
   font-weight: 800;
-  color: #94a3b8;
+  color: rgba(26, 26, 26, 0.7);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .info-block .info-value {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #1a1a1a;
   line-height: 1.4;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* Skills Section */
@@ -456,10 +549,11 @@
   display: block;
   font-size: 0.65rem;
   font-weight: 800;
-  color: #94a3b8;
+  color: rgba(26, 26, 26, 0.8);
   text-transform: uppercase;
   margin-bottom: 1rem;
   letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .skills-tag-list {
@@ -469,40 +563,52 @@
 }
 
 .skill-result-tag {
-  background: #eff6ff;
-  color: #2563eb;
+  background: rgba(59, 130, 246, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #1a1a1a;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 0.8rem;
   font-weight: 700;
-  border: 1px solid #dbeafe;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .more-skills-btn {
   background: transparent;
   border: none;
-  color: #3b82f6;
+  color: rgba(26, 26, 26, 0.8);
   font-weight: 800;
   font-size: 0.75rem;
   cursor: pointer;
   margin-top: 0.75rem;
   padding: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.more-skills-btn:hover {
+  color: #1a1a1a;
 }
 
 /* Action Footer */
 .view-resume-action {
   padding: 1.25rem 1.75rem;
-  background: #f9fafb;
-  border-top: 1px solid #f1f5f9;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .view-resume-link {
   text-decoration: none;
-  background: #ffffff;
-  color: #0f172a;
-  border: 1.5px solid #0f172a;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 0.6rem 0;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 0.85rem;
   font-weight: 800;
   display: flex;
@@ -510,11 +616,16 @@
   justify-content: center;
   gap: 0.6rem;
   transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .view-resume-link:hover {
-  background: #0f172a;
-  color: white;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 /* Unique JD Skills Styling */
@@ -529,28 +640,34 @@
   border-radius: 20px;
   font-size: 0.9rem;
   font-weight: 600;
-  background: white;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #1a1a1a;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .jd-skill-tag.required {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
+  background: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.5);
 }
 
 .jd-skill-tag.preferred {
-  background: #f8fafc;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(26, 26, 26, 0.8);
 }
 
 .relocate-subtext {
   display: block;
   font-size: 0.75rem;
-  color: #3b82f6;
+  color: rgba(26, 26, 26, 0.8);
   margin-top: 0.25rem;
   font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 1024px) {

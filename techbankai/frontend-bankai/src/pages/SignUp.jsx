@@ -14,6 +14,7 @@ const SignUp = () => {
     fullName: '',
     dateOfBirth: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     state: '',
@@ -67,6 +68,12 @@ const SignUp = () => {
     return pincodeRegex.test(pincode)
   }
 
+  const validatePhone = (phone) => {
+    // Indian phone number validation: 10 digits, optionally with country code
+    const phoneRegex = /^(\+91[\-\s]?)?[0]?[6-9]\d{9}$/
+    return phoneRegex.test(phone.replace(/[\s\-]/g, ''))
+  }
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({
@@ -100,6 +107,13 @@ const SignUp = () => {
           error = 'Email address is required'
         } else if (!validateEmail(value)) {
           error = 'Please enter a valid email address'
+        }
+        break
+      case 'phone':
+        if (!value) {
+          error = 'Phone number is required'
+        } else if (!validatePhone(value)) {
+          error = 'Please enter a valid 10-digit phone number'
         }
         break
       case 'password':
@@ -151,9 +165,8 @@ const SignUp = () => {
 
   const isStepValid = (step) => {
     const stepFields = {
-      1: ['fullName', 'email', 'password', 'confirmPassword'],
-      2: ['role', ...(formData.role === 'Company Employee' ? ['employeeId'] : [])],  // Freelancer ID is auto-generated
-      3: ['dateOfBirth', 'state', 'city', 'pincode']
+      1: ['fullName', 'phone', 'password', 'confirmPassword'],
+      2: ['email', 'role', ...(formData.role === 'Company Employee' ? ['employeeId'] : [])]  // Freelancer ID is auto-generated
     }
 
     const currentFields = stepFields[step]
@@ -185,18 +198,19 @@ const SignUp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!isStepValid(3)) return
+    if (!isStepValid(2)) return
 
     setIsSubmitting(true)
     try {
       const signupData = {
         name: formData.fullName,
         email: formData.email,
+        phone: formData.phone,
         password: formData.password,
-        dob: formData.dateOfBirth,
-        state: formData.state,
-        city: formData.city,
-        pincode: formData.pincode,
+        dob: '',  // Optional - can be added later in profile
+        state: '',  // Optional - can be added later in profile
+        city: '',  // Optional - can be added later in profile
+        pincode: '',  // Optional - can be added later in profile
         employment_type: formData.role,  // Backend expects 'employment_type', not 'role'
         employee_id: formData.employeeId,
         freelancer_id: formData.freelancerId,
@@ -225,12 +239,15 @@ const SignUp = () => {
 
   const steps = [
     { number: 1, label: 'Identity' },
-    { number: 2, label: 'Professional' },
-    { number: 3, label: 'Location' }
+    { number: 2, label: 'Professional' }
   ]
 
   return (
     <div className="signup-container">
+      <div className="page-logos">
+        <img src="/women.png" alt="Women Owned" className="logo-left" />
+        <img src="/cache.png" alt="Cache" className="logo-right" />
+      </div>
       <motion.div
         className="auth-page-wrapper"
         initial={{ rotateY: 180, opacity: 0 }}
@@ -245,8 +262,11 @@ const SignUp = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <h1 className="brand-title">Techbank.Ai</h1>
-            <p className="brand-tagline">Join our Enterprise Platform</p>
+            <h1 className="brand-title">TechBankAI</h1>
+            <div className="brand-tagline">
+              <span className="powered-by-text">powered by</span>
+              <img src="/cache.png" alt="Cache" className="cache-logo" />
+            </div>
           </motion.div>
 
           <div className="steps-container">
@@ -261,7 +281,7 @@ const SignUp = () => {
             ))}
           </div>
 
-          <form autoComplete="off" onSubmit={currentStep === 3 ? handleSubmit : handleNext} className="signup-form">
+          <form autoComplete="off" onSubmit={currentStep === 2 ? handleSubmit : handleNext} className="signup-form">
             {currentStep === 1 && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
@@ -284,19 +304,19 @@ const SignUp = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="email">Email Address</label>
+                  <label htmlFor="phone">Phone Number</label>
                   <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    placeholder="name@example.com"
-                    className={errors.email ? 'error' : ''}
-                    autoComplete="none"
+                    placeholder="9876543210"
+                    className={errors.phone ? 'error' : ''}
+                    maxLength="10"
                   />
-                  {errors.email && <span className="error-message">{errors.email}</span>}
+                  {errors.phone && <span className="error-message">{errors.phone}</span>}
                 </div>
 
                 <div className="form-row">
@@ -360,6 +380,22 @@ const SignUp = () => {
                 className="step-content"
               >
                 <div className="form-group">
+                  <label htmlFor="email">Email Address</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    placeholder="name@example.com"
+                    className={errors.email ? 'error' : ''}
+                    autoComplete="none"
+                  />
+                  {errors.email && <span className="error-message">{errors.email}</span>}
+                </div>
+
+                <div className="form-group">
                   <label htmlFor="role">Your Role</label>
                   <select
                     id="role"
@@ -407,70 +443,6 @@ const SignUp = () => {
               </motion.div>
             )}
 
-            {currentStep === 3 && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="step-content"
-              >
-                <div className="form-group">
-                  <label htmlFor="dateOfBirth">Date of Birth</label>
-                  <input
-                    type="date"
-                    id="dateOfBirth"
-                    name="dateOfBirth"
-                    value={formData.dateOfBirth}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    className={errors.dateOfBirth ? 'error' : ''}
-                  />
-                  {errors.dateOfBirth && <span className="error-message">{errors.dateOfBirth}</span>}
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="state">State</label>
-                    <select
-                      id="state"
-                      name="state"
-                      value={formData.state}
-                      onChange={handleChange}
-                      className={errors.state ? 'error' : ''}
-                    >
-                      <option value="">Select State</option>
-                      {indianStates.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="pincode">Pincode</label>
-                    <input
-                      type="text"
-                      id="pincode"
-                      name="pincode"
-                      value={formData.pincode}
-                      onChange={handleChange}
-                      placeholder="110001"
-                      className={errors.pincode ? 'error' : ''}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="city">City</label>
-                  <input
-                    type="text"
-                    id="city"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    placeholder="New Delhi"
-                    className={errors.city ? 'error' : ''}
-                  />
-                  {errors.city && <span className="error-message">{errors.city}</span>}
-                </div>
-              </motion.div>
-            )}
-
             {errors.submit && <div className="error-message" style={{ textAlign: 'center' }}>{errors.submit}</div>}
 
             <div className="form-actions">
@@ -484,7 +456,7 @@ const SignUp = () => {
                 className="signup-button continue-button"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Registering...' : currentStep === 3 ? 'Complete Registration' : 'Continue'}
+                {isSubmitting ? 'Registering...' : currentStep === 2 ? 'Complete Registration' : 'Continue'}
               </button>
             </div>
 

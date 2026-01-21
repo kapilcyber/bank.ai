@@ -8,6 +8,41 @@
   overflow: hidden;
 }
 
+.page-logos {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.logo-left,
+.logo-right {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  pointer-events: auto;
+  transition: transform 0.3s ease;
+}
+
+.logo-left:hover,
+.logo-right:hover {
+  transform: scale(1.05);
+}
+
+.logo-left {
+  margin-right: auto;
+}
+
+.logo-right {
+  margin-left: auto;
+}
+
 .animated-background {
   position: absolute;
   top: 0;
@@ -383,6 +418,15 @@
 }
 
 @media (max-width: 768px) {
+  .page-logos {
+    padding: 1rem 1rem;
+  }
+
+  .logo-left,
+  .logo-right {
+    height: 40px;
+  }
+
   .signup-card {
     padding: 2rem 1.5rem;
     max-width: 100%;

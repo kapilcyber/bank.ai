@@ -177,7 +177,7 @@ if __name__ == "__main__":
         "src.main:app",
         host=settings.host,
         port=settings.port,
-        reload=True,  # Enabled for dev
+        reload=False,  # Disabled to reduce file watching noise - restart server manually after code changes
         log_level="info"
     )
 

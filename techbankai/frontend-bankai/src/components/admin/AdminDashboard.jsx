@@ -46,6 +46,49 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData()
+
+    // Set up automatic polling every 5 seconds for real-time updates from database
+    const pollInterval = setInterval(() => {
+      console.log('🔄 AdminDashboard: Auto-refreshing from database...')
+      fetchDashboardData()
+    }, 5000) // Poll every 5 seconds
+    
+    // Listen for resume upload events for immediate refresh
+    const handleResumeUploaded = () => {
+      console.log('📥 AdminDashboard: Received resumeUploaded event')
+      // Add a small delay to ensure backend has committed the transaction
+      setTimeout(() => {
+        console.log('🔄 AdminDashboard: Refreshing dashboard data after upload...')
+        fetchDashboardData()
+      }, 1000) // 1 second delay to ensure DB commit
+    }
+
+    // Refresh when component becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 AdminDashboard: Tab visible, refreshing from database...')
+        fetchDashboardData()
+      }
+    }
+
+    // Refresh when window regains focus
+    const handleFocus = () => {
+      console.log('🔄 AdminDashboard: Window focused, refreshing from database...')
+      fetchDashboardData()
+    }
+    
+    // Set up event listeners
+    window.addEventListener('resumeUploaded', handleResumeUploaded)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+    
+    // Cleanup
+    return () => {
+      clearInterval(pollInterval)
+      window.removeEventListener('resumeUploaded', handleResumeUploaded)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [])
 
   const fetchDashboardData = async () => {

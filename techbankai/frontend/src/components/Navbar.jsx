@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { API_BASE_URL } from '../config/api'
+import LogoutTransition from './admin/LogoutTransition'
 import './Navbar.css'
 
 const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, adminTabs, activeTab, setActiveTab }) => {
@@ -14,9 +16,23 @@ const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, admi
 
   const navigate = useNavigate()
   const { logout } = useApp()
+  const [showLogoutTransition, setShowLogoutTransition] = useState(false)
 
   const handleAdminToggle = () => {
     navigate('/admin')
+  }
+
+  const handleLogout = async () => {
+    setShowLogoutTransition(true)
+  }
+
+  const handleLogoutComplete = async () => {
+    await logout()
+    navigate('/')
+  }
+
+  if (showLogoutTransition) {
+    return <LogoutTransition onComplete={handleLogoutComplete} />
   }
 
   return (
@@ -87,10 +103,7 @@ const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, admi
 
           <button
             className="logout-button-nav"
-            onClick={async () => {
-              await logout()
-              navigate('/')
-            }}
+            onClick={handleLogout}
             title="Logout"
           >
             Logout

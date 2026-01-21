@@ -114,6 +114,42 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
 
   useEffect(() => {
     fetchDashboardData()
+    
+    // Listen for resume upload events for immediate refresh
+    const handleResumeUploaded = (event) => {
+      console.log('📥 AdminDashboard: Received resumeUploaded event', event.detail)
+      // Add a small delay to ensure backend has committed the transaction
+      setTimeout(() => {
+        console.log('🔄 AdminDashboard: Refreshing dashboard data after upload...')
+        fetchDashboardData()
+      }, 1000) // 1 second delay to ensure DB commit
+    }
+
+    // Refresh when component becomes visible (only when tab becomes active)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 AdminDashboard: Tab visible, refreshing from database...')
+        fetchDashboardData()
+      }
+    }
+
+    // Refresh when window regains focus (only when user returns to the tab)
+    const handleFocus = () => {
+      console.log('🔄 AdminDashboard: Window focused, refreshing from database...')
+      fetchDashboardData()
+    }
+    
+    // Set up event listeners
+    window.addEventListener('resumeUploaded', handleResumeUploaded)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resumeUploaded', handleResumeUploaded)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [])
 
   const fetchDashboardData = async () => {
@@ -141,6 +177,11 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
       }
 
       const data = await response.json()
+      
+      // Debug logging
+      console.log('📊 AdminDashboard: Raw API response:', data)
+      console.log('📊 AdminDashboard: total_records =', data.total_records)
+      console.log('📊 AdminDashboard: total_resumes =', data.total_resumes)
 
       // Transform backend data to match frontend format
       const transformedData = {
@@ -161,6 +202,9 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
         recentJD: data.recent_jd_analyses || []
       }
 
+      console.log('📊 AdminDashboard: Transformed data:', transformedData)
+      console.log('📊 AdminDashboard: totalRecords =', transformedData.totalRecords)
+      
       setDashboardData(transformedData)
       setError(null)
     } catch (err) {
@@ -206,8 +250,13 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
 
   // Calculate filtered data based on selected user type
   const filteredTotal = selectedUserType === 'all'
-    ? dashboardData.totalRecords
-    : dashboardData.userTypeCounts[selectedUserType] || 0
+    ? (dashboardData?.totalRecords ?? 0)
+    : (dashboardData?.userTypeCounts?.[selectedUserType] || 0)
+  
+  // Debug logging
+  console.log('📊 AdminDashboard: filteredTotal =', filteredTotal)
+  console.log('📊 AdminDashboard: selectedUserType =', selectedUserType)
+  console.log('📊 AdminDashboard: dashboardData.totalRecords =', dashboardData?.totalRecords)
 
   const filteredTopSkills = selectedUserType === 'all'
     ? dashboardData.topSkills
@@ -231,6 +280,7 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
             <option value="Company Employee">Company Employee</option>
             <option value="Freelancer">Freelancer</option>
             <option value="Guest User">Guest User</option>
+            <option value="Admin Uploads">Admin Uploads</option>
           </select>
         </div>
       </div>
@@ -247,7 +297,7 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
           </div>
           <div className="stat-info-new">
             <span className="label">Total Talent Pool</span>
-            <span className="value">{filteredTotal.toLocaleString()}</span>
+            <span className="value">{filteredTotal ? filteredTotal.toLocaleString() : '0'}</span>
             <span className="stat-trend-new">Global Database</span>
           </div>
         </motion.div>

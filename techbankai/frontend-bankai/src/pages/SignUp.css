@@ -10,6 +10,41 @@
   background: transparent;
 }
 
+.page-logos {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.logo-left,
+.logo-right {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  pointer-events: auto;
+  transition: transform 0.3s ease;
+}
+
+.logo-left:hover,
+.logo-right:hover {
+  transform: scale(1.05);
+}
+
+.logo-left {
+  margin-right: auto;
+}
+
+.logo-right {
+  margin-left: auto;
+}
+
 .signup-card {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -44,27 +79,49 @@
 
 .brand-header {
   text-align: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid rgba(229, 56, 59, 0.15);
+  margin-bottom: 1rem;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .brand-title {
-  font-size: 2.2rem;
-  font-weight: 800;
+  font-size: 1.8rem;
+  font-weight: 700;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin: 0 0 0.2rem 0;
+  margin: 0 0 0.15rem 0;
+  letter-spacing: -0.5px;
 }
 
 .brand-tagline {
-  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0 0;
+}
+
+.powered-by-text {
+  font-size: 0.7rem;
   color: var(--color-primary);
-  opacity: 0.7;
-  margin: 0;
-  font-weight: 500;
+  opacity: 0.6;
+  font-weight: 400;
+  text-transform: lowercase;
+  letter-spacing: 0.5px;
+}
+
+.cache-logo {
+  height: 20px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+}
+
+.cache-logo:hover {
+  opacity: 1;
 }
 
 /* Progress Bar Styles */
@@ -419,6 +476,15 @@
 }
 
 @media (max-width: 600px) {
+  .page-logos {
+    padding: 1rem 1rem;
+  }
+
+  .logo-left,
+  .logo-right {
+    height: 40px;
+  }
+
   .signup-card {
     padding: 2rem 1.5rem;
   }

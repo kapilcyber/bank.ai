@@ -1,13 +1,13 @@
 .navbar {
-  background: rgba(10, 25, 47, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   padding: 0.8rem 2rem;
   position: sticky;
   top: 0;
   z-index: 1000;
-  border-bottom: 1px solid rgba(0, 242, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .navbar-container {
@@ -22,14 +22,13 @@
 .navbar-heading {
   font-size: 1.8rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #fff 0%, #00f2ff 100%);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   cursor: pointer;
   user-select: none;
   letter-spacing: -1px;
-  text-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
   white-space: nowrap;
 }
 
@@ -43,13 +42,13 @@
   gap: 0.5rem;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 25, 47, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 242, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 0.5rem 0.6rem;
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
 /* Glass Tabs (Button Style) */
@@ -63,7 +62,8 @@
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.9rem;
-  color: #94a3b8;
+  color: var(--color-primary);
+  opacity: 0.8;
   cursor: pointer;
   transition: all 0.3s ease;
   outline: none;
@@ -72,17 +72,23 @@
 
 .nav-glass-tab:hover {
   background: rgba(255, 255, 255, 0.2);
-  color: #1e293b;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--color-primary);
+  opacity: 1;
   transform: translateY(-1px);
 }
 
 /* Active Tab - Simple Glass Highlight */
 .nav-glass-tab.active {
-  background: rgba(0, 242, 255, 0.1);
-  color: #00f2ff;
-  box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
-  border-color: rgba(0, 242, 255, 0.3);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--color-primary);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
   font-weight: 700;
+  opacity: 1;
   transform: none;
   z-index: 1;
   margin-bottom: 0;
@@ -105,19 +111,19 @@
 
 /* Active Tab Colors (Optional Specific Highlights) */
 .nav-glass-tab.tab-dashboard.active {
-  color: #3b82f6;
+  color: #ffffff;
 }
 
 .nav-glass-tab.tab-search-talent.active {
-  color: #8b5cf6;
+  color: #ffffff;
 }
 
 .nav-glass-tab.tab-search-jd.active {
-  color: #f59e0b;
+  color: #ffffff;
 }
 
 .nav-glass-tab.tab-add-resume.active {
-  color: #ec4899;
+  color: #ffffff;
 }
 
 .tab-icon {
@@ -164,18 +170,22 @@
 .profile-avatar {
   width: 42px;
   height: 42px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #00f2ff 0%, #0066ff 100%);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #050505;
+  color: #ffffff;
   font-weight: 800;
   font-size: 1.1rem;
-  box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
-  border: 1px solid rgba(0, 242, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .navbar-avatar-img {

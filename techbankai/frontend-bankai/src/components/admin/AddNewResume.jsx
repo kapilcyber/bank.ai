@@ -79,7 +79,8 @@ const AddNewResume = () => {
       setMessage(`Successfully uploaded ${response.success} resumes. ${response.failed} failed.`)
       setFiles([])
 
-      // The dashboard will refresh when the user navigates back to it because it fetches data on mount
+      // Trigger a custom event to refresh dashboard and records
+      window.dispatchEvent(new CustomEvent('resumeUploaded', { detail: { count: response.success } }))
     } catch (err) {
       console.error('Upload failed:', err)
       setUploadStatus('error')

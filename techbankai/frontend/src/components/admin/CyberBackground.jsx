@@ -9,10 +9,10 @@ const CyberBackground = () => {
         const ctx = canvas.getContext('2d');
         let animationFrameId;
 
-        // Configuration
+        // Configuration - Reduced for subtle static effect
         const particles = [];
-        const particleCount = 80;
-        const connectionDistance = 150;
+        const particleCount = 40;
+        const connectionDistance = 120;
         const mouse = { x: null, y: null, radius: 150 };
 
         const resize = () => {
@@ -33,9 +33,9 @@ const CyberBackground = () => {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
                 this.size = Math.random() * 2 + 1;
-                this.speedX = Math.random() * 1 - 0.5;
-                this.speedY = Math.random() * 1 - 0.5;
-                this.color = '#00f2ff';
+                this.speedX = (Math.random() * 0.3 - 0.15);
+                this.speedY = (Math.random() * 0.3 - 0.15);
+                this.color = 'rgba(0, 242, 255, 0.2)';
             }
 
             update() {
@@ -74,9 +74,9 @@ const CyberBackground = () => {
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Add glow to particles
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#00f2ff';
+                // Add subtle blue-green glow to particles
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = 'rgba(0, 242, 255, 0.3)';
             }
         }
 
@@ -96,7 +96,7 @@ const CyberBackground = () => {
 
                     if (distance < connectionDistance) {
                         let opacity = 1 - (distance / connectionDistance);
-                        ctx.strokeStyle = `rgba(0, 242, 255, ${opacity * 0.2})`;
+                        ctx.strokeStyle = `rgba(0, 242, 255, ${opacity * 0.15})`;
                         ctx.lineWidth = 1;
                         ctx.beginPath();
                         ctx.moveTo(particles[a].x, particles[a].y);

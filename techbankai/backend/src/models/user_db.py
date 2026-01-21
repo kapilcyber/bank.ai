@@ -12,6 +12,7 @@ class User(Base):
     name = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
+    phone = Column(String(20), nullable=True)
     dob = Column(String(50))
     state = Column(String(100))
     city = Column(String(100))

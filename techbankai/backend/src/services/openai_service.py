@@ -270,29 +270,67 @@ Decompose into the strict JSON format required.
         
         # Backward compatibility mapping for `jd_analysis.py` which expects flat structure
         # We perform this mapping here so the rest of the app continues to work while we transition
-        flattened_result = {
-            "job_level": (result.get("experience_seniority") or {}).get("role_level", "Experienced"),
-            "min_experience_years": (result.get("experience_seniority") or {}).get("required_years") or 0,
-            "required_skills": (
-                result.get("core_technical_skills", {}).get("items", []) + 
-                result.get("networking_protocols", {}).get("items", []) +
-                result.get("security_technologies", {}).get("items", []) +
-                result.get("cloud_architecture", {}).get("items", [])
-            ),
-            "keywords": (
-                result.get("compliance_governance", {}).get("items", []) +
-                result.get("incident_operations", {}).get("items", [])
-            ),
-            # Store the full structured decomposition for the matcher
-            "structured_requirements": result,
-            "weights": {k: v.get("weight", 0) for k, v in result.items() if isinstance(v, dict)}
-        }
-        
-        logger.info(f"Successfully extracted JD requirements with GPT-4")
-        return flattened_result
+        # Handle both new structured format and legacy flat format
+        try:
+            # Check if result is in new structured format
+            if "experience_seniority" in result or "core_technical_skills" in result:
+                flattened_result = {
+                    "job_level": (result.get("experience_seniority") or {}).get("role_level", "Experienced"),
+                    "min_experience_years": (result.get("experience_seniority") or {}).get("required_years") or 0,
+                    "required_skills": (
+                        (result.get("core_technical_skills", {}) or {}).get("items", []) + 
+                        (result.get("networking_protocols", {}) or {}).get("items", []) +
+                        (result.get("security_technologies", {}) or {}).get("items", []) +
+                        (result.get("cloud_architecture", {}) or {}).get("items", [])
+                    ),
+                    "preferred_skills": result.get("preferred_skills", []),
+                    "keywords": (
+                        (result.get("compliance_governance", {}) or {}).get("items", []) +
+                        (result.get("incident_operations", {}) or {}).get("items", [])
+                    ),
+                    # Store the full structured decomposition for the matcher
+                    "structured_requirements": result,
+                    "weights": {k: (v.get("weight", 0) if isinstance(v, dict) else 0) for k, v in result.items() if isinstance(v, dict)},
+                    "education": result.get("education", ""),
+                    "key_responsibilities": result.get("key_responsibilities", [])
+                }
+            else:
+                # Legacy flat format - use as-is with defaults
+                flattened_result = {
+                    "job_level": result.get("job_level", "Experienced"),
+                    "min_experience_years": result.get("min_experience_years", 0),
+                    "required_skills": result.get("required_skills", []),
+                    "preferred_skills": result.get("preferred_skills", []),
+                    "keywords": result.get("keywords", []),
+                    "education": result.get("education", ""),
+                    "structured_requirements": result,
+                    "weights": {},
+                    "key_responsibilities": result.get("key_responsibilities", [])
+                }
+            
+            logger.info(f"Successfully extracted JD requirements with GPT-4. Skills: {len(flattened_result.get('required_skills', []))}")
+            return flattened_result
+        except Exception as mapping_error:
+            logger.error(f"Error mapping JD requirements structure: {mapping_error}. Raw result: {result}")
+            # Fallback to basic structure
+            return {
+                "job_level": "Experienced",
+                "min_experience_years": 0,
+                "required_skills": result.get("required_skills", []),
+                "preferred_skills": result.get("preferred_skills", []),
+                "keywords": result.get("keywords", []),
+                "education": result.get("education", ""),
+                "structured_requirements": result,
+                "weights": {},
+                "key_responsibilities": result.get("key_responsibilities", [])
+            }
     
+    except json.JSONDecodeError as json_error:
+        logger.error(f"Failed to parse OpenAI JSON response: {json_error}")
+        logger.error(f"Response content: {response.choices[0].message.content if 'response' in locals() else 'No response'}")
+        raise ValueError(f"Invalid JSON response from OpenAI: {str(json_error)}")
     except Exception as e:
-        logger.error(f"GPT-4 JD extraction failed: {e}")
+        logger.error(f"GPT-4 JD extraction failed: {e}", exc_info=True)
         raise
 
 
@@ -391,6 +429,77 @@ OUTPUT FORMAT (JSON ONLY):
         # Prepare structured inputs for the prompt
         structured_jd = jd_requirements.get('structured_requirements', jd_requirements)
         
+        # Handle certifications - can be strings, dictionaries, lists, or nested structures
+        certifications = resume_data.get('certifications', [])
+        cert_strs = []
+        
+        # First, flatten any nested lists
+        flat_certs = []
+        for item in certifications:
+            if item is None:
+                continue
+            if isinstance(item, list):
+                flat_certs.extend([c for c in item if c is not None])
+            else:
+                flat_certs.append(item)
+        
+        # Now process each cert
+        for cert in flat_certs:
+            if cert is None:
+                continue
+            try:
+                if isinstance(cert, dict):
+                    # Extract name or use string representation
+                    # Handle nested dicts - ensure we always get a string
+                    name = cert.get('name') or cert.get('certification') or cert.get('cert_name')
+                    if name:
+                        # If name is still a dict or list, convert to string
+                        if isinstance(name, dict):
+                            cert_str = json.dumps(name)
+                        elif isinstance(name, list):
+                            cert_str = ', '.join(str(c) for c in name if c is not None)
+                        else:
+                            cert_str = str(name) if not isinstance(name, str) else name
+                    else:
+                        # Fallback to JSON string representation of entire dict
+                        cert_str = json.dumps(cert)
+                elif isinstance(cert, str):
+                    cert_str = cert
+                elif isinstance(cert, list):
+                    # If cert is a list, join its string representations
+                    cert_str = ', '.join(str(c) for c in cert if c is not None)
+                else:
+                    # Convert anything else to string
+                    cert_str = str(cert)
+                
+                # Final safety check - ensure it's a string and not empty before appending
+                if isinstance(cert_str, str) and cert_str.strip():
+                    cert_strs.append(cert_str.strip())
+            except Exception as cert_error:
+                # If anything goes wrong, just skip this cert
+                logger.warning(f"Error processing certification {cert}: {cert_error}")
+                continue
+        
+        # Final safety check - ensure all items are strings before joining
+        cert_strs = [str(c).strip() for c in cert_strs if c and str(c).strip()]
+        
+        # Handle skills - ensure all are strings
+        skills = resume_data.get('skills', [])[:20]
+        skill_strs = []
+        for skill in skills:
+            if skill is None:
+                continue
+            try:
+                if isinstance(skill, (dict, list)):
+                    skill_str = json.dumps(skill) if isinstance(skill, dict) else ', '.join(str(s) for s in skill if s is not None)
+                else:
+                    skill_str = str(skill) if not isinstance(skill, str) else skill
+                if skill_str.strip():
+                    skill_strs.append(skill_str.strip())
+            except Exception:
+                # Skip problematic skills
+                continue
+        
         user_prompt = f"""ANALYZE THIS RESUME AGAINST JD REQUIREMENTS:
 
 [JD REQUIREMENTS BY CATEGORY]
@@ -400,8 +509,8 @@ OUTPUT FORMAT (JSON ONLY):
 Name: {resume_data.get('resume_candidate_name', 'Unknown')}
 Current Role: {resume_data.get('role', 'N/A')}
 Total Experience: {resume_data.get('experience_years', 0)} years
-Skills: {', '.join(resume_data.get('skills', [])[:20])}
-Certifications: {', '.join(resume_data.get('certifications', []))}
+Skills: {', '.join(skill_strs) if skill_strs else 'None'}
+Certifications: {', '.join(cert_strs) if cert_strs else 'None'}
 
 Resume Summary:
 {resume_data.get('summary', '')[:2000]}

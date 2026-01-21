@@ -32,6 +32,8 @@ const Navbar = ({ userProfile, showProfile = true }) => {
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
       <div className="navbar-container">
+        <img src="/women.png" alt="Women Owned" className="navbar-logo-left" />
+        
         <motion.h1
           className="navbar-heading"
           whileHover={{ scale: 1.02 }}
@@ -76,6 +78,8 @@ const Navbar = ({ userProfile, showProfile = true }) => {
             Logout
           </motion.button>
         </div>
+        
+        <img src="/cache.png" alt="Cache" className="navbar-logo-right" />
       </div>
     </motion.nav>
   )

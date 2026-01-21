@@ -5,7 +5,6 @@ import { useApp } from '../context/AppContext'
 import { login } from '../config/api'
 import AdminTransition from '../components/admin/AdminTransition'
 import StartupSequence from '../components/StartupSequence'
-import CyberBackground from '../components/admin/CyberBackground'
 import './LandingPage.css'
 
 const LandingPage = () => {
@@ -135,87 +134,108 @@ const LandingPage = () => {
     }
 
     return (
-        <div className="landing-container">
-            <CyberBackground />
-
+        <div className="login-container">
+            <div className="page-logos">
+                <img src="/women.png" alt="Women Owned" className="logo-left" />
+                <img src="/cache.png" alt="Cache" className="logo-right" />
+            </div>
             <motion.div
-                className="login-card"
-                initial={{ opacity: 0, y: 50, scale: 0.8, filter: 'blur(10px)' }}
-                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                transition={{
-                    duration: 1.2,
-                    ease: [0.34, 1.56, 0.64, 1], // Custom bounce/back-out
-                    opacity: { duration: 0.8 },
-                    filter: { duration: 1 }
-                }}
+                className="auth-page-wrapper"
+                initial={{ rotateY: -180, opacity: 0 }}
+                animate={{ rotateY: 0, opacity: 1 }}
+                exit={{ rotateY: 180, opacity: 0 }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
             >
-                <div className="brand-header">
-                    <h1 className="brand-title">TechBank.Ai</h1>
-                    <p className="brand-tagline">Advanced Admin Portal</p>
-                </div>
+                <div className="login-card">
+                    <motion.div
+                        className="brand-header"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                    >
+                        <h1 className="brand-title">TechBankAI</h1>
+                        <div className="brand-tagline">
+                            <span className="powered-by-text">powered by</span>
+                            <img src="/cache.png" alt="Cache" className="cache-logo" />
+                        </div>
+                    </motion.div>
 
-                <h2 className="login-title">Admin Login</h2>
-                <p className="login-subtitle">Enter your credentials to access the management panel</p>
+                    <form onSubmit={handleSubmit} className="login-form">
+                        {authError && (
+                            <motion.div
+                                className="auth-error"
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                            >
+                                {authError}
+                            </motion.div>
+                        )}
 
-                <form onSubmit={handleSubmit} className="login-form">
-                    {authError && (
                         <motion.div
-                            className="auth-error"
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            className="form-group"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.2 }}
                         >
-                            {authError}
-                        </motion.div>
-                    )}
-
-                    <div className="form-group">
-                        <label htmlFor="email">Email Address</label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            value={email}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            placeholder="admin@techbank.ai"
-                            className={errors.email ? 'error' : ''}
-                            autoComplete="off"
-                        />
-                        {errors.email && <span className="error-message">{errors.email}</span>}
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="password">Password</label>
-                        <div className="password-input-wrapper">
+                            <label htmlFor="email">Email Address</label>
                             <input
-                                type={showPassword ? 'text' : 'password'}
-                                id="password"
-                                name="password"
-                                value={password}
+                                type="email"
+                                id="email"
+                                name="email"
+                                value={email}
                                 onChange={handleChange}
                                 onBlur={handleBlur}
-                                placeholder="••••••••"
-                                className={errors.password ? 'error' : ''}
+                                placeholder="admin@techbank.ai"
+                                className={errors.email ? 'error' : ''}
+                                autoComplete="off"
                             />
-                            <button
-                                type="button"
-                                className="password-toggle"
-                                onClick={() => setShowPassword(!showPassword)}
-                            >
-                                {showPassword ? '🙈' : '👁️'}
-                            </button>
-                        </div>
-                        {errors.password && <span className="error-message">{errors.password}</span>}
-                    </div>
+                            {errors.email && <span className="error-message">{errors.email}</span>}
+                        </motion.div>
 
-                    <button
-                        type="submit"
-                        className="login-button"
-                        disabled={!isFormValid() || isLoading}
-                    >
-                        {isLoading ? 'Authenticating...' : 'Login to Admin Panel'}
-                    </button>
-                </form>
+                        <motion.div
+                            className="form-group"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.3 }}
+                        >
+                            <label htmlFor="password">Password</label>
+                            <div className="password-input-wrapper">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    id="password"
+                                    name="password"
+                                    value={password}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    placeholder="Enter your password"
+                                    className={errors.password ? 'error' : ''}
+                                />
+                                <button
+                                    type="button"
+                                    className="password-toggle"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                >
+                                    {showPassword ? '🙈' : '👁️'}
+                                </button>
+                            </div>
+                            {errors.password && <span className="error-message">{errors.password}</span>}
+                        </motion.div>
+
+                        <motion.button
+                            type="submit"
+                            className="login-button"
+                            disabled={!isFormValid() || isLoading}
+                            whileHover={isFormValid() && !isLoading ? { scale: 1.02 } : {}}
+                            whileTap={isFormValid() && !isLoading ? { scale: 0.98 } : {}}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                        >
+                            {isLoading ? 'Authenticating...' : 'Login to Admin Panel'}
+                        </motion.button>
+                    </form>
+                </div>
             </motion.div>
         </div>
     )

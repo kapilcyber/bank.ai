@@ -1,7 +1,13 @@
 """Logging utilities."""
 import logging
 import sys
+import os
 from datetime import datetime
+from pathlib import Path
+
+# Create logs directory if it doesn't exist
+logs_dir = Path("logs")
+logs_dir.mkdir(exist_ok=True)
 
 # Configure logging
 logging.basicConfig(
@@ -9,7 +15,8 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler(f'app_{datetime.now().strftime("%Y%m%d")}.log')
+        # Store logs in logs/ directory to avoid triggering file watchers
+        logging.FileHandler(logs_dir / f'app_{datetime.now().strftime("%Y%m%d")}.log')
     ]
 )
 

@@ -77,35 +77,74 @@ async def analyze_jd(
         
         # Step 4: Extract JD requirements using OpenAI
         logger.info("Analyzing JD with OpenAI GPT-4")
-        jd_requirements = await openai_service.extract_jd_requirements(jd_text)
+        try:
+            # Check if OpenAI client is available before attempting extraction
+            from src.services.openai_service import get_openai_client
+            client = get_openai_client()
+            if not client:
+                logger.error("OpenAI client not initialized - API key missing or invalid")
+                raise HTTPException(
+                    status_code=500, 
+                    detail="OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment variables."
+                )
+            
+            jd_requirements = await openai_service.extract_jd_requirements(jd_text)
+            # Ensure all required fields exist with defaults
+            if not jd_requirements:
+                raise HTTPException(status_code=500, detail="Failed to extract JD requirements: Empty response from OpenAI")
+            # Set defaults for missing fields
+            jd_requirements.setdefault('required_skills', [])
+            jd_requirements.setdefault('preferred_skills', [])
+            jd_requirements.setdefault('keywords', [])
+            jd_requirements.setdefault('min_experience_years', 0)
+            jd_requirements.setdefault('education', '')
+            jd_requirements.setdefault('job_level', 'Experienced')
+            logger.info(f"JD requirements extracted successfully. Required skills: {len(jd_requirements.get('required_skills', []))}")
+        except HTTPException:
+            raise
+        except ValueError as ve:
+            logger.error(f"OpenAI configuration error: {ve}")
+            raise HTTPException(status_code=500, detail=f"OpenAI service not configured: {str(ve)}")
+        except Exception as e:
+            logger.error(f"Failed to extract JD requirements: {e}", exc_info=True)
+            import traceback
+            error_trace = traceback.format_exc()
+            logger.error(f"Full traceback: {error_trace}")
+            raise HTTPException(status_code=500, detail=f"Failed to analyze JD with OpenAI: {str(e)}")
         
         # Step 5: Generate unique job ID
         job_id = f"JOB-{uuid.uuid4().hex[:8].upper()}"
         
         # Step 6: Save JD analysis to database
-        jd_analysis = JDAnalysis(
-            job_id=job_id,
-            jd_filename=jd_filename,
-            jd_text=jd_text,
-            extracted_keywords=jd_requirements.get('keywords', []),
-            required_skills=jd_requirements.get('required_skills', []),
-            preferred_skills=jd_requirements.get('preferred_skills', []),
-            required_experience=jd_requirements.get('min_experience_years', 0),
-            education=jd_requirements.get('education', ''),
-            job_level=jd_requirements.get('job_level', ''),
-            submitted_by=current_user['email']
-        )
-        
-        db.add(jd_analysis)
-        await db.commit()
-        
-        logger.info(f"JD analysis saved with job_id: {job_id}")
+        try:
+            jd_analysis = JDAnalysis(
+                job_id=job_id,
+                jd_filename=jd_filename,
+                jd_text=jd_text,
+                extracted_keywords=jd_requirements.get('keywords', []),
+                required_skills=jd_requirements.get('required_skills', []),
+                preferred_skills=jd_requirements.get('preferred_skills', []),
+                required_experience=jd_requirements.get('min_experience_years', 0),
+                education=jd_requirements.get('education', ''),
+                job_level=jd_requirements.get('job_level', ''),
+                submitted_by=current_user['email']
+            )
+            
+            db.add(jd_analysis)
+            await db.commit()
+            
+            logger.info(f"JD analysis saved with job_id: {job_id}")
+        except Exception as db_error:
+            logger.error(f"Failed to save JD analysis to database: {db_error}", exc_info=True)
+            await db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to save JD analysis: {str(db_error)}")
         
         # Step 7: Fetch all resumes from database (filter by source_type if provided)
         logger.info("Fetching all resumes for matching")
         query = select(Resume).options(
             selectinload(Resume.work_history),
-            selectinload(Resume.certificates)
+            selectinload(Resume.certificates),
+            selectinload(Resume.educations)
         )
         if user_types and len(user_types) > 0:
             # Map user_types to source_types
@@ -273,7 +312,7 @@ async def analyze_jd(
              raise e
         
         # Phase 3: AI-enhanced scoring with DETACHED data (no DB session access)
-        semaphore = asyncio.Semaphore(5)
+        semaphore = asyncio.Semaphore(3)  # Reduced from 5 to 3 to avoid rate limits
         async def score_resume(detached_data):
             try:
                 resume_id = detached_data['resume_id']
@@ -293,9 +332,27 @@ async def analyze_jd(
                         'candidate_name': detached_data.get('name')
                     }, False
                 
-                # Calculate match score - now completely isolated from DB
+                # Calculate match score with rate limit handling
                 async with semaphore:
-                    score_result = await calculate_match_score(detached_data, jd_requirements)
+                    try:
+                        score_result = await calculate_match_score(detached_data, jd_requirements)
+                        logger.debug(f"Resume {resume_id} scored successfully: {score_result.get('total_score', 0)}")
+                    except Exception as e:
+                        # Check if it's a rate limit error or TypeError (certifications issue)
+                        error_str = str(e).lower()
+                        error_type = type(e).__name__
+                        
+                        if 'rate limit' in error_str or '429' in error_str or 'rate_limit' in error_str:
+                            logger.warning(f"Rate limit hit for resume {resume_id}, using fallback scoring")
+                        elif error_type == 'TypeError' and ('sequence item' in error_str or 'certification' in error_str):
+                            logger.warning(f"TypeError in scoring for resume {resume_id} (likely certifications issue), using fallback scoring: {e}")
+                        else:
+                            logger.warning(f"Error in scoring for resume {resume_id}: {error_type}: {e}, using fallback scoring")
+                        
+                        # Fall back to traditional scoring for any error
+                        from src.services.matching_engine import _calculate_traditional_fallback
+                        score_result = _calculate_traditional_fallback(detached_data, jd_requirements)
+                        logger.debug(f"Resume {resume_id} fallback score: {score_result.get('total_score', 0)}")
                     
                     return {
                         **detached_data,
@@ -313,8 +370,29 @@ async def analyze_jd(
                         'candidate_name': detached_data.get('name')
                     }, True
             except Exception as e:
-                logger.error(f"Error matching resume {detached_data.get('resume_id')}: {e}")
-                return None, False
+                logger.error(f"Critical error matching resume {detached_data.get('resume_id')}: {e}, using fallback")
+                # Even on critical errors, try fallback scoring
+                try:
+                    from src.services.matching_engine import _calculate_traditional_fallback
+                    score_result = _calculate_traditional_fallback(detached_data, jd_requirements)
+                    return {
+                        **detached_data,
+                        'match_score': score_result['total_score'],
+                        'skill_match': score_result['skill_match'],
+                        'experience_match': score_result['experience_match'],
+                        'semantic_score': score_result['semantic_score'],
+                        'matched_skills': score_result['matched_skills'],
+                        'missing_skills': score_result['missing_skills'],
+                        'match_explanation': score_result['match_explanation'],
+                        'learning_agility_score': score_result.get('learning_agility_score', 0.0),
+                        'domain_context_score': score_result.get('domain_context_score', 0.0),
+                        'communication_score': score_result.get('communication_score', 0.0),
+                        'factor_breakdown': score_result.get('factor_breakdown', {}),
+                        'candidate_name': detached_data.get('name')
+                    }, True
+                except Exception as fallback_error:
+                    logger.error(f"Fallback scoring also failed for resume {detached_data.get('resume_id')}: {fallback_error}")
+                    return None, False
 
         # Run scoring tasks with detached data (NO database access here)
         tasks = [score_resume(data) for data in prelim_data]
@@ -323,39 +401,79 @@ async def analyze_jd(
         for result, should_persist in results:
             if not result:
                 continue
+            # Log the score for debugging
+            score = result.get('match_score', 0)
+            logger.info(f"Resume {result.get('resume_id')} scored {score} (threshold: {min_score})")
+            
             if result['match_score'] >= min_score:
                 matches.append(result)
                 if should_persist:
-                    db.add(MatchResult(
-                        job_id=job_id,
-                        resume_id=result['resume_id'],
-                        source_type=result.get('source_type'),
-                        source_id=result.get('source_id'),
-                        # Legacy fields (for backward compatibility)
-                        match_score=result['match_score'],
-                        skill_match_score=result['skill_match'],
-                        experience_match_score=result['experience_match'],
-                        semantic_score=result['semantic_score'],
-                        keyword_matches={
-                            'matched_skills': result['matched_skills'],
-                            'missing_skills': result['missing_skills']
-                        },
-                        match_explanation=result['match_explanation'],
-                        # NEW: Universal Fit Score fields
-                        universal_fit_score=result['match_score'],
-                        skill_evidence_score=result['skill_match'],
-                        execution_score=result['experience_match'],
-                        complexity_score=result['semantic_score'],
-                        learning_agility_score=result.get('learning_agility_score', 0.0),
-                        domain_context_score=result.get('domain_context_score', 0.0),
-                        communication_score=result.get('communication_score', 0.0),
-                        factor_breakdown=result.get('factor_breakdown', {})
-                    ))
+                    # Truncate all String(100) fields to avoid database errors
+                    # Database columns are VARCHAR(100), so we truncate to 95 to be safe
+                    match_explanation = result.get('match_explanation', '')
+                    if match_explanation and len(match_explanation) > 95:
+                        match_explanation = match_explanation[:92] + "..."
+                    
+                    # Truncate job_id if needed (shouldn't be necessary, but safe)
+                    safe_job_id = job_id[:95] if len(job_id) > 95 else job_id
+                    
+                    # Truncate source_id if needed
+                    source_id = result.get('source_id')
+                    safe_source_id = None
+                    if source_id:
+                        safe_source_id = source_id[:95] if len(str(source_id)) > 95 else source_id
+                    
+                    try:
+                        db.add(MatchResult(
+                            job_id=safe_job_id,
+                            resume_id=result['resume_id'],
+                            source_type=result.get('source_type'),
+                            source_id=safe_source_id,
+                            # Legacy fields (for backward compatibility)
+                            match_score=result['match_score'],
+                            skill_match_score=result['skill_match'],
+                            experience_match_score=result['experience_match'],
+                            semantic_score=result['semantic_score'],
+                            keyword_matches={
+                                'matched_skills': result['matched_skills'],
+                                'missing_skills': result['missing_skills']
+                            },
+                            match_explanation=match_explanation,
+                            # NEW: Universal Fit Score fields
+                            universal_fit_score=result['match_score'],
+                            skill_evidence_score=result['skill_match'],
+                            execution_score=result['experience_match'],
+                            complexity_score=result['semantic_score'],
+                            learning_agility_score=result.get('learning_agility_score', 0.0),
+                            domain_context_score=result.get('domain_context_score', 0.0),
+                            communication_score=result.get('communication_score', 0.0),
+                            factor_breakdown=result.get('factor_breakdown', {})
+                        ))
+                    except Exception as db_add_error:
+                        logger.error(f"Error adding MatchResult to database: {db_add_error}")
+                        logger.error(f"job_id length: {len(safe_job_id)}, source_id length: {len(str(safe_source_id)) if safe_source_id else 0}, match_explanation length: {len(match_explanation)}")
+                        raise
+            else:
+                logger.debug(f"Resume {result.get('resume_id')} filtered out: score {score} < {min_score}")
 
         await db.commit()
         
         # Step 9: Sort by score and return top N
         matches.sort(key=lambda x: x['match_score'], reverse=True)
+        
+        # If no matches meet the threshold, include top candidates anyway (with lower threshold)
+        if len(matches) == 0:
+            logger.warning(f"No candidates met minimum score {min_score}. Including top candidates with lower scores.")
+            # Get all valid results and sort by score
+            valid_results = [r for r, _ in results if r is not None]
+            if valid_results:
+                valid_results.sort(key=lambda x: x.get('match_score', 0), reverse=True)
+                # Include top candidates even if below threshold
+                matches = valid_results[:top_n]
+                logger.info(f"Including {len(matches)} top candidates despite low scores (scores: {[r.get('match_score', 0) for r in matches[:5]]})")
+            else:
+                logger.error(f"No valid results found! Total results: {len(results)}, None results: {sum(1 for r, _ in results if r is None)}")
+        
         top_matches = matches[:top_n]
         
         logger.info(f"JD Analysis complete: {len(matches)} matches found, returning top {len(top_matches)}")

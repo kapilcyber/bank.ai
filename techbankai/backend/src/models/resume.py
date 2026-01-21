@@ -39,6 +39,25 @@ class Certification(Base):
     resume = relationship("Resume", back_populates="certificates")
 
 
+class Education(Base):
+    """Structured education table."""
+    __tablename__ = "educations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    resume_id = Column(Integer, ForeignKey("resumes.id", ondelete="CASCADE"), nullable=False)
+    
+    degree = Column(String(255), nullable=True)  # e.g., "10th", "12th", "B.Tech", "M.Tech"
+    institution = Column(String(255), nullable=True)  # School/College/University name
+    field_of_study = Column(String(255), nullable=True)  # e.g., "Computer Science", "Mathematics"
+    start_date = Column(String(50), nullable=True)  # Start year/date
+    end_date = Column(String(50), nullable=True)  # End year/date or "Present"
+    is_completed = Column(Integer, default=1)  # 1 for completed, 0 for ongoing
+    grade = Column(String(50), nullable=True)  # CGPA, Percentage, etc.
+    description = Column(Text, nullable=True)  # Additional details
+    
+    resume = relationship("Resume", back_populates="educations")
+
+
 class Resume(Base):
     """Resume database model."""
     __tablename__ = "resumes"
@@ -64,6 +83,7 @@ class Resume(Base):
     # Structured Relationships
     work_history = relationship("Experience", back_populates="resume", cascade="all, delete-orphan")
     certificates = relationship("Certification", back_populates="resume", cascade="all, delete-orphan")
+    educations = relationship("Education", back_populates="resume", cascade="all, delete-orphan")
     
     # Unique constraint: (source_type, source_id) for idempotent uploads
     __table_args__ = (

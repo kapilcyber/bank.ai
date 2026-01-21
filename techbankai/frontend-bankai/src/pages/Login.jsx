@@ -165,6 +165,10 @@ const Login = () => {
 
   return (
     <div className="login-container">
+      <div className="page-logos">
+        <img src="/women.png" alt="Women Owned" className="logo-left" />
+        <img src="/cache.png" alt="Cache" className="logo-right" />
+      </div>
       <motion.div
         className="auth-page-wrapper"
         initial={{ rotateY: -180, opacity: 0 }}
@@ -179,27 +183,12 @@ const Login = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <h1 className="brand-title">Techbank.Ai</h1>
-            <p className="brand-tagline">Advanced Resume Screening & Management Platform</p>
+            <h1 className="brand-title">TechBankAI</h1>
+            <div className="brand-tagline">
+              <span className="powered-by-text">powered by</span>
+              <img src="/cache.png" alt="Cache" className="cache-logo" />
+            </div>
           </motion.div>
-
-          <motion.h2
-            className="login-title"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            Welcome Back
-          </motion.h2>
-
-          <motion.p
-            className="login-subtitle"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            Login to access your account
-          </motion.p>
 
           <form onSubmit={handleSubmit} className="login-form">
             {successMessage && (
@@ -225,7 +214,7 @@ const Login = () => {
               className="form-group"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.2 }}
             >
               <label htmlFor="email">Email Address</label>
               <input
@@ -246,7 +235,7 @@ const Login = () => {
               className="form-group"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.3 }}
             >
               <label htmlFor="password">Password</label>
               <div className="password-input-wrapper">
@@ -276,7 +265,7 @@ const Login = () => {
               className="forgot-password-link"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.55 }}
+              transition={{ delay: 0.35 }}
             >
               <Link to="/forgot-password" className="forgot-link">
                 Forgot Password?
@@ -291,7 +280,7 @@ const Login = () => {
               whileTap={isFormValid() && !isLoading ? { scale: 0.98 } : {}}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.4 }}
             >
               {isLoading ? 'Logging in...' : 'Login'}
             </motion.button>
@@ -300,7 +289,7 @@ const Login = () => {
               className="login-footer"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
+              transition={{ delay: 0.5 }}
             >
               <p>
                 Don't have an account?{' '}

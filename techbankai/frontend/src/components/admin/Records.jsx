@@ -49,10 +49,7 @@ const Records = ({ initialFilter, setInitialFilter }) => {
     const [error, setError] = useState(null)
     const [selectedCandidate, setSelectedCandidate] = useState(null)
 
-    useEffect(() => {
-        fetchRecords()
-    }, [])
-
+    // Fetch records from database - always fresh data
     const fetchRecords = async () => {
         try {
             setLoading(true)
@@ -81,6 +78,47 @@ const Records = ({ initialFilter, setInitialFilter }) => {
             setLoading(false)
         }
     }
+
+    // Initial fetch and setup real-time updates
+    useEffect(() => {
+        fetchRecords()
+
+        // Listen for resume upload events for immediate refresh
+        const handleResumeUploaded = (event) => {
+            console.log('📥 Records: Received resumeUploaded event', event.detail)
+            // Add a small delay to ensure backend has committed the transaction
+            setTimeout(() => {
+                console.log('🔄 Records: Refreshing records after upload...')
+                fetchRecords()
+            }, 1000) // 1 second delay to ensure DB commit
+        }
+        
+        // Refresh when component becomes visible (only when tab becomes active)
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                console.log('🔄 Records: Tab visible, refreshing from database...')
+                fetchRecords()
+            }
+        }
+        
+        // Refresh when window regains focus (only when user returns to the tab)
+        const handleFocus = () => {
+            console.log('🔄 Records: Window focused, refreshing from database...')
+            fetchRecords()
+        }
+        
+        // Set up event listeners
+        window.addEventListener('resumeUploaded', handleResumeUploaded)
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        window.addEventListener('focus', handleFocus)
+        
+        // Cleanup
+        return () => {
+            window.removeEventListener('resumeUploaded', handleResumeUploaded)
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+            window.removeEventListener('focus', handleFocus)
+        }
+    }, [])
 
     if (loading) {
         return (
@@ -149,16 +187,17 @@ const Records = ({ initialFilter, setInitialFilter }) => {
                 <div className="table-container" style={{ marginTop: 0 }}>
                     <table className="data-table">
                         <colgroup>
-                            <col style={{ width: '5%' }} />
-                            <col style={{ width: '20%' }} />
-                            <col style={{ width: '10%' }} />
-                            <col style={{ width: '10%' }} />
-                            <col style={{ width: '10%' }} />
-                            <col style={{ width: '7%' }} />
-                            <col style={{ width: '7%' }} />
+                            <col style={{ width: '4%' }} />
+                            <col style={{ width: '18%' }} />
                             <col style={{ width: '8%' }} />
-                            <col style={{ width: '11%' }} />
-                            <col style={{ width: '12%' }} />
+                            <col style={{ width: '9%' }} />
+                            <col style={{ width: '9%' }} />
+                            <col style={{ width: '6%' }} />
+                            <col style={{ width: '6%' }} />
+                            <col style={{ width: '7%' }} />
+                            <col style={{ width: '10%' }} />
+                            <col style={{ width: '10%' }} />
+                            <col style={{ width: '13%' }} />
                         </colgroup>
                         <thead>
                             <tr>
@@ -172,6 +211,7 @@ const Records = ({ initialFilter, setInitialFilter }) => {
                                 <th>Relocate</th>
                                 <th>Skills</th>
                                 <th>Certifications</th>
+                                <th>Education</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -256,6 +296,22 @@ const Records = ({ initialFilter, setInitialFilter }) => {
                                                 )}
                                             </div>
                                         </td>
+                                        <td>
+                                            <div className="education-tags-new">
+                                                {(resume.educations || [])
+                                                    .slice(0, 1).map((edu, idx) => (
+                                                        <span key={idx} className="edu-tag-new" title={`${edu.degree || 'Education'}${edu.institution ? ` - ${edu.institution}` : ''}${edu.grade ? ` (${edu.grade})` : ''}`}>
+                                                            {edu.degree || 'Education'}
+                                                        </span>
+                                                    ))}
+                                                {(resume.educations || []).length > 1 && (
+                                                    <span className="more-count">+{(resume.educations || []).length - 1}</span>
+                                                )}
+                                                {(!(resume.educations || []).length > 0) && (
+                                                    <span className="na-text">N/A</span>
+                                                )}
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))
                             })()}
@@ -310,6 +366,7 @@ const CandidateDetailModal = ({ candidate, onClose }) => {
             .map(name => ({ name: name, issuer: 'Detected', date_obtained: null }))
     }
 
+    const educations = candidate.educations || []
     const skills = candidate.skills && candidate.skills.length > 0 ? candidate.skills : (parsed.resume_skills || [])
 
     return createPortal(
@@ -416,6 +473,100 @@ const CandidateDetailModal = ({ candidate, onClose }) => {
                                 </div>
                             </div>
                         </div>
+
+                        <section className="modal-section">
+                            <h3 className="section-title-sm"><span className="block-icon">💼</span> Work Experience</h3>
+                            {candidate.work_history && candidate.work_history.length > 0 ? (
+                                <div className="experience-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {candidate.work_history.map((exp, idx) => (
+                                        <div key={idx} className="experience-item" style={{ 
+                                            padding: '1rem', 
+                                            background: 'rgba(50, 130, 184, 0.05)', 
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(50, 130, 184, 0.2)'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                                <h4 style={{ margin: 0, color: '#3282b8', fontSize: '1rem', fontWeight: '700' }}>
+                                                    {exp.role || 'Position'}
+                                                </h4>
+                                                {(exp.start_date || exp.end_date) && (
+                                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                                                        {exp.start_date || ''} {exp.start_date && exp.end_date ? '-' : ''} {exp.end_date || ''}
+                                                        {exp.is_current && ' (Current)'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {exp.company && (
+                                                <p style={{ margin: '0.25rem 0', color: '#64748b', fontSize: '0.9rem' }}>
+                                                    <strong>Company:</strong> {exp.company}
+                                                </p>
+                                            )}
+                                            {exp.location && (
+                                                <p style={{ margin: '0.25rem 0', color: '#64748b', fontSize: '0.9rem' }}>
+                                                    <strong>Location:</strong> {exp.location}
+                                                </p>
+                                            )}
+                                            {exp.description && (
+                                                <p style={{ margin: '0.5rem 0 0', color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                                                    {exp.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="no-data-text">No work experience records found</p>
+                            )}
+                        </section>
+
+                        <section className="modal-section">
+                            <h3 className="section-title-sm"><span className="block-icon">🎓</span> Education</h3>
+                            {educations.length > 0 ? (
+                                <div className="education-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {educations.map((edu, idx) => (
+                                        <div key={idx} className="education-item" style={{ 
+                                            padding: '1rem', 
+                                            background: 'rgba(50, 130, 184, 0.05)', 
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(50, 130, 184, 0.2)'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                                <h4 style={{ margin: 0, color: '#3282b8', fontSize: '1rem', fontWeight: '700' }}>
+                                                    {edu.degree || 'Education'}
+                                                </h4>
+                                                {(edu.start_date || edu.end_date) && (
+                                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                                                        {edu.start_date || ''} {edu.start_date && edu.end_date ? '-' : ''} {edu.end_date || ''}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {edu.institution && (
+                                                <p style={{ margin: '0.25rem 0', color: '#64748b', fontSize: '0.9rem' }}>
+                                                    <strong>Institution:</strong> {edu.institution}
+                                                </p>
+                                            )}
+                                            {edu.field_of_study && (
+                                                <p style={{ margin: '0.25rem 0', color: '#64748b', fontSize: '0.9rem' }}>
+                                                    <strong>Field:</strong> {edu.field_of_study}
+                                                </p>
+                                            )}
+                                            {edu.grade && (
+                                                <p style={{ margin: '0.25rem 0', color: '#64748b', fontSize: '0.9rem' }}>
+                                                    <strong>Grade:</strong> {edu.grade}
+                                                </p>
+                                            )}
+                                            {edu.description && (
+                                                <p style={{ margin: '0.5rem 0 0', color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                                                    {edu.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="no-data-text">No education records found</p>
+                            )}
+                        </section>
                     </div>
                 </div>
 

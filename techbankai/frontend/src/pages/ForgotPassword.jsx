@@ -180,6 +180,10 @@ const ForgotPassword = () => {
 
   return (
     <div className="forgot-password-container">
+      <div className="page-logos">
+        <img src="/women.png" alt="Women Owned" className="logo-left" />
+        <img src="/cache.png" alt="Cache" className="logo-right" />
+      </div>
       <div className="animated-background">
         <div className="gradient-orb orb-1"></div>
         <div className="gradient-orb orb-2"></div>
