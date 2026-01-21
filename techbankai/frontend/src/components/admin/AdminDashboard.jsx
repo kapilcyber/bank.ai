@@ -101,6 +101,8 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
   const [timeframe, setTimeframe] = useState('month') // 'day', 'month', 'quarter'
   const [selectedRole, setSelectedRole] = useState(null)
   const [selectedState, setSelectedState] = useState('')
+  const [syncing, setSyncing] = useState(false)
+  const [syncStatus, setSyncStatus] = useState(null)
 
   const INDIAN_STATES = [
     "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
@@ -215,6 +217,35 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
     }
   }
 
+  const handleOutlookSync = async () => {
+    try {
+      setSyncing(true)
+      setSyncStatus(null)
+      const token = localStorage.getItem('authToken')
+
+      const response = await fetch(`${API_BASE_URL}/resumes/outlook/trigger`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        }
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        setSyncStatus({ success: true, message: 'Outlook sync pipeline activated!' })
+        setTimeout(() => setSyncStatus(null), 5000)
+      } else {
+        throw new Error(data.detail || 'Failed to trigger Outlook sync')
+      }
+    } catch (err) {
+      setSyncStatus({ success: false, message: err.message })
+      setTimeout(() => setSyncStatus(null), 7000)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="admin-dashboard">
@@ -269,6 +300,20 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
       <div className="dashboard-header">
         <div className="header-text-group">
           <h2>Dashboard</h2>
+          <button
+            onClick={handleOutlookSync}
+            disabled={syncing}
+            className={`outlook-sync-btn ${syncing ? 'syncing' : ''}`}
+            title="Sync resumes from HR Outlook inbox"
+          >
+            <span className="btn-icon">📧</span>
+            {syncing ? 'Syncing...' : 'Sync Outlook'}
+          </button>
+          {syncStatus && (
+            <div className={`sync-status-toast ${syncStatus.success ? 'success' : 'error'}`}>
+              {syncStatus.message}
+            </div>
+          )}
         </div>
         <div className="user-type-filter-wrapper">
           <select

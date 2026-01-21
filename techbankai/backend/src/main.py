@@ -17,12 +17,13 @@ from src.config.settings import settings
 
 # Import routes
 from src.routes import auth, resume, jd_analysis, admin
-from src.routes.resumes import company, admin as resume_admin, user_profile, gmail
+from src.routes.resumes import company, admin as resume_admin, user_profile, gmail, outlook
 from src.routes import user_profile_api
 
 # Import logger and middleware
 from src.utils.logger import get_logger
 from src.middleware.error_middleware import TraceIDMiddleware, create_error_response
+from src.middleware.security_middleware import SecurityHeadersMiddleware
 
 logger = get_logger(__name__)
 
@@ -52,19 +53,49 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Configuration
-# Use allow_origin_regex to allow all origins WITH credentials
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=".*",  # Allows all origins
-    allow_credentials=True,   # Allows cookies and auth headers
-    allow_methods=["*"],      # Allows all methods
-    allow_headers=["*"],      # Allows all headers
-    max_age=3600,
-)
+# Add security headers middleware (before other middleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
-# Add trace ID middleware after CORS
+# Add trace ID middleware after security headers
 app.add_middleware(TraceIDMiddleware)
+
+# CORS Configuration
+# Use environment-based allowed origins if specified, otherwise allow all
+# CRITICAL: Added LAST to ensure it is the OUTERMOST layer for preflight requests
+cors_origins_str = settings.cors_origins
+if cors_origins_str and cors_origins_str != "*":
+    # Parse comma-separated origins into a list
+    cors_origins_list = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+    if cors_origins_list:
+        # Use specific origins list for better security
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins_list,
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+            allow_headers=["*"],
+            max_age=3600,
+        )
+    else:
+        # Fallback to allow all origins if parsing fails
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origin_regex=".*",  # Allows all origins
+            allow_credentials=True,   # Allows cookies and auth headers
+            allow_methods=["*"],      # Allows all methods
+            allow_headers=["*"],      # Allows all headers
+            max_age=3600,
+        )
+else:
+    # Fallback to allow all origins (for development)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=".*",  # Allows all origins
+        allow_credentials=True,   # Allows cookies and auth headers
+        allow_methods=["*"],      # Allows all methods
+        allow_headers=["*"],      # Allows all headers
+        max_age=3600,
+    )
 
 # Mount static files (for serving uploaded files)
 if os.path.exists("uploads"):
@@ -94,6 +125,7 @@ app.include_router(company.router)  # Company employee uploads
 app.include_router(resume_admin.router)  # Admin bulk uploads
 app.include_router(user_profile.router)  # User profile uploads
 app.include_router(gmail.router)  # Gmail webhook
+app.include_router(outlook.router)  # Outlook trigger
 app.include_router(jd_analysis.router)
 app.include_router(admin.router)
 app.include_router(user_profile_api.router)

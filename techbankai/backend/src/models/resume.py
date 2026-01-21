@@ -66,7 +66,7 @@ class Resume(Base):
     
     # Polymorphic source identification
     source_type = Column(String(50), nullable=False, index=True)  # 'company_employee', 'gmail', 'admin', 'freelancer', 'guest'
-    source_id = Column(String(100), nullable=True)  # employee_id, message_id, etc.
+    source_id = Column(String(500), nullable=True)  # employee_id, message_id, etc.
     source_metadata = Column(JSONB)  # Source-specific metadata (employee_id, department, gmail metadata, etc.)
     
     # Common resume fields

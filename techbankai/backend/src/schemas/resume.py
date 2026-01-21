@@ -14,9 +14,9 @@ class ParsedResume(BaseModel):
     resume_university: str = Field(default="Not mentioned", description="University/institution name")
     resume_experience: float = Field(default=0.0, ge=0.0, description="Years of experience (calculated)")
     resume_technical_skills: List[str] = Field(default_factory=list, description="Technical skills list")
-    resume_projects: List[str] = Field(default_factory=list, description="Projects mentioned")
-    resume_achievements: List[str] = Field(default_factory=list, description="Achievements/awards")
-    resume_certificates: List[str] = Field(default_factory=list, description="Certifications")
+    resume_projects: List[Any] = Field(default_factory=list, description="Projects mentioned (can be list of strings or objects)")
+    resume_achievements: List[Any] = Field(default_factory=list, description="Achievements/awards")
+    resume_certificates: List[Any] = Field(default_factory=list, description="Certifications")
     all_skills: List[str] = Field(default_factory=list, description="All skills merged and deduplicated")
     
     class Config:

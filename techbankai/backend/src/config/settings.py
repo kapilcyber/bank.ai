@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     google_drive_folder_id: Optional[str] = None
     use_google_drive: bool = False
     
+    # Microsoft Graph API Configuration
+    azure_tenant_id: Optional[str] = None
+    azure_client_id: Optional[str] = None
+    azure_client_secret: Optional[str] = None
+    mailbox_email: str = "hr@techbank.ai"
+    
     # Celery Configuration
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/0"

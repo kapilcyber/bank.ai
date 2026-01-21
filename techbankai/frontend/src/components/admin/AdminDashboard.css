@@ -22,6 +22,13 @@
     gap: 1.5rem;
 }
 
+.header-text-group {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    position: relative;
+}
+
 .header-text-group h2 {
     font-size: 2.5rem;
     font-weight: 800;
@@ -29,6 +36,78 @@
     color: #1a1a1a;
     letter-spacing: -1px;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Outlook Sync Button */
+.outlook-sync-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(0, 242, 255, 0.1);
+    border: 1px solid rgba(0, 242, 255, 0.3);
+    border-radius: 10px;
+    color: #00f2ff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.outlook-sync-btn:hover:not(:disabled) {
+    background: rgba(0, 242, 255, 0.2);
+    border-color: #00f2ff;
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.outlook-sync-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.outlook-sync-btn.syncing .btn-icon {
+    display: inline-block;
+    animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.sync-status-toast {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 10px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    z-index: 100;
+    animation: fadeIn 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.sync-status-toast.success {
+    background: rgba(16, 185, 129, 0.9);
+    color: #fff;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.sync-status-toast.error {
+    background: rgba(239, 68, 68, 0.9);
+    color: #fff;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .dashboard-subtitle {
