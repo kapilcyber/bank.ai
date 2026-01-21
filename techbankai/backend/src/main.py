@@ -17,7 +17,7 @@ from src.config.settings import settings
 
 # Import routes
 from src.routes import auth, resume, jd_analysis, admin
-from src.routes.resumes import company, admin as resume_admin, user_profile, gmail
+from src.routes.resumes import company, admin as resume_admin, user_profile, gmail, outlook
 from src.routes import user_profile_api
 
 # Import logger and middleware
@@ -90,8 +90,15 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Add security headers middleware (before other middleware)
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Add trace ID middleware after security headers
+app.add_middleware(TraceIDMiddleware)
+
 # CORS Configuration
 # Use environment-based allowed origins if specified, otherwise allow all
+# CRITICAL: Added LAST to ensure it is the OUTERMOST layer for preflight requests
 cors_origins = settings.cors_origins_list
 if cors_origins:
     # Use specific origins list for better security
@@ -113,12 +120,6 @@ else:
         allow_headers=["*"],      # Allows all headers
         max_age=3600,
     )
-
-# Add security headers middleware (before other middleware)
-app.add_middleware(SecurityHeadersMiddleware)
-
-# Add trace ID middleware after CORS
-app.add_middleware(TraceIDMiddleware)
 
 # Add rate limiting
 app.state.limiter = limiter
@@ -152,6 +153,7 @@ app.include_router(company.router)  # Company employee uploads
 app.include_router(resume_admin.router)  # Admin bulk uploads
 app.include_router(user_profile.router)  # User profile uploads
 app.include_router(gmail.router)  # Gmail webhook
+app.include_router(outlook.router)  # Outlook trigger
 app.include_router(jd_analysis.router)
 app.include_router(admin.router)
 app.include_router(user_profile_api.router)

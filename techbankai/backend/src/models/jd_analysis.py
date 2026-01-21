@@ -34,7 +34,7 @@ class MatchResult(Base):
     job_id = Column(String(100), ForeignKey('jd_analysis.job_id', ondelete='CASCADE'), nullable=False, index=True)
     resume_id = Column(Integer, ForeignKey('resumes.id', ondelete='CASCADE'), nullable=False, index=True)
     source_type = Column(String(50), nullable=True, index=True)  # Track resume source type
-    source_id = Column(String(100), nullable=True)  # Track resume source ID
+    source_id = Column(String(500), nullable=True)  # Track resume source ID
     match_score = Column(Float)  # Overall score 0-100 (will be replaced by universal_fit_score)
     skill_match_score = Column(Float)  # Legacy - maps to skill_evidence_score
     experience_match_score = Column(Float)  # Legacy - maps to execution_score
