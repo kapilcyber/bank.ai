@@ -30,7 +30,9 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Set SQLAlchemy URL from settings
-config.set_main_option("sqlalchemy.url", f"postgresql+asyncpg://{settings.postgres_user}:{settings.postgres_password}@{settings.postgres_host}:{settings.postgres_port}/{settings.postgres_db}")
+# Alembic runs in synchronous mode by default, so we MUST use a synchronous driver URL here.
+# Using an async driver (postgresql+asyncpg) will raise MissingGreenlet.
+config.set_main_option("sqlalchemy.url", settings.sync_database_url)
 
 # add your model's MetaData object here
 # for 'autogenerate' support

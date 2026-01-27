@@ -104,19 +104,33 @@ def format_resume_response(resume: Resume) -> Dict[str, Any]:
         notice_period = meta.get('notice_period', 0)
     
     # Construct absolute URL for file
-    file_url = resume.file_url
-    if file_url and file_url.startswith('/'):
-        # For local development, construct the full URL
-        # Accessing 0.0.0.0 from browser might vary, so prefer localhost for display
-        host = "localhost"
-        port = 8000 # Default fallback
+    # Priority: If file_content exists in database, use API endpoint
+    # Otherwise, fallback to file_url (for backward compatibility)
+    if resume.file_content:
+        # File is stored in database, use API endpoint
         try:
-             from src.config.settings import settings
-             port = settings.port
+            from src.config.settings import settings
+            host = settings.host if settings.host != "0.0.0.0" else "localhost"
+            port = settings.port
+            file_url = f"http://{host}:{port}/api/resumes/{resume.id}/file"
         except ImportError:
-            pass
-        
-        file_url = f"http://{host}:{port}{file_url}"
+            file_url = f"http://localhost:8000/api/resumes/{resume.id}/file"
+    else:
+        # Fallback to old file_url (for backward compatibility with old records)
+        file_url = resume.file_url
+        if file_url and file_url.startswith('/'):
+            # For local development, construct the full URL
+            # Accessing 0.0.0.0 from browser might vary, so prefer localhost for display
+            host = "localhost"
+            port = 8000 # Default fallback
+            try:
+                 from src.config.settings import settings
+                 host = settings.host if settings.host != "0.0.0.0" else "localhost"
+                 port = settings.port
+            except ImportError:
+                pass
+            
+            file_url = f"http://{host}:{port}{file_url}"
 
     return {
         'id': resume.id,

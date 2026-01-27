@@ -20,6 +20,10 @@ router = APIRouter(prefix="/api/resumes", tags=["Resumes"])
 
 ALLOWED_EXTENSIONS = ['pdf', 'docx']
 
+def escape_like_pattern(pattern: str) -> str:
+    """Escape SQL LIKE wildcards for safe pattern matching."""
+    return pattern.replace('%', '\\%').replace('_', '\\_')
+
 def clean_null_bytes(text: str) -> str:
     """Remove null bytes from text to prevent PostgreSQL errors"""
     if text is None:
@@ -107,22 +111,26 @@ async def search_resumes(
                 # Handle NULL/empty arrays by using COALESCE
                 for skill in skill_list:
                     # Use COALESCE to handle NULL arrays, convert to empty string if NULL
+                    # Escape LIKE wildcards to prevent search manipulation
+                    escaped_skill = escape_like_pattern(skill.lower())
                     query = query.where(
                         func.lower(
                             func.coalesce(
                                 func.array_to_string(Resume.skills, ','),
                                 ''
                             )
-                        ).like(f'%{skill.lower()}%')
+                        ).like(f'%{escaped_skill}%', escape='\\')
                     )
         
         # Free-text search
         if q:
-            like = f"%{q}%"
+            # Escape LIKE wildcards to prevent search manipulation
+            escaped_q = escape_like_pattern(q)
+            like = f"%{escaped_q}%"
             query = query.where(
                 or_(
-                    Resume.raw_text.ilike(like),
-                    Resume.filename.ilike(like)
+                    Resume.raw_text.ilike(like, escape='\\'),
+                    Resume.filename.ilike(like, escape='\\')
                 )
             )
         

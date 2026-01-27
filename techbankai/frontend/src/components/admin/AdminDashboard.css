@@ -44,23 +44,25 @@
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: rgba(0, 242, 255, 0.1);
-    border: 1px solid rgba(0, 242, 255, 0.3);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.15));
+    border: 1px solid rgba(139, 92, 246, 0.4);
     border-radius: 10px;
-    color: #00f2ff;
+    color: #8b5cf6;
     font-size: 0.85rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
 }
 
 .outlook-sync-btn:hover:not(:disabled) {
-    background: rgba(0, 242, 255, 0.2);
-    border-color: #00f2ff;
-    box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(236, 72, 153, 0.25));
+    border-color: #8b5cf6;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 4px 12px rgba(236, 72, 153, 0.2);
     transform: translateY(-2px);
+    color: #a78bfa;
 }
 
 .outlook-sync-btn:disabled {
@@ -451,7 +453,8 @@
 
 .data-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.9rem;
     text-align: left;
     table-layout: fixed;
@@ -467,13 +470,35 @@
 }
 
 .data-table th {
-    padding: 1.5rem 1.25rem;
+    padding: 0.75rem 1rem;
     color: rgba(26, 26, 26, 0.9);
     font-weight: 800;
     text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 1.5px;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
     border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    text-align: left;
+}
+
+.data-table th:first-child {
+    padding-left: 1.5rem;
+    padding-right: 1rem;
+}
+
+.data-table th:nth-child(6),
+.data-table th:nth-child(7) {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+.data-table th:not(:first-child):not(:nth-child(6)):not(:nth-child(7)):not(:last-child) {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+}
+
+.data-table th:last-child {
+    padding-right: 1.5rem;
 }
 
 .data-table tbody tr {
@@ -492,7 +517,7 @@
 }
 
 .data-table td {
-    padding: 1.25rem;
+    padding: 0.75rem 1rem;
     color: rgba(26, 26, 26, 0.9);
     vertical-align: middle;
 }
@@ -568,6 +593,8 @@
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.5);
     color: #1a1a1a;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .type-badge-new.company_employee {
@@ -605,6 +632,8 @@
     font-weight: 700;
     color: #1a1a1a;
     border: 1px solid rgba(255, 255, 255, 0.5);
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .relocate-pill {
@@ -612,6 +641,8 @@
     font-weight: 800;
     padding: 4px 10px;
     border-radius: 8px;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .relocate-pill.yes {
@@ -632,9 +663,10 @@
 
 .skills-tags-new {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.4rem;
     align-items: center;
+    overflow: hidden;
 }
 
 .skill-tag-new,
@@ -648,6 +680,9 @@
     font-size: 0.7rem;
     font-weight: 600;
     border: 1px solid rgba(255, 255, 255, 0.6);
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
 }
 
 .cert-tag-new {
@@ -1199,6 +1234,80 @@
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
     padding: 12px !important;
     color: #1a1a1a !important;
+}
+
+/* Records Search Input Styling - Matching SearchTalent Theme */
+.records-search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.search-input-group {
+    position: relative;
+}
+
+.premium-cyber-input {
+    height: 48px;
+    padding: 0 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    font-size: 0.95rem;
+    color: #1a1a1a;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    font-weight: 600;
+}
+
+.premium-cyber-input::placeholder {
+    color: rgba(26, 26, 26, 0.5);
+}
+
+.premium-cyber-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2),
+                0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.reset-view-btn {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    color: #1a1a1a;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.reset-view-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: rotate(180deg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-subtitle {
+    font-size: 0.9rem;
+    color: rgba(26, 26, 26, 0.7);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0;
 }
 
 /* Scrollbar */

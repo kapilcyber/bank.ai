@@ -1,5 +1,5 @@
 """Resume SQLAlchemy model."""
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ARRAY, UniqueConstraint, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ARRAY, UniqueConstraint, ForeignKey, Date, LargeBinary
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -71,7 +71,9 @@ class Resume(Base):
     
     # Common resume fields
     filename = Column(String(255), nullable=False)
-    file_url = Column(String(500), nullable=False)
+    file_url = Column(String(500), nullable=False)  # API endpoint or file path (for backward compatibility)
+    file_content = Column(LargeBinary, nullable=True)  # Store file content in database (BYTEA)
+    file_mime_type = Column(String(100), nullable=True)  # MIME type: application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document
     raw_text = Column(Text)  # Extracted text from PDF/DOC
     parsed_data = Column(JSONB)  # Structured data: name, email, phone, skills, etc.
     skills = Column(ARRAY(String))  # Array of extracted skills

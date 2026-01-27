@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Query, Security, Form
+from fastapi.responses import Response, RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +10,11 @@ from datetime import datetime
 import asyncio
 import os
 import uuid
+import aiofiles
+from pathlib import Path
+from urllib.parse import urlparse
 from src.models.resume import Resume
+from src.config.settings import settings
 from src.config.database import get_postgres_db
 from src.middleware.auth_middleware import get_admin_user, get_current_user, decode_access_token, is_token_blacklisted
 from src.services.storage import save_uploaded_file, delete_file
@@ -17,7 +22,7 @@ from src.services.resume_parser import parse_resume
 from src.utils.validators import validate_file_type
 from src.utils.logger import get_logger
 from src.utils.response_formatter import format_resume_response, format_resume_list_response
-from src.utils.user_type_mapper import normalize_user_type, get_source_type_from_user_type
+from src.utils.user_type_mapper import normalize_user_type, get_source_type_from_user_type, get_user_type_from_source_type
 from src.utils.resume_processor import save_structured_resume_data
 
 security = HTTPBearer(auto_error=False)
@@ -25,6 +30,10 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/api/resumes", tags=["Resumes"])
 
 ALLOWED_EXTENSIONS = ['pdf', 'docx']
+
+def escape_like_pattern(pattern: str) -> str:
+    """Escape SQL LIKE wildcards for safe pattern matching."""
+    return pattern.replace('%', '\\%').replace('_', '\\_')
 
 def clean_null_bytes(text: str) -> str:
     """Remove null bytes from text to prevent PostgreSQL errors"""
@@ -74,8 +83,8 @@ async def parse_resume_only(
         if not validate_file_type(file.filename, ALLOWED_EXTENSIONS):
             raise HTTPException(status_code=400, detail="Invalid file type. Only PDF and DOCX allowed.")
         
-        # Save file temporarily
-        file_path, _ = await save_uploaded_file(file, subfolder="temp_parse")
+        # Save file temporarily (parse-only doesn't need database storage)
+        file_path, file_url, file_content, mime_type = await save_uploaded_file(file, subfolder="temp_parse", save_to_db=False)
         file_extension = file.filename.split('.')[-1]
         
         try:
@@ -216,6 +225,8 @@ async def get_optional_user(
             "mode": user_mode,
             "user_id": payload.get("user_id")
         }
+    except Exception:
+        return None
     except Exception as e:
         # Log error but don't block access
         logger.debug(f"Optional auth error (allowing guest access): {e}")
@@ -248,22 +259,26 @@ async def search_resumes(
                 # Handle NULL/empty arrays by using COALESCE
                 for skill in skill_list:
                     # Use COALESCE to handle NULL arrays, convert to empty string if NULL
+                    # Escape LIKE wildcards to prevent search manipulation
+                    escaped_skill = escape_like_pattern(skill.lower())
                     query = query.where(
                         func.lower(
                             func.coalesce(
                                 func.array_to_string(Resume.skills, ','),
                                 ''
                             )
-                        ).like(f'%{skill.lower()}%')
+                        ).like(f'%{escaped_skill}%', escape='\\')
                     )
         
         # Free-text search
         if q:
-            like = f"%{q}%"
+            # Escape LIKE wildcards to prevent search manipulation
+            escaped_q = escape_like_pattern(q)
+            like = f"%{escaped_q}%"
             query = query.where(
                 or_(
-                    Resume.raw_text.ilike(like),
-                    Resume.filename.ilike(like)
+                    Resume.raw_text.ilike(like, escape='\\'),
+                    Resume.filename.ilike(like, escape='\\')
                 )
             )
         
@@ -369,85 +384,217 @@ async def upload_resumes(
     """
     Upload multiple resume files (Admin only)
     Parses resumes and stores in database
+    Handles duplicate emails by updating existing records
     """
     try:
         uploaded_resumes = []
         errors = []
         
         for file in files:
+            # Start a new transaction for each file to prevent rollback cascade
             try:
                 # Validate file type
                 if not validate_file_type(file.filename, ALLOWED_EXTENSIONS):
                     errors.append(f"{file.filename}: Invalid file type. Only PDF and DOCX allowed.")
                     continue
                 
-                # Save file to disk
-                file_path, file_url = await save_uploaded_file(file, subfolder="resumes")
+                # Save file to database (returns file_content and mime_type)
+                file_id, file_url, file_content, mime_type = await save_uploaded_file(file, subfolder="resumes", save_to_db=True)
                 file_extension = file.filename.split('.')[-1]
                 
-                # Parse resume
-                logger.info(f"Parsing resume: {file.filename}")
-                parsed_data = await parse_resume(file_path, file_extension)
+                # Save file temporarily for parsing (parser needs file path)
+                import tempfile
+                with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}") as tmp_file:
+                    tmp_file.write(file_content)
+                    file_path = tmp_file.name
                 
-                # Clean null bytes from parsed data
-                parsed_data = clean_dict_values(parsed_data)
+                try:
+                    # Parse resume
+                    logger.info(f"Parsing resume: {file.filename}")
+                    parsed_data = await parse_resume(file_path, file_extension)
+                    
+                    # Clean null bytes from parsed data
+                    parsed_data = clean_dict_values(parsed_data)
+                    
+                    # Check for existing resume by email (to handle unique constraint)
+                    # Make it case-insensitive
+                    resume_email = parsed_data.get('resume_contact_info')
+                    existing_resume = None
+                    if resume_email and resume_email != "Not mentioned":
+                        # Case-insensitive email search
+                        stmt = select(Resume).where(
+                            func.lower(Resume.parsed_data['resume_contact_info'].astext) == resume_email.lower()
+                        )
+                        result = await db.execute(stmt)
+                        existing_resume = result.scalar_one_or_none()
+                    
+                    # For admin uploads, update existing or create new
+                    if existing_resume:
+                        # Update existing record
+                        logger.info(f"Updating existing resume for email: {resume_email} (ID: {existing_resume.id})")
+                        existing_resume.filename = file.filename
+                        existing_resume.file_url = file_url  # Will be updated with actual resume_id after save
+                        existing_resume.file_content = file_content
+                        existing_resume.file_mime_type = mime_type
+                        existing_resume.raw_text = clean_null_bytes(parsed_data.get('raw_text', ''))
+                        existing_resume.parsed_data = parsed_data
+                        existing_resume.skills = parsed_data.get('resume_technical_skills', parsed_data.get('all_skills', []))
+                        existing_resume.experience_years = parsed_data.get('resume_experience', parsed_data.get('experience_years', 0))
+                        existing_resume.uploaded_by = current_user['email']
+                        existing_resume.meta_data = {
+                            'parsing_method': parsed_data.get('parsing_method', 'unknown'),
+                            'file_size': len(file_content),
+                            'user_type': get_user_type_from_source_type('admin'),
+                            'notice_period': parsed_data.get('notice_period', 0),
+                            'ready_to_relocate': parsed_data.get('ready_to_relocate', False),
+                            'is_update': True
+                        }
+                        resume = existing_resume
+                    else:
+                        # Generate unique source_id for admin uploads to avoid unique constraint violation
+                        admin_source_id = f"admin_{uuid.uuid4().hex[:16]}_{int(datetime.utcnow().timestamp() * 1000)}"
+                        
+                        # Create new resume record with file_content
+                        logger.info(f"Creating new resume record for admin upload: {file.filename} (source_id: {admin_source_id})")
+                        resume = Resume(
+                            filename=file.filename,
+                            file_url=file_url,  # Will be updated with actual resume_id after save
+                            file_content=file_content,  # Store file in database
+                            file_mime_type=mime_type,
+                            source_type='admin',
+                            source_id=admin_source_id,
+                            raw_text=clean_null_bytes(parsed_data.get('raw_text', '')),
+                            parsed_data=parsed_data,
+                            skills=parsed_data.get('resume_technical_skills', parsed_data.get('all_skills', [])),
+                            experience_years=parsed_data.get('resume_experience', parsed_data.get('experience_years', 0)),
+                            uploaded_by=current_user['email'],
+                            meta_data={
+                                'parsing_method': parsed_data.get('parsing_method', 'unknown'),
+                                'file_size': len(file_content),
+                                'user_type': get_user_type_from_source_type('admin'),
+                                'notice_period': parsed_data.get('notice_period', 0),
+                                'ready_to_relocate': parsed_data.get('ready_to_relocate', False)
+                            }
+                        )
+                        db.add(resume)
+                    
+                    # Try to commit, catch unique constraint errors
+                    try:
+                        await db.commit()
+                        await db.refresh(resume)
+                        
+                        # Update file_url with actual resume_id
+                        resume.file_url = f"/api/resumes/{resume.id}/file"
+                        await db.commit()
+                        
+                        logger.info(f"Resume saved to database with ID: {resume.id}")
+                        
+                        # Save structured data (Experience/Certification)
+                        await save_structured_resume_data(db, resume.id, parsed_data, clear_existing=True)
+                        await db.commit()
+                        
+                        # Verify the resume was saved by counting total resumes
+                        count_result = await db.execute(select(func.count(Resume.id)))
+                        total_count = count_result.scalar()
+                        logger.info(f"Total resumes in database after upload: {total_count}")
+                        
+                        uploaded_resumes.append({
+                            'id': resume.id,
+                            'filename': resume.filename,
+                            'candidate_name': parsed_data.get('resume_candidate_name', 'Unknown'),
+                            'skills': resume.skills,
+                            'experience_years': resume.experience_years
+                        })
+                        
+                        logger.info(f"Successfully uploaded resume: {file.filename} (ID: {resume.id}, Total count: {total_count})")
+                    
+                    except Exception as commit_error:
+                        # Rollback on commit error
+                        await db.rollback()
+                        error_str = str(commit_error)
+                        
+                        # If it's a duplicate email error, try to find and update the existing record
+                        if "UniqueViolationError" in error_str or "uq_resume_email_json" in error_str:
+                            logger.warning(f"Duplicate email detected during commit for {file.filename}, attempting to update existing record")
+                            
+                            # Try to find the existing record again (might have been created between check and commit)
+                            if resume_email and resume_email != "Not mentioned":
+                                stmt = select(Resume).where(
+                                    func.lower(Resume.parsed_data['resume_contact_info'].astext) == resume_email.lower()
+                                )
+                                result = await db.execute(stmt)
+                                existing_resume_retry = result.scalar_one_or_none()
+                                
+                                if existing_resume_retry:
+                                    # Update the existing record
+                                    existing_resume_retry.filename = file.filename
+                                    existing_resume_retry.file_url = f"/api/resumes/{existing_resume_retry.id}/file"
+                                    existing_resume_retry.file_content = file_content
+                                    existing_resume_retry.file_mime_type = mime_type
+                                    existing_resume_retry.raw_text = clean_null_bytes(parsed_data.get('raw_text', ''))
+                                    existing_resume_retry.parsed_data = parsed_data
+                                    existing_resume_retry.skills = parsed_data.get('resume_technical_skills', parsed_data.get('all_skills', []))
+                                    existing_resume_retry.experience_years = parsed_data.get('resume_experience', parsed_data.get('experience_years', 0))
+                                    existing_resume_retry.uploaded_by = current_user['email']
+                                    existing_resume_retry.meta_data = {
+                                        'parsing_method': parsed_data.get('parsing_method', 'unknown'),
+                                        'file_size': len(file_content),
+                                        'user_type': get_user_type_from_source_type('admin'),
+                                        'notice_period': parsed_data.get('notice_period', 0),
+                                        'ready_to_relocate': parsed_data.get('ready_to_relocate', False),
+                                        'is_update': True
+                                    }
+                                    
+                                    await db.commit()
+                                    await db.refresh(existing_resume_retry)
+                                    
+                                    # Save structured data
+                                    await save_structured_resume_data(db, existing_resume_retry.id, parsed_data, clear_existing=True)
+                                    await db.commit()
+                                    
+                                    uploaded_resumes.append({
+                                        'id': existing_resume_retry.id,
+                                        'filename': existing_resume_retry.filename,
+                                        'candidate_name': parsed_data.get('resume_candidate_name', 'Unknown'),
+                                        'skills': existing_resume_retry.skills,
+                                        'experience_years': existing_resume_retry.experience_years
+                                    })
+                                    
+                                    logger.info(f"Updated existing resume for {file.filename} (ID: {existing_resume_retry.id})")
+                                    continue  # Skip to next file, don't add to errors
+                            
+                            # If we couldn't update, add to errors
+                            errors.append(f"{file.filename}: Duplicate email - resume with this email already exists. Skipping.")
+                            continue  # Skip to next file
+                        else:
+                            # Re-raise if it's not a duplicate error
+                            raise commit_error
                 
-                # For admin uploads, always create new records (don't check for duplicates)
-                # This allows admins to upload multiple versions or same person's resume multiple times
-                # Generate unique source_id for admin uploads to avoid unique constraint violation
-                import uuid
-                admin_source_id = f"admin_{uuid.uuid4().hex[:16]}_{int(datetime.utcnow().timestamp() * 1000)}"
-                
-                # Create new resume record
-                logger.info(f"Creating new resume record for admin upload: {file.filename} (source_id: {admin_source_id})")
-                resume = Resume(
-                    filename=file.filename,
-                    file_url=file_url,
-                    source_type='admin',
-                    source_id=admin_source_id,
-                    raw_text=clean_null_bytes(parsed_data.get('raw_text', '')),
-                    parsed_data=parsed_data,
-                    skills=parsed_data.get('resume_technical_skills', parsed_data.get('all_skills', [])),
-                    experience_years=parsed_data.get('resume_experience', parsed_data.get('experience_years', 0)),
-                    uploaded_by=current_user['email'],
-                    meta_data={
-                        'parsing_method': parsed_data.get('parsing_method', 'unknown'),
-                        'file_size': file.size if hasattr(file, 'size') else 0,
-                        'user_type': get_user_type_from_source_type('admin'),
-                        'notice_period': parsed_data.get('notice_period', 0),
-                        'ready_to_relocate': parsed_data.get('ready_to_relocate', False)
-                    }
-                )
-                db.add(resume)
-                
-                await db.commit()
-                await db.refresh(resume)
-                
-                logger.info(f"Resume saved to database with ID: {resume.id}")
-                
-                # Save structured data (Experience/Certification)
-                await save_structured_resume_data(db, resume.id, parsed_data, clear_existing=True)
-                await db.commit()
-                
-                # Verify the resume was saved by counting total resumes
-                from sqlalchemy import func
-                count_result = await db.execute(select(func.count(Resume.id)))
-                total_count = count_result.scalar()
-                logger.info(f"Total resumes in database after upload: {total_count}")
-                
-                uploaded_resumes.append({
-                    'id': resume.id,
-                    'filename': resume.filename,
-                    'candidate_name': parsed_data.get('resume_candidate_name', 'Unknown'),
-                    'skills': resume.skills,
-                    'experience_years': resume.experience_years
-                })
-                
-                logger.info(f"Successfully uploaded resume: {file.filename} (ID: {resume.id}, Total count: {total_count})")
+                finally:
+                    # Clean up temporary file
+                    if os.path.exists(file_path):
+                        try:
+                            os.unlink(file_path)
+                        except:
+                            pass
             
             except Exception as e:
-                logger.error(f"Failed to process {file.filename}: {e}")
-                errors.append(f"{file.filename}: {str(e)}")
+                # Rollback this file's transaction and continue with next file
+                try:
+                    await db.rollback()
+                except:
+                    pass  # Ignore rollback errors
+                
+                import traceback
+                logger.error(f"Failed to process {file.filename}: {e}", exc_info=True)
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                
+                # Check if it's a duplicate email error
+                error_str = str(e)
+                if "UniqueViolationError" in error_str or "uq_resume_email_json" in error_str:
+                    errors.append(f"{file.filename}: Duplicate email - resume with this email already exists. Skipping.")
+                else:
+                    errors.append(f"{file.filename}: {str(e)}")
         
         return {
             'success': len(uploaded_resumes),
@@ -511,6 +658,194 @@ async def list_resumes(
     
     except Exception as e:
         logger.error(f"List resumes error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{resume_id}/file", response_class=Response)
+async def get_resume_file(
+    resume_id: int,
+    db: AsyncSession = Depends(get_postgres_db)
+):
+    """
+    Serve resume file from database or filesystem (for backward compatibility).
+    Works across different machines since file is stored in PostgreSQL.
+    """
+    try:
+        # Query resume
+        query = select(Resume).where(Resume.id == resume_id)
+        result = await db.execute(query)
+        resume = result.scalar_one_or_none()
+        
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        # Log resume file status for debugging
+        has_file_content = resume.file_content is not None and len(resume.file_content) > 0
+        logger.info(
+            f"Getting resume file for resume_id={resume_id}, "
+            f"filename={resume.filename}, "
+            f"file_content={'present' if has_file_content else 'NULL'}, "
+            f"file_url={resume.file_url}"
+        )
+        
+        # Check if file_content exists in database
+        if resume.file_content:
+            # Determine content type
+            mime_type = resume.file_mime_type or 'application/pdf'
+            
+            # Return file as response
+            return Response(
+                content=resume.file_content,
+                media_type=mime_type,
+                headers={
+                    "Content-Disposition": f'inline; filename="{resume.filename}"',
+                    "Cache-Control": "public, max-age=3600"
+                }
+            )
+        else:
+            # Fallback: Try to serve from filesystem for old records
+            if resume.file_url:
+                file_path = None
+                
+                # Handle different file_url formats:
+                # 1. Full HTTP URL: http://localhost:8000/uploads/resumes/file.pdf
+                # 2. Relative path: /uploads/resumes/file.pdf
+                # 3. Google Drive URL: https://drive.google.com/...
+                # 4. API endpoint: /api/resumes/{id}/file (shouldn't happen for old records)
+                
+                if resume.file_url.startswith('http://') or resume.file_url.startswith('https://'):
+                    # Full URL - extract the path
+                    parsed_url = urlparse(resume.file_url)
+                    path = parsed_url.path
+                    
+                    # Check if it's a Google Drive URL
+                    if 'drive.google.com' in resume.file_url or 'docs.google.com' in resume.file_url:
+                        # Can't serve Google Drive files directly - would need to download first
+                        raise HTTPException(
+                            status_code=404,
+                            detail="Resume file is stored on Google Drive. Please re-upload to store in database."
+                        )
+                    
+                    # Extract local file path from URL
+                    if path.startswith('/uploads/') or path.startswith(f'/{settings.upload_dir}/'):
+                        file_path = Path(path.lstrip('/'))
+                elif resume.file_url.startswith('/uploads/') or resume.file_url.startswith(f'/{settings.upload_dir}/'):
+                    # Relative path - try multiple possible locations
+                    relative_path = resume.file_url.lstrip('/')
+                    possible_paths = [
+                        Path(relative_path),  # Relative to current directory
+                        Path(settings.upload_dir) / relative_path,  # From settings
+                        Path('uploads') / relative_path,  # Default uploads folder
+                    ]
+                    
+                    # Try each path until we find one that exists
+                    file_path = None
+                    for path in possible_paths:
+                        if path.exists():
+                            file_path = path
+                            logger.debug(f"Found file at path: {file_path}")
+                            break
+                    
+                    # If none found, use the first one for error reporting
+                    if not file_path:
+                        file_path = Path(relative_path)
+                elif resume.file_url.startswith('/api/resumes/'):
+                    # This is an API endpoint - shouldn't happen for old records, but handle gracefully
+                    raise HTTPException(
+                        status_code=404,
+                        detail="Resume file not found in database. Please re-upload the resume."
+                    )
+                
+                # Try to read from filesystem if we have a valid path
+                if file_path and file_path.exists():
+                    try:
+                        # Read file from filesystem
+                        async with aiofiles.open(file_path, 'rb') as f:
+                            file_content = await f.read()
+                        
+                        # Determine MIME type from filename
+                        ext = resume.filename.split('.')[-1].lower() if resume.filename else 'pdf'
+                        mime_type = 'application/pdf' if ext == 'pdf' else \
+                                   'application/vnd.openxmlformats-officedocument.wordprocessingml.document' if ext == 'docx' else \
+                                   'application/octet-stream'
+                        
+                        return Response(
+                            content=file_content,
+                            media_type=mime_type,
+                            headers={
+                                "Content-Disposition": f'inline; filename="{resume.filename}"',
+                                "Cache-Control": "public, max-age=3600"
+                            }
+                        )
+                    except Exception as read_error:
+                        logger.error(f"Failed to read file from filesystem: {read_error}")
+                        raise HTTPException(
+                            status_code=500,
+                            detail="Failed to read resume file from filesystem."
+                        )
+                elif file_path:
+                    # File path exists but file doesn't
+                    logger.warning(
+                        f"File not found at path: {file_path} "
+                        f"(resume_id={resume_id}, filename={resume.filename}, file_url={resume.file_url})"
+                    )
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Resume file not found. The file may have been deleted from filesystem. "
+                               f"Resume ID: {resume_id}, Filename: {resume.filename}. "
+                               f"Please re-upload this resume to store it in the database."
+                    )
+                else:
+                    # Couldn't determine file path
+                    raise HTTPException(
+                        status_code=404,
+                        detail="Resume file not found in database. Please re-upload the resume."
+                    )
+            else:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Resume file not found in database. Please re-upload the resume."
+                )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get resume file error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/file-by-filename/{filename:path}")
+async def get_resume_by_filename(
+    filename: str,
+    db: AsyncSession = Depends(get_postgres_db)
+):
+    """
+    Serve resume file by filename (for backward compatibility with old URLs).
+    This handles requests like /api/resumes/filename.pdf
+    """
+    try:
+        # Extract just the filename without path
+        filename_only = Path(filename).name
+        
+        # Try to find resume by filename
+        query = select(Resume).where(Resume.filename == filename_only)
+        result = await db.execute(query)
+        resume = result.scalar_one_or_none()
+        
+        if not resume:
+            # Try to find by file_url containing the filename
+            query = select(Resume).where(Resume.file_url.like(f'%{filename_only}%'))
+            result = await db.execute(query)
+            resume = result.scalar_one_or_none()
+        
+        if not resume:
+            raise HTTPException(status_code=404, detail=f"Resume with filename '{filename_only}' not found")
+        
+        # Use the existing file serving logic
+        return await get_resume_file(resume.id, db)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get resume by filename error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{resume_id}")
@@ -673,115 +1008,137 @@ async def upload_user_profile_resume(
         if not validate_file_type(file.filename, ALLOWED_EXTENSIONS):
             raise HTTPException(status_code=400, detail="Invalid file type. Only PDF and DOCX allowed.")
         
-        # Save file to disk
-        file_path, file_url = await save_uploaded_file(file, subfolder="resumes")
+        # Save file to database (returns file_content and mime_type)
+        file_id, file_url, file_content, mime_type = await save_uploaded_file(file, subfolder="resumes", save_to_db=True)
         file_extension = file.filename.split('.')[-1]
         
-        # Prepare form data for parser
-        form_data = {
-            'fullName': fullName,
-            'email': email,
-            'phone': phone,
-            'experience': experience,
-            'skills': skills,
-            'location': location,
-            'role': role,
-            'education': education,
-            'experiences': experiences,
-            'noticePeriod': noticePeriod,
-            'currentlyWorking': currentlyWorking,
-            'currentCompany': currentCompany,
-            'readyToRelocate': readyToRelocate,
-            'preferredLocation': preferredLocation
-        }
+        # Save file temporarily for parsing (parser needs file path)
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}") as tmp_file:
+            tmp_file.write(file_content)
+            file_path = tmp_file.name
         
-        # Parse resume (parse_resume service now handles the robust merging)
-        logger.info(f"Parsing user resume: {file.filename}")
-        parsed_data = await parse_resume(file_path, file_extension, form_data=form_data)
-        
-        # Clean null bytes from parsed data
-        parsed_data = clean_dict_values(parsed_data)
-        
-        # Check for duplicate by email
-        resume_email = parsed_data.get('resume_contact_info') or uploader_email
-        existing_resume = None
-        if resume_email:
-            stmt = select(Resume).where(Resume.parsed_data['resume_contact_info'].astext == resume_email)
-            result = await db.execute(stmt)
-            existing_resume = result.scalar_one_or_none()
-
-        source_metadata = {
-            'user_type': userType,
-            'form_data': {
-                'fullName': clean_null_bytes(fullName) if fullName else None,
-                'email': clean_null_bytes(email) if email else uploader_email,
-                'phone': clean_null_bytes(phone) if phone else None,
-                'experience': clean_null_bytes(experience) if experience else None,
-                'skills': clean_null_bytes(skills) if skills else None,
-                'location': clean_null_bytes(location) if location else None,
-                'role': clean_null_bytes(role) if role else None,
-                'education': clean_null_bytes(education) if education else None,
+        try:
+            # Prepare form data for parser
+            form_data = {
+                'fullName': fullName,
+                'email': email,
+                'phone': phone,
+                'experience': experience,
+                'skills': skills,
+                'location': location,
+                'role': role,
+                'education': education,
+                'experiences': experiences,
                 'noticePeriod': noticePeriod,
                 'currentlyWorking': currentlyWorking,
-                'currentCompany': clean_null_bytes(currentCompany) if currentCompany else None,
+                'currentCompany': currentCompany,
                 'readyToRelocate': readyToRelocate,
-                'preferredLocation': clean_null_bytes(preferredLocation) if preferredLocation else None
+                'preferredLocation': preferredLocation
             }
-        }
-        
-        meta_data = {
-            'parsing_method': parsed_data.get('parsing_method', 'unknown'),
-            'file_size': file.size if hasattr(file, 'size') else 0,
-            'user_type': userType or 'Guest',
-            'user_profile': {
-                'fullName': clean_null_bytes(fullName) if fullName else None,
-                'email': clean_null_bytes(email) if email else uploader_email,
-                'phone': clean_null_bytes(phone) if phone else None,
-                'experience': clean_null_bytes(experience) if experience else None,
-                'skills': clean_null_bytes(skills) if skills else None,
-                'location': clean_null_bytes(location) if location else None,
-                'notice_period': noticePeriod,
-                'currently_working': currentlyWorking,
-                'current_company': clean_null_bytes(currentCompany) if currentCompany else None,
-                'ready_to_relocate': readyToRelocate,
-                'preferred_location': clean_null_bytes(preferredLocation) if preferredLocation else None
-            }
-        }
+            
+            # Parse resume (parse_resume service now handles the robust merging)
+            logger.info(f"Parsing user resume: {file.filename}")
+            parsed_data = await parse_resume(file_path, file_extension, form_data=form_data)
+            
+            # Clean null bytes from parsed data
+            parsed_data = clean_dict_values(parsed_data)
+            
+            # Check for duplicate by email
+            resume_email = parsed_data.get('resume_contact_info') or uploader_email
+            existing_resume = None
+            if resume_email:
+                stmt = select(Resume).where(Resume.parsed_data['resume_contact_info'].astext == resume_email)
+                result = await db.execute(stmt)
+                existing_resume = result.scalar_one_or_none()
 
-        if existing_resume:
-            logger.info(f"Updating existing resume for {resume_email} (ID: {existing_resume.id})")
-            existing_resume.filename = file.filename
-            existing_resume.file_url = file_url
-            existing_resume.source_type = source_type
-            existing_resume.source_metadata = source_metadata
-            existing_resume.raw_text = clean_null_bytes(parsed_data.get('raw_text', ''))
-            existing_resume.parsed_data = parsed_data
-            existing_resume.skills = parsed_data.get('all_skills', parsed_data.get('resume_technical_skills', []))
-            existing_resume.experience_years = parsed_data.get('resume_experience', 0)
-            existing_resume.uploaded_by = uploader_email
-            existing_resume.uploaded_at = datetime.utcnow()
-            existing_resume.meta_data = meta_data
-            existing_resume.meta_data['is_update'] = True
-            resume = existing_resume
-        else:
-            # Create new resume record
-            resume = Resume(
-                filename=file.filename,
-                file_url=file_url,
-                source_type=source_type,
-                source_id=None,
-                source_metadata=source_metadata,
-                raw_text=clean_null_bytes(parsed_data.get('raw_text', '')),
-                parsed_data=parsed_data,
-                skills=parsed_data.get('all_skills', parsed_data.get('resume_technical_skills', [])),
-                experience_years=parsed_data.get('resume_experience', 0),
-                uploaded_by=uploader_email,
-                meta_data=meta_data
-            )
-            db.add(resume)
-        
-        await db.commit()
-        await db.refresh(resume)
+            source_metadata = {
+                'user_type': userType,
+                'form_data': {
+                    'fullName': clean_null_bytes(fullName) if fullName else None,
+                    'email': clean_null_bytes(email) if email else uploader_email,
+                    'phone': clean_null_bytes(phone) if phone else None,
+                    'experience': clean_null_bytes(experience) if experience else None,
+                    'skills': clean_null_bytes(skills) if skills else None,
+                    'location': clean_null_bytes(location) if location else None,
+                    'role': clean_null_bytes(role) if role else None,
+                    'education': clean_null_bytes(education) if education else None,
+                    'noticePeriod': noticePeriod,
+                    'currentlyWorking': currentlyWorking,
+                    'currentCompany': clean_null_bytes(currentCompany) if currentCompany else None,
+                    'readyToRelocate': readyToRelocate,
+                    'preferredLocation': clean_null_bytes(preferredLocation) if preferredLocation else None
+                }
+            }
+            
+            meta_data = {
+                'parsing_method': parsed_data.get('parsing_method', 'unknown'),
+                'file_size': len(file_content),
+                'user_type': userType or 'Guest',
+                'user_profile': {
+                    'fullName': clean_null_bytes(fullName) if fullName else None,
+                    'email': clean_null_bytes(email) if email else uploader_email,
+                    'phone': clean_null_bytes(phone) if phone else None,
+                    'experience': clean_null_bytes(experience) if experience else None,
+                    'skills': clean_null_bytes(skills) if skills else None,
+                    'location': clean_null_bytes(location) if location else None,
+                    'notice_period': noticePeriod,
+                    'currently_working': currentlyWorking,
+                    'current_company': clean_null_bytes(currentCompany) if currentCompany else None,
+                    'ready_to_relocate': readyToRelocate,
+                    'preferred_location': clean_null_bytes(preferredLocation) if preferredLocation else None
+                }
+            }
+
+            if existing_resume:
+                logger.info(f"Updating existing resume for {resume_email} (ID: {existing_resume.id})")
+                existing_resume.filename = file.filename
+                existing_resume.file_url = file_url  # Will be updated with actual resume_id after save
+                existing_resume.file_content = file_content  # Store file in database
+                existing_resume.file_mime_type = mime_type
+                existing_resume.source_type = source_type
+                existing_resume.source_metadata = source_metadata
+                existing_resume.raw_text = clean_null_bytes(parsed_data.get('raw_text', ''))
+                existing_resume.parsed_data = parsed_data
+                existing_resume.skills = parsed_data.get('all_skills', parsed_data.get('resume_technical_skills', []))
+                existing_resume.experience_years = parsed_data.get('resume_experience', 0)
+                existing_resume.uploaded_by = uploader_email
+                existing_resume.uploaded_at = datetime.utcnow()
+                existing_resume.meta_data = meta_data
+                existing_resume.meta_data['is_update'] = True
+                resume = existing_resume
+            else:
+                # Create new resume record with file_content
+                resume = Resume(
+                    filename=file.filename,
+                    file_url=file_url,  # Will be updated with actual resume_id after save
+                    file_content=file_content,  # Store file in database
+                    file_mime_type=mime_type,
+                    source_type=source_type,
+                    source_id=None,
+                    source_metadata=source_metadata,
+                    raw_text=clean_null_bytes(parsed_data.get('raw_text', '')),
+                    parsed_data=parsed_data,
+                    skills=parsed_data.get('all_skills', parsed_data.get('resume_technical_skills', [])),
+                    experience_years=parsed_data.get('resume_experience', 0),
+                    uploaded_by=uploader_email,
+                    meta_data=meta_data
+                )
+                db.add(resume)
+            
+            await db.commit()
+            await db.refresh(resume)
+            
+            # Update file_url with actual resume_id
+            resume.file_url = f"/api/resumes/{resume.id}/file"
+            await db.commit()
+        finally:
+            # Clean up temporary file
+            if os.path.exists(file_path):
+                try:
+                    os.unlink(file_path)
+                except:
+                    pass
         
         # Parse education JSON if provided
         education_data = None

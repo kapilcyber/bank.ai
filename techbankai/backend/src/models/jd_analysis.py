@@ -11,6 +11,8 @@ class JDAnalysis(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     job_id = Column(String(100), unique=True, nullable=False, index=True)
+    # V2 caching key: sha256 hex of normalized JD text
+    jd_hash = Column(String(64), unique=True, nullable=True, index=True)
     jd_filename = Column(String(255))
     jd_text = Column(Text)
     extracted_keywords = Column(ARRAY(String))
@@ -32,6 +34,8 @@ class MatchResult(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     job_id = Column(String(100), ForeignKey('jd_analysis.job_id', ondelete='CASCADE'), nullable=False, index=True)
+    # V2 caching key: sha256 hex of normalized JD text
+    jd_hash = Column(String(64), nullable=True, index=True)
     resume_id = Column(Integer, ForeignKey('resumes.id', ondelete='CASCADE'), nullable=False, index=True)
     source_type = Column(String(50), nullable=True, index=True)  # Track resume source type
     source_id = Column(String(500), nullable=True)  # Track resume source ID

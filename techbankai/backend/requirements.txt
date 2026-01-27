@@ -9,7 +9,9 @@ pydantic-settings>=2.0.0  # For centralized settings management
 email-validator>=2.0.0  # Required for EmailStr validation
 python-multipart==0.0.6
 passlib==1.7.4
-bcrypt==4.1.1
+# passlib 1.7.4 expects bcrypt to expose legacy version metadata; bcrypt 4.x removed it.
+# Pin bcrypt to a compatible version to avoid runtime warnings and potential edge-case failures.
+bcrypt==3.2.2
 python-jose[cryptography]==3.3.0
 PyPDF2==3.0.1
 pdfplumber==0.10.3
@@ -23,3 +25,5 @@ google-auth-httplib2==0.2.0
 google-auth-oauthlib>=0.5,<1.1  # Compatible with tensorboard
 celery[redis]==5.3.4
 redis>=4.5.2,<5.0.0
+msal>=1.24.0
+alembic>=1.13.0  # Database migrations

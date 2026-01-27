@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { API_BASE_URL } from '../../config/api'
 import './SearchUsingJD.css'
 
-const ResultCard = ({ match, index }) => {
+const ResultCard = ({ match, index, dimensionLabels = {} }) => {
   const [showAllSkills, setShowAllSkills] = useState(false);
 
   // Helper to get initials
@@ -12,9 +12,17 @@ const ResultCard = ({ match, index }) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
-  const skills = match.matched_skills || [];
-  const displaySkills = showAllSkills ? skills : skills.slice(0, 5);
-  const hasMoreSkills = skills.length > 5;
+  const strictSkills = match.matched_skills || [];
+  const evidenceSkills = match.evidence_skills || [];
+  const displayMode = strictSkills.length > 0 ? 'strict' : (evidenceSkills.length > 0 ? 'evidence' : 'none');
+  const skillsToShow = displayMode === 'strict' ? strictSkills : (displayMode === 'evidence' ? evidenceSkills : []);
+  const displaySkills = showAllSkills ? skillsToShow : skillsToShow.slice(0, 5);
+  const hasMoreSkills = skillsToShow.length > 5;
+
+  const breakdownEntries = Object.entries(match.score_breakdown || {})
+    .map(([dimId, points]) => ({ dimId, points: Number(points) || 0 }))
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 2);
 
   return (
     <motion.div
@@ -24,23 +32,29 @@ const ResultCard = ({ match, index }) => {
       transition={{ duration: 0.4, delay: index * 0.1 }}
     >
       <div className="match-score-pill">
-        <span className={`score-dot ${match.match_score >= 70 ? 'high' : match.match_score >= 40 ? 'medium' : 'low'}`}></span>
-        {Math.round(match.match_score)}% Match
+        <span className={`score-dot ${match.total_score >= 70 ? 'high' : match.total_score >= 40 ? 'medium' : 'low'}`}></span>
+        {Math.round(match.total_score)}% Match
       </div>
 
       <div className="card-top-info">
         <div className="candidate-initials">
-          {getInitials(match.candidate_name)}
+          {getInitials(match.candidate)}
         </div>
         <div className="candidate-meta">
           <div className="candidate-name-row">
-            <h4>{match.candidate_name}</h4>
+            <h4>{match.candidate}</h4>
           </div>
           <div className="meta-badges">
             <span className="user-type-badge">{match.user_type}</span>
-            <span className="match-detail-badge" title="Responsibilities">Resp: {Math.round(match.semantic_score || 0)}%</span>
-            <span className="match-detail-badge" title="Experience">Exp: {Math.round(match.experience_match || 0)}%</span>
-            <span className="match-detail-badge" title="Skills & Certs">Skills: {Math.round(match.skill_match || 0)}%</span>
+            {breakdownEntries.map((b) => (
+              <span
+                key={b.dimId}
+                className="match-detail-badge"
+                title={dimensionLabels[b.dimId] || b.dimId}
+              >
+                {(dimensionLabels[b.dimId] || b.dimId).slice(0, 10)}: {Math.round(b.points)} pts
+              </span>
+            ))}
           </div>
         </div>
       </div>
@@ -76,7 +90,9 @@ const ResultCard = ({ match, index }) => {
       </div>
 
       <div className="card-skills-section">
-        <span className="skills-title">Matched Skills</span>
+        <span className="skills-title">
+          {displayMode === 'strict' ? 'Matched Skills' : (displayMode === 'evidence' ? 'Relevant Evidence Found' : 'Matched Skills')}
+        </span>
         <div className="skills-tag-list">
           {displaySkills.length > 0 ? (
             displaySkills.map((skill, i) => (
@@ -91,13 +107,13 @@ const ResultCard = ({ match, index }) => {
             className="more-skills-btn"
             onClick={() => setShowAllSkills(!showAllSkills)}
           >
-            {showAllSkills ? 'Show Less' : `+${skills.length - 5} more`}
+            {showAllSkills ? 'Show Less' : `+${skillsToShow.length - 5} more`}
           </button>
         )}
       </div>
 
       <div className="view-resume-action">
-        <a href={match.file_url} target="_blank" rel="noreferrer" className="view-resume-link">
+        <a href={`${API_BASE_URL}/resumes/${match.resume_id}/file`} target="_blank" rel="noreferrer" className="view-resume-link">
           📄 View Resume
         </a>
       </div>
@@ -194,7 +210,7 @@ const SearchUsingJD = () => {
 
       const token = localStorage.getItem('authToken')
 
-      const response = await fetch(`${API_BASE_URL}/jd/analyze?${params.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/jd/analyze-v2?${params.toString()}`, {
         method: 'POST',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` })
@@ -213,7 +229,7 @@ const SearchUsingJD = () => {
       }
 
       const data = await response.json()
-      console.log('JD Analysis Results:', data) // Debugging 0% match issues
+      console.log('JD Analysis Results (v2):', data)
       setResults(data)
 
     } catch (err) {
@@ -329,10 +345,10 @@ const SearchUsingJD = () => {
             <h3>Analysis Results</h3>
             <div className="results-summary-badges">
               <span className="summary-badge total">
-                Found {results.total_matches} Total
+                Found {results.results?.length || 0} Total
               </span>
               <span className="summary-badge visible">
-                Showing {results.top_matches.filter(m => !locationFilter || (m.location && m.location.toLowerCase().includes(locationFilter.toLowerCase())) || (m.preferred_location && m.preferred_location.toLowerCase().includes(locationFilter.toLowerCase()))).length} Visible
+                Showing {(results.results || []).filter(m => !locationFilter || (m.location && m.location.toLowerCase().includes(locationFilter.toLowerCase())) || (m.preferred_location && m.preferred_location.toLowerCase().includes(locationFilter.toLowerCase()))).length} Visible
               </span>
             </div>
           </div>
@@ -373,15 +389,20 @@ const SearchUsingJD = () => {
 
             <div className="results-list-wrapper">
               <div className="results-list">
-                {results.top_matches
+                {(results.results || [])
                   .filter(m => !locationFilter || (m.location && m.location.toLowerCase().includes(locationFilter.toLowerCase())) || (m.preferred_location && m.preferred_location.toLowerCase().includes(locationFilter.toLowerCase())))
                   .length === 0 ? (
                   <p className="no-matches">No candidates match the selected filters.</p>
                 ) : (
-                  results.top_matches
+                  (results.results || [])
                     .filter(m => !locationFilter || (m.location && m.location.toLowerCase().includes(locationFilter.toLowerCase())) || (m.preferred_location && m.preferred_location.toLowerCase().includes(locationFilter.toLowerCase())))
                     .map((match, index) => (
-                      <ResultCard key={match.resume_id} match={match} index={index} />
+                      <ResultCard
+                        key={match.resume_id}
+                        match={match}
+                        index={index}
+                        dimensionLabels={Object.fromEntries((results.dimensions || []).map(d => [d.dimension_id, d.label]))}
+                      />
                     ))
                 )}
               </div>

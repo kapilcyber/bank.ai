@@ -188,16 +188,15 @@ const Records = ({ initialFilter, setInitialFilter }) => {
                     <table className="data-table">
                         <colgroup>
                             <col style={{ width: '4%' }} />
-                            <col style={{ width: '18%' }} />
+                            <col style={{ width: '17%' }} />
                             <col style={{ width: '8%' }} />
                             <col style={{ width: '9%' }} />
                             <col style={{ width: '9%' }} />
-                            <col style={{ width: '6%' }} />
-                            <col style={{ width: '6%' }} />
+                            <col style={{ width: '8%' }} />
                             <col style={{ width: '7%' }} />
-                            <col style={{ width: '10%' }} />
-                            <col style={{ width: '10%' }} />
-                            <col style={{ width: '13%' }} />
+                            <col style={{ width: '7%' }} />
+                            <col style={{ width: '12%' }} />
+                            <col style={{ width: '19%' }} />
                         </colgroup>
                         <thead>
                             <tr>
@@ -211,7 +210,6 @@ const Records = ({ initialFilter, setInitialFilter }) => {
                                 <th>Relocate</th>
                                 <th>Skills</th>
                                 <th>Certifications</th>
-                                <th>Education</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -292,22 +290,6 @@ const Records = ({ initialFilter, setInitialFilter }) => {
                                                     <span className="more-count">+{resume.parsed_data.resume_certificates.filter(c => c && c !== "Not mentioned").length - 1}</span>
                                                 )}
                                                 {(!(resume.parsed_data?.resume_certificates?.filter(c => c && c !== "Not mentioned")?.length > 0)) && (
-                                                    <span className="na-text">N/A</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className="education-tags-new">
-                                                {(resume.educations || [])
-                                                    .slice(0, 1).map((edu, idx) => (
-                                                        <span key={idx} className="edu-tag-new" title={`${edu.degree || 'Education'}${edu.institution ? ` - ${edu.institution}` : ''}${edu.grade ? ` (${edu.grade})` : ''}`}>
-                                                            {edu.degree || 'Education'}
-                                                        </span>
-                                                    ))}
-                                                {(resume.educations || []).length > 1 && (
-                                                    <span className="more-count">+{(resume.educations || []).length - 1}</span>
-                                                )}
-                                                {(!(resume.educations || []).length > 0) && (
                                                     <span className="na-text">N/A</span>
                                                 )}
                                             </div>
@@ -570,10 +552,10 @@ const CandidateDetailModal = ({ candidate, onClose }) => {
                     </div>
                 </div>
 
-                {candidate.file_url && (
+                {(candidate.file_url || candidate.id || candidate.resume_id) && (
                     <div className="modal-footer-premium">
                         <a
-                            href={candidate.file_url}
+                            href={candidate.file_url || `${API_BASE_URL}/resumes/${candidate.id || candidate.resume_id}/file`}
                             target="_blank"
                             rel="noreferrer"
                             className="view-resume-action-btn"

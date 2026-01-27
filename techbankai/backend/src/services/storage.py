@@ -17,13 +17,15 @@ MAX_FILE_SIZE_MB = settings.max_file_size_mb
 
 
 class StorageService:
-    """Unified storage service with Google Drive and local fallback."""
+    """Unified storage service with Google Drive, PostgreSQL, and local fallback."""
     
     @staticmethod
-    async def upload(file: UploadFile, subfolder: str = "resumes") -> tuple[str, str]:
+    async def upload(file: UploadFile, subfolder: str = "resumes", save_to_db: bool = True) -> tuple[str, str, bytes, str]:
         """
-        Upload file to storage (Google Drive if configured, otherwise local).
-        Returns: (file_path, file_url)
+        Upload file to storage.
+        Returns: (file_id_or_path, file_url, file_content, mime_type)
+        - If save_to_db=True: file_id_or_path is placeholder, file_url is API endpoint, file_content is bytes, mime_type is MIME type
+        - If save_to_db=False: file_id_or_path is file_path, file_url is static file URL, file_content is bytes, mime_type is MIME type
         """
         # Read file content
         content = await file.read()
@@ -39,6 +41,17 @@ class StorageService:
             logger.warning(f"Security Rejection: File signature mismatch for {file.filename}")
             raise ValueError(f"Invalid file content: The file does not appear to be a valid {file_extension.upper()} file.")
         
+        # Determine MIME type
+        mime_type = file.content_type or _get_mime_type(file_extension)
+        
+        # If save_to_db is True, return content for database storage
+        if save_to_db:
+            # Generate a placeholder ID (will be replaced with resume_id after save)
+            file_id = str(uuid.uuid4())
+            # Return API endpoint URL (will be updated with actual resume_id after save)
+            file_url = f"/api/resumes/{file_id}/file"
+            return file_id, file_url, content, mime_type
+        
         # Try Google Drive first if enabled
         if settings.use_google_drive:
             try:
@@ -48,13 +61,13 @@ class StorageService:
                     original_filename
                 )
                 logger.info(f"Uploaded to Google Drive: {web_view_link}")
-                # Return Google Drive link as file_url, file_id as file_path for reference
-                return file_id, web_view_link
+                return file_id, web_view_link, content, mime_type
             except Exception as e:
                 logger.warning(f"Google Drive upload failed, falling back to local: {e}")
         
         # Fallback to local storage
-        return await StorageService._save_local(file, content, subfolder)
+        file_path, file_url = await StorageService._save_local(file, content, subfolder)
+        return file_path, file_url, content, mime_type
     
     @staticmethod
     async def _save_local(file: UploadFile, content: bytes, subfolder: str) -> tuple[str, str]:
@@ -85,10 +98,20 @@ class StorageService:
             raise
 
 
+def _get_mime_type(extension: str) -> str:
+    """Get MIME type from file extension."""
+    mime_types = {
+        'pdf': 'application/pdf',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'doc': 'application/msword',
+    }
+    return mime_types.get(extension.lower(), 'application/octet-stream')
+
+
 # Backward compatibility function
-async def save_uploaded_file(file: UploadFile, subfolder: str = "resumes") -> tuple[str, str]:
-    """Save uploaded file (uses StorageService)."""
-    return await StorageService.upload(file, subfolder)
+async def save_uploaded_file(file: UploadFile, subfolder: str = "resumes", save_to_db: bool = True) -> tuple[str, str, bytes, str]:
+    """Save uploaded file (uses StorageService). Returns (file_id_or_path, file_url, file_content, mime_type)."""
+    return await StorageService.upload(file, subfolder, save_to_db)
 
 
 def delete_file(file_path: str) -> bool:

@@ -117,9 +117,10 @@
 .admin-content {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 9rem 2rem 3rem 2rem;
+  padding: 6rem 2rem 3rem 2rem;
   position: relative;
   z-index: 1;
+  margin-top: 80px;
 }
 
 .admin-content-area {

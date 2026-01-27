@@ -27,7 +27,32 @@ celery_app.conf.update(
     task_time_limit=30 * 60,  # 30 minutes
     task_soft_time_limit=25 * 60,  # 25 minutes
     worker_prefetch_multiplier=1,
-    worker_max_tasks_per_child=50
+    worker_max_tasks_per_child=50,
+    # Redis connection settings
+    broker_connection_retry_on_startup=True,
+    broker_connection_retry=True,
+    broker_connection_max_retries=10,
+    broker_connection_retry_delay=2.0,  # seconds
+    result_backend_transport_options={
+        'visibility_timeout': 3600,
+        'retry_policy': {
+            'timeout': 5.0
+        },
+        'socket_connect_timeout': 5,
+        'socket_keepalive': True,
+        'socket_keepalive_options': {},
+        'health_check_interval': 30,
+    },
+    broker_transport_options={
+        'visibility_timeout': 3600,
+        'retry_policy': {
+            'timeout': 5.0
+        },
+        'socket_connect_timeout': 5,
+        'socket_keepalive': True,
+        'socket_keepalive_options': {},
+        'health_check_interval': 30,
+    },
 )
 
 if __name__ == '__main__':

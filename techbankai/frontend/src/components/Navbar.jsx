@@ -43,14 +43,21 @@ const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, admi
       transition={{ duration: 0.5 }}
     >
       <div className="navbar-container">
-        <motion.h1
-          className="navbar-heading"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/admin')}
-        >
-          Techbank.Ai
-        </motion.h1>
+        <div className="navbar-left">
+          <img 
+            src="/women.png" 
+            alt="Women Owned" 
+            className="navbar-women-logo"
+          />
+          <motion.h1
+            className="navbar-heading"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/admin')}
+          >
+            techbankai
+          </motion.h1>
+        </div>
 
         {/* Central Admin Tabs */}
         {props.adminTabs && (
@@ -108,6 +115,12 @@ const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, admi
           >
             Logout
           </button>
+
+          <img 
+            src="/cache.png" 
+            alt="Cache" 
+            className="navbar-cache-logo"
+          />
         </div>
       </div>
     </motion.nav>

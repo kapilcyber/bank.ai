@@ -54,8 +54,8 @@ async def check_connection():
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         cursor = conn.cursor()
         
-        # Check if database exists
-        cursor.execute(f"SELECT 1 FROM pg_database WHERE datname = '{POSTGRES_DB}'")
+        # Check if database exists (parameterized query to prevent SQL injection)
+        cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (POSTGRES_DB,))
         exists = cursor.fetchone()
         
         if not exists:

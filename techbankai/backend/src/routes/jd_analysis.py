@@ -20,11 +20,17 @@ from src.utils.user_type_mapper import normalize_user_type, get_user_type_from_s
 from src.utils.response_formatter import format_resume_response
 from src.config.settings import settings
 import asyncio
+import hashlib
+import json
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/jd", tags=["JD Analysis"])
 
 ALLOWED_EXTENSIONS = ['pdf', 'docx']
+
+# Bump when response payload/scoring inputs/logic change to avoid stale cache rows.
+# v2.4: Structure-aware cache key (jd_structure_hash) - cache now includes dimensions + weights
+JD_MATCH_ENGINE_VERSION = "v2.4"
 
 def fix_file_url(url: str) -> str:
     """Helper to fix relative file URLs for frontend consumption."""
@@ -57,7 +63,8 @@ async def analyze_jd(
             
             # Step 2: Save JD file
             logger.info(f"Saving JD file: {file.filename}")
-            file_path, file_url = await save_uploaded_file(file, subfolder="jd")
+            # JD files don't need database storage, just filesystem storage
+            file_path, file_url, file_content, mime_type = await save_uploaded_file(file, subfolder="jd", save_to_db=False)
             file_extension = file.filename.split('.')[-1]
             jd_filename = file.filename
             
@@ -502,6 +509,486 @@ async def analyze_jd(
         logger.error(f"JD Analysis error: {e}")
         logger.error(f"Full traceback: {error_trace}")
         raise HTTPException(status_code=500, detail=f"JD Analysis failed: {str(e)}")
+
+
+@router.post("/analyze-v2")
+async def analyze_jd_v2(
+    file: Optional[UploadFile] = File(None),
+    jd_text_manual: Optional[str] = Form(None),
+    min_score: int = Query(10, ge=0, le=100, description="Minimum match score threshold"),
+    top_n: int = Query(10, ge=1, le=50, description="Number of top candidates to return"),
+    user_types: Optional[List[str]] = Query(None, description="Filter by source types"),
+    current_user: dict = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_postgres_db),
+):
+    """
+    V2: JD vs multi-resume scoring engine (ChatGPT-like output, deterministic scoring).
+
+    - Dimensions are selected ONLY from backend dimension library (GPT cannot invent).
+    - Confidence labels are extracted by GPT; backend assigns weights and scores deterministically.
+    - Explanations are deterministic (no GPT).
+    """
+    try:
+        # -----------------------------
+        # 1) Get JD text (file or manual)
+        # -----------------------------
+        jd_text = ""
+        jd_filename = "Manual Entry"
+
+        if file and file.filename:
+            if not validate_file_type(file.filename, ALLOWED_EXTENSIONS):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid file type. Only {', '.join([e.upper() for e in ALLOWED_EXTENSIONS])} allowed.",
+                )
+            logger.info(f"[v2] Saving JD file: {file.filename}")
+            file_path, _, _, _ = await save_uploaded_file(file, subfolder="jd", save_to_db=False)
+            file_extension = file.filename.split(".")[-1]
+            jd_filename = file.filename
+            jd_text = extract_text_from_file(file_path, file_extension)
+        elif jd_text_manual:
+            jd_text = jd_text_manual.strip()
+            jd_filename = "Manual Entry"
+
+        if not jd_text:
+            raise HTTPException(status_code=400, detail="Please provide either a JD file or JD text")
+
+        # Normalize + hash for caching (jd_hash + resume_id)
+        normalized_jd_text = " ".join(jd_text.split())
+        jd_hash = hashlib.sha256(normalized_jd_text.encode("utf-8")).hexdigest()
+
+        # Ensure a canonical JDAnalysis row exists for this jd_hash (required for FK in match_results).
+        jd_existing_result = await db.execute(select(JDAnalysis).where(JDAnalysis.jd_hash == jd_hash))
+        jd_existing = jd_existing_result.scalar_one_or_none()
+        if jd_existing:
+            job_id = jd_existing.job_id
+        else:
+            # Stable job_id derived from hash (<= 100 chars)
+            job_id = f"JDHASH-{jd_hash[:24].upper()}"
+            jd_existing = JDAnalysis(
+                job_id=job_id,
+                jd_hash=jd_hash,
+                jd_filename=jd_filename,
+                jd_text=jd_text,
+                extracted_keywords=[],
+                required_skills=[],
+                preferred_skills=[],
+                required_experience=0.0,
+                education="",
+                job_level="",
+                submitted_by=current_user.get("email"),
+            )
+            db.add(jd_existing)
+            await db.commit()
+
+        # -----------------------------
+        # 2) Load backend dimension library and extract JD structure (GPT)
+        # -----------------------------
+        from src.services.dimension_library import get_dimension_library
+
+        dims = get_dimension_library()
+        dim_lib_payload = [
+            {
+                "id": d.id,
+                "label": d.label,
+                "definition": d.definition,
+                "seed_skills": list(d.seed_skills) if d.seed_skills else [],
+            }
+            for d in dims
+        ]
+        dim_labels = {d.id: d.label for d in dims}
+
+        jd_struct = await openai_service.extract_jd_structure_v2(jd_text, dim_lib_payload)
+        jd_role = jd_struct.get("jd_role", "Not mentioned")
+        min_experience_years = jd_struct.get("min_experience_years", 0) or 0
+        selected_dimensions = jd_struct.get("selected_dimensions", []) or []
+        selected_dim_ids = [d.get("dimension_id") for d in selected_dimensions if isinstance(d, dict) and d.get("dimension_id")]
+
+        # Aggregate required/preferred skills across dimensions
+        jd_required_skills = []
+        jd_preferred_skills = []
+        for d in selected_dimensions:
+            jd_required_skills.extend((d.get("required_skills") or []) if isinstance(d, dict) else [])
+            jd_preferred_skills.extend((d.get("preferred_skills") or []) if isinstance(d, dict) else [])
+
+        # Deduplicate while preserving first-seen order
+        def _dedupe(seq):
+            seen = set()
+            out = []
+            for item in seq:
+                if not isinstance(item, str):
+                    continue
+                s = item.strip()
+                if not s:
+                    continue
+                key = s.lower()
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append(s)
+            return out
+
+        jd_required_skills = _dedupe(jd_required_skills)
+        jd_preferred_skills = _dedupe(jd_preferred_skills)
+
+        # Update canonical JDAnalysis row with extracted JD summary (best-effort)
+        try:
+            jd_existing.jd_filename = jd_filename
+            jd_existing.jd_text = jd_text
+            jd_existing.required_experience = float(min_experience_years or 0)
+            jd_existing.required_skills = jd_required_skills
+            jd_existing.preferred_skills = jd_preferred_skills
+            jd_existing.extracted_keywords = _dedupe(jd_required_skills + jd_preferred_skills)
+            jd_existing.job_level = jd_role
+            await db.commit()
+        except Exception:
+            await db.rollback()
+
+        # -----------------------------
+        # 3) Backend deterministic weights (stable)
+        # -----------------------------
+        from src.services.weighting_v2 import assign_equal_weights
+
+        weights = assign_equal_weights(selected_dim_ids)
+
+        # -----------------------------
+        # 3.5) Create structure-aware cache key
+        # -----------------------------
+        # Cache key must include JD structure (dimensions + weights), not just text hash.
+        # This ensures cache is invalidated when JD structure changes, preventing stale scores.
+        dims_sorted = sorted(selected_dim_ids)
+        weights_str = json.dumps(
+            {k: weights.get(k) for k in dims_sorted},
+            sort_keys=True
+        )
+        jd_structure_hash = hashlib.sha256(
+            f"{jd_hash}:{weights_str}".encode("utf-8")
+        ).hexdigest()[:16]
+
+        # Log structure hash for debugging score variance
+        logger.info(
+            f"[v2] JD structure hash: {jd_structure_hash[:8]}... "
+            f"(dims: {len(selected_dim_ids)}, dim_ids: {sorted(selected_dim_ids)}, total_weight: {sum(weights.values())})"
+        )
+
+        # -----------------------------
+        # 4) Fetch resumes (optionally filtered)
+        # -----------------------------
+        logger.info("[v2] Fetching resumes for matching")
+        query = select(Resume).options(
+            selectinload(Resume.work_history),
+            selectinload(Resume.certificates),
+            selectinload(Resume.educations),
+        )
+        if user_types and len(user_types) > 0:
+            source_types = [get_source_type_from_user_type(normalize_user_type(ut)) for ut in user_types]
+            query = query.where(Resume.source_type.in_(source_types))
+        result = await db.execute(query)
+        all_resumes = result.scalars().all()
+        total_resumes = len(all_resumes)
+
+        # -----------------------------
+        # 5) Phase-1 shortlist (fast) using existing traditional scoring
+        # -----------------------------
+        # Build a flat requirements object compatible with existing phase-1 scorer
+        jd_requirements_flat = {
+            "required_skills": jd_required_skills,
+            "preferred_skills": jd_preferred_skills,
+            "keywords": _dedupe(jd_required_skills + jd_preferred_skills),
+            "min_experience_years": float(min_experience_years or 0),
+        }
+
+        prelim = []
+        for resume in all_resumes:
+            try:
+                parsed = resume.parsed_data or {}
+                extracted_skills = resume.skills or parsed.get("resume_technical_skills", []) or parsed.get("all_skills", [])
+                if isinstance(extracted_skills, str):
+                    extracted_skills = [s.strip() for s in extracted_skills.split(",") if s.strip()]
+
+                resume_data = {
+                    "skills": extracted_skills,
+                    "experience_years": resume.experience_years if resume.experience_years is not None else (parsed.get("resume_experience") or 0),
+                    "raw_text": resume.raw_text or "",
+                    "summary": parsed.get("summary", "") or (resume.raw_text[:500] if resume.raw_text else ""),
+                    "certifications": parsed.get("resume_certificates", []),
+                }
+
+                # Hard filter experience
+                if jd_requirements_flat["min_experience_years"] > 0 and resume_data["experience_years"] < jd_requirements_flat["min_experience_years"]:
+                    continue
+
+                score = calculate_traditional_score(resume_data, jd_requirements_flat)
+                if score >= min_score:
+                    prelim.append((resume, resume_data, score))
+            except Exception as e:
+                logger.debug(f"[v2] Phase-1 scoring failed for resume {getattr(resume, 'id', None)}: {e}")
+
+        prelim.sort(key=lambda x: x[2], reverse=True)
+        if len(prelim) < 5:
+            prelim = prelim[:15]  # relax threshold: keep top few candidates
+        else:
+            prelim = prelim[: min(len(prelim), 25)]
+
+        # Cache lookup for shortlist by (jd_structure_hash, resume_id) and matching engine version
+        # NOTE: Using jd_structure_hash (not jd_hash) ensures cache is structure-aware.
+        # Same JD text with different structure (dimensions/weights) gets different cache key.
+        prelim_resume_ids = [r.id for (r, _, _) in prelim]
+        cached_map = {}
+        if prelim_resume_ids:
+            cache_q = select(MatchResult).where(
+                MatchResult.jd_hash == jd_structure_hash,
+                MatchResult.resume_id.in_(prelim_resume_ids),
+            )
+            cache_res = await db.execute(cache_q)
+            cached_list = cache_res.scalars().all()
+            # Only accept cache rows produced by current engine version
+            for m in cached_list:
+                fb = m.factor_breakdown or {}
+                if fb.get("engine_version") == JD_MATCH_ENGINE_VERSION:
+                    cached_map[m.resume_id] = m
+
+        # -----------------------------
+        # 6) Phase-2: GPT evidence + deterministic scoring
+        # -----------------------------
+        from src.services.scoring_v2 import score_breakdown, score_total
+        from src.services.explanation_v2 import build_explanation
+        from src.utils.skill_normalizer import normalize_skills
+
+        # Prepare JD required skill normalization map to preserve human-friendly casing
+        jd_norm_to_original = {}
+        for s in jd_required_skills:
+            key = s.lower().strip()
+            if key and key not in jd_norm_to_original:
+                jd_norm_to_original[key] = s
+
+        semaphore = asyncio.Semaphore(3)
+
+        async def score_one(resume: Resume, resume_data: dict):
+            detached = format_resume_response(resume)
+            detached["resume_id"] = resume.id
+            detached["raw_text"] = resume.raw_text or ""
+            detached["summary"] = resume_data.get("summary", "")
+            # CRITICAL: canonical resume skills (used for matched/missing AND GPT evidence)
+            from src.utils.resume_skill_builder import build_canonical_resume_skills
+            parsed = resume.parsed_data or {}
+            canonical_skills = build_canonical_resume_skills(resume.skills, parsed)
+            detached["skills"] = canonical_skills
+            detached["experience_years"] = resume_data.get("experience_years", 0)
+            detached["resume_candidate_name"] = detached.get("name")
+            detached["resume_role"] = detached.get("role")
+            detached["resume_experience"] = detached.get("experience_years", 0)
+
+            # Use cached result if available (skip GPT)
+            cached = cached_map.get(resume.id)
+            if cached and cached.match_score is not None:
+                logger.debug(
+                    f"[v2] Using cached score for resume {resume.id} ({detached.get('name', 'Unknown')}): "
+                    f"score={cached.match_score}, structure_hash={jd_structure_hash[:8]}..."
+                )
+                fb = cached.factor_breakdown or {}
+                breakdown = fb.get("score_breakdown") or {}
+                matched = (cached.keyword_matches or {}).get("matched_skills", []) if cached.keyword_matches else []
+                missing = (cached.keyword_matches or {}).get("missing_skills", []) if cached.keyword_matches else []
+                evidence_skills = fb.get("evidence_skills") or []
+                explanation = cached.match_explanation or ""
+
+                return {
+                    # Mandatory fields
+                    "candidate": detached.get("name") or "Unknown Candidate",
+                    "total_score": int(round(cached.match_score or 0)),
+                    "score_breakdown": breakdown,
+                    "matched_skills": matched,
+                    "missing_skills": missing,
+                    "evidence_skills": evidence_skills,
+                    "explanation": explanation,
+                    # Extra fields for UI usefulness
+                    "resume_id": resume.id,
+                    "file_url": detached.get("file_url"),
+                    "source_type": detached.get("source_type"),
+                    "source_id": detached.get("source_id"),
+                    "user_type": detached.get("user_type"),
+                    "role": detached.get("role"),
+                    "experience_years": detached.get("experience_years"),
+                    "location": detached.get("location"),
+                    "ready_to_relocate": detached.get("ready_to_relocate"),
+                    "preferred_location": detached.get("preferred_location"),
+                    "notice_period": detached.get("notice_period"),
+                    "_cached": True,
+                }
+
+            logger.debug(
+                f"[v2] Computing new score for resume {resume.id} ({detached.get('name', 'Unknown')}) "
+                f"(no cache match for structure_hash={jd_structure_hash[:8]}...)"
+            )
+
+            async with semaphore:
+                evidence = await openai_service.extract_resume_evidence_v2(detached, jd_struct)
+
+            evidence_by_dim = (evidence or {}).get("evidence_by_dimension", {}) or {}
+            confidence_by_dim = {dim_id: (data or {}).get("confidence", "none") for dim_id, data in evidence_by_dim.items()}
+            
+            logger.debug(
+                f"[v2] GPT evidence for resume {resume.id}: {confidence_by_dim}"
+            )
+
+            # DISPLAY-ONLY: evidence skills extracted by GPT (must not affect scoring).
+            # Deduplicate by normalized key but preserve original casing for UI.
+            evidence_norm_to_original = {}
+            for _, data in evidence_by_dim.items():
+                if not isinstance(data, dict):
+                    continue
+                for s in (data.get("evidence_skills") or []):
+                    if not isinstance(s, str):
+                        continue
+                    raw = " ".join(s.strip().split())
+                    if not raw:
+                        continue
+                    key = raw.lower()
+                    if key not in evidence_norm_to_original:
+                        evidence_norm_to_original[key] = raw
+
+            # Deterministic order, original casing preserved
+            evidence_skills = [evidence_norm_to_original[k] for k in sorted(evidence_norm_to_original.keys())]
+
+            breakdown = score_breakdown(confidence_by_dim, weights)
+            total = score_total(breakdown)
+            
+            logger.debug(
+                f"[v2] Computed score for resume {resume.id} ({detached.get('name', 'Unknown')}): "
+                f"total={total}, breakdown={breakdown}"
+            )
+
+            # Real matched/missing skills (skill names only)
+            # detached.skills is canonical + normalized already (lowercase), but keep normalize_skills for safety
+            resume_norm_skills = set(normalize_skills(detached.get("skills") or []))
+            jd_norm_skills = set([k for k in jd_norm_to_original.keys()])
+            matched_norm = sorted(jd_norm_skills.intersection(resume_norm_skills))
+            missing_norm = sorted(jd_norm_skills.difference(resume_norm_skills))
+            matched = [jd_norm_to_original[n] for n in matched_norm]
+            missing = [jd_norm_to_original[n] for n in missing_norm]
+
+            explanation = build_explanation(
+                total_score=total,
+                breakdown=breakdown,
+                dimension_labels=dim_labels,
+                matched_skills=matched,
+                missing_skills=missing,
+            )
+
+            return {
+                # Mandatory fields
+                "candidate": detached.get("name") or "Unknown Candidate",
+                "total_score": total,
+                "score_breakdown": breakdown,
+                "matched_skills": matched,
+                "missing_skills": missing,
+                "evidence_skills": evidence_skills,
+                "explanation": explanation,
+                # Extra fields for UI usefulness
+                "resume_id": resume.id,
+                "file_url": detached.get("file_url"),
+                "source_type": detached.get("source_type"),
+                "source_id": detached.get("source_id"),
+                "user_type": detached.get("user_type"),
+                "role": detached.get("role"),
+                "experience_years": detached.get("experience_years"),
+                "location": detached.get("location"),
+                "ready_to_relocate": detached.get("ready_to_relocate"),
+                "preferred_location": detached.get("preferred_location"),
+                "notice_period": detached.get("notice_period"),
+                "_cached": False,
+            }
+
+        tasks = [score_one(r, rd) for (r, rd, _) in prelim]
+        scored = await asyncio.gather(*tasks, return_exceptions=True)
+
+        results = []
+        to_persist = []
+        for item in scored:
+            if isinstance(item, Exception):
+                logger.warning(f"[v2] Resume scoring failed: {item}")
+                continue
+            if item and item.get("total_score", 0) >= min_score:
+                results.append(item)
+                # Persist only newly computed results
+                if item.get("_cached") is False:
+                    to_persist.append(item)
+
+        # Persist new cache rows (best-effort). Requires alembic migration 002_add_jd_hash_cache applied.
+        # NOTE: Using jd_structure_hash (not jd_hash) ensures cache is structure-aware.
+        for r in to_persist:
+            try:
+                db.add(
+                    MatchResult(
+                        job_id=job_id,
+                        jd_hash=jd_structure_hash,  # Structure-aware cache key
+                        resume_id=r["resume_id"],
+                        source_type=r.get("source_type"),
+                        source_id=r.get("source_id"),
+                        match_score=float(r.get("total_score", 0)),
+                        match_explanation=r.get("explanation", "") or "",
+                        keyword_matches={
+                            "matched_skills": r.get("matched_skills") or [],
+                            "missing_skills": r.get("missing_skills") or [],
+                        },
+                        factor_breakdown={
+                            "v2": True,
+                            "engine_version": JD_MATCH_ENGINE_VERSION,
+                            "jd_role": jd_role,
+                            "weights": weights,
+                            "score_breakdown": r.get("score_breakdown") or {},
+                            "dimension_labels": dim_labels,
+                            # DISPLAY-ONLY (must never affect scoring)
+                            "evidence_skills": r.get("evidence_skills") or [],
+                        },
+                    )
+                )
+            except Exception:
+                # Ignore insert errors (e.g., concurrent insert hits unique constraint)
+                continue
+        try:
+            if to_persist:
+                await db.commit()
+        except Exception:
+            await db.rollback()
+
+        results.sort(key=lambda x: x.get("total_score", 0), reverse=True)
+        results = results[:top_n]
+        # Remove internal flags
+        results = [{k: v for k, v in r.items() if k != "_cached"} for r in results]
+
+        # Deterministic recommendation
+        recommendation = "No suitable candidates found for this JD."
+        if results:
+            best = results[0]
+            if len(results) >= 2 and abs(results[0]["total_score"] - results[1]["total_score"]) <= 3:
+                recommendation = "Both candidates are comparable; role focus should decide."
+            else:
+                recommendation = f"{best['candidate']} is the stronger match for this JD."
+
+        return {
+            "jd_role": jd_role,
+            "jd_hash": jd_hash,
+            "jd_filename": jd_filename,
+            "total_resumes_analyzed": total_resumes,
+            "results": results,
+            "recommendation": recommendation,
+            # Helpful metadata
+            "dimensions": [{"dimension_id": d_id, "label": dim_labels.get(d_id, d_id), "weight": weights.get(d_id, 0)} for d_id in selected_dim_ids],
+            "jd_requirements": {
+                "min_experience_years": min_experience_years,
+                "required_skills": jd_required_skills,
+                "preferred_skills": jd_preferred_skills,
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[v2] JD Analysis error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"JD Analysis v2 failed: {str(e)}")
+
 
 @router.get("/results/{job_id}")
 async def get_jd_results(

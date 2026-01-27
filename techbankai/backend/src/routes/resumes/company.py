@@ -60,117 +60,144 @@ async def upload_company_employee_resume(
         if not validate_file_type(file.filename, ALLOWED_EXTENSIONS):
             raise HTTPException(status_code=400, detail="Invalid file type. Only PDF and DOCX allowed.")
         
-        # Save file to disk (or Google Drive if configured)
-        file_path, file_url = await save_uploaded_file(file, subfolder="resumes")
+        # Save file to database (returns file_content and mime_type)
+        file_id, file_url, file_content, mime_type = await save_uploaded_file(file, subfolder="resumes", save_to_db=True)
         file_extension = file.filename.split('.')[-1]
         
-        # Prepare form data for parser
-        form_data = {
-            'form_skills': form_skills
-        }
+        # Save file temporarily for parsing (parser needs file path)
+        import tempfile
+        import os
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}") as tmp_file:
+            tmp_file.write(file_content)
+            file_path = tmp_file.name
         
-        # Parse resume
-        logger.info(f"Parsing company employee resume: {file.filename} (employee_id: {employee_id})")
-        parsed_data = await parse_resume(file_path, file_extension, form_data=form_data)
-        
-        # Clean null bytes from parsed data
-        parsed_data = clean_dict_values(parsed_data)
-        
-        # Merge form skills with resume skills
-        resume_skills = parsed_data.get('resume_technical_skills', [])
-        all_skills = merge_skills(resume_skills, form_skills) if form_skills else resume_skills
-        parsed_data['all_skills'] = all_skills
-        
-        # Check if resume with this employee_id already exists (upsert)
-        query = select(Resume).where(
-            Resume.source_type == 'company_employee',
-            Resume.source_id == employee_id
-        )
-        result = await db.execute(query)
-        existing_resume = result.scalar_one_or_none()
-        
-        if existing_resume:
-            # Update existing record
-            existing_resume.filename = file.filename
-            existing_resume.file_url = file_url
-            existing_resume.raw_text = clean_null_bytes(parsed_data.get('raw_text', ''))
-            existing_resume.parsed_data = parsed_data
-            existing_resume.skills = all_skills
-            existing_resume.experience_years = parsed_data.get('resume_experience', 0)
-            existing_resume.source_metadata = {
-                'employee_id': employee_id,
-                'department': clean_null_bytes(department) if department else None,
-                'company_name': clean_null_bytes(company_name) if company_name else None
-            }
-            existing_resume.uploaded_by = current_user['email']
-            existing_resume.meta_data = {
-                'parsing_method': parsed_data.get('parsing_method', 'unknown'),
-                'file_size': file.size if hasattr(file, 'size') else 0,
-                'updated_at': str(datetime.utcnow()),
-                'user_type': get_user_type_from_source_type('company_employee')  # Always set normalized user_type
+        try:
+            # Prepare form data for parser
+            form_data = {
+                'form_skills': form_skills
             }
             
-            await db.commit()
-            await db.refresh(existing_resume)
+            # Parse resume
+            logger.info(f"Parsing company employee resume: {file.filename} (employee_id: {employee_id})")
+            parsed_data = await parse_resume(file_path, file_extension, form_data=form_data)
             
-            # Update structured child records
-            await save_structured_resume_data(db, existing_resume.id, parsed_data, clear_existing=True)
-            await db.commit()
+            # Clean null bytes from parsed data
+            parsed_data = clean_dict_values(parsed_data)
             
-            logger.info(f"Updated existing company employee resume: {employee_id}")
+            # Merge form skills with resume skills
+            resume_skills = parsed_data.get('resume_technical_skills', [])
+            all_skills = merge_skills(resume_skills, form_skills) if form_skills else resume_skills
+            parsed_data['all_skills'] = all_skills
             
-            return {
-                'success': True,
-                'message': 'Resume updated successfully',
-                'resume_id': existing_resume.id,
-                'filename': existing_resume.filename,
-                'candidate_name': parsed_data.get('resume_candidate_name', 'Unknown'),
-                'skills': existing_resume.skills,
-                'updated': True
-            }
-        else:
-            # Create new record
-            resume = Resume(
-                filename=file.filename,
-                file_url=file_url,
-                source_type='company_employee',
-                source_id=employee_id,
-                source_metadata={
+            # Check if resume with this employee_id already exists (upsert)
+            query = select(Resume).where(
+                Resume.source_type == 'company_employee',
+                Resume.source_id == employee_id
+            )
+            result = await db.execute(query)
+            existing_resume = result.scalar_one_or_none()
+            
+            if existing_resume:
+                # Update existing record
+                existing_resume.filename = file.filename
+                existing_resume.file_url = file_url  # Will be updated with actual resume_id after save
+                existing_resume.file_content = file_content  # Store file in database
+                existing_resume.file_mime_type = mime_type
+                existing_resume.raw_text = clean_null_bytes(parsed_data.get('raw_text', ''))
+                existing_resume.parsed_data = parsed_data
+                existing_resume.skills = all_skills
+                existing_resume.experience_years = parsed_data.get('resume_experience', 0)
+                existing_resume.source_metadata = {
                     'employee_id': employee_id,
                     'department': clean_null_bytes(department) if department else None,
                     'company_name': clean_null_bytes(company_name) if company_name else None
-                },
-                raw_text=clean_null_bytes(parsed_data.get('raw_text', '')),
-                parsed_data=parsed_data,
-                skills=all_skills,
-                experience_years=parsed_data.get('resume_experience', 0),
-                uploaded_by=current_user['email'],
-                meta_data={
+                }
+                existing_resume.uploaded_by = current_user['email']
+                existing_resume.meta_data = {
                     'parsing_method': parsed_data.get('parsing_method', 'unknown'),
-                    'file_size': file.size if hasattr(file, 'size') else 0,
+                    'file_size': len(file_content),
+                    'updated_at': str(datetime.utcnow()),
                     'user_type': get_user_type_from_source_type('company_employee')  # Always set normalized user_type
                 }
-            )
-            
-            db.add(resume)
-            await db.commit()
-            await db.refresh(resume)
-            
-            # Save structured child records
-            await save_structured_resume_data(db, resume.id, parsed_data)
-            await db.commit()
-            
-            logger.info(f"Successfully uploaded company employee resume: {employee_id}")
-            
-            return {
-                'success': True,
-                'message': 'Resume uploaded successfully',
-                'resume_id': resume.id,
-                'filename': resume.filename,
-                'candidate_name': parsed_data.get('resume_candidate_name', 'Unknown'),
-                'skills': resume.skills,
-                'updated': False
-            }
+                
+                await db.commit()
+                await db.refresh(existing_resume)
+                
+                # Update file_url with actual resume_id
+                existing_resume.file_url = f"/api/resumes/{existing_resume.id}/file"
+                await db.commit()
+                
+                # Update structured child records
+                await save_structured_resume_data(db, existing_resume.id, parsed_data, clear_existing=True)
+                await db.commit()
+                
+                logger.info(f"Updated existing company employee resume: {employee_id}")
+                
+                return {
+                    'success': True,
+                    'message': 'Resume updated successfully',
+                    'resume_id': existing_resume.id,
+                    'filename': existing_resume.filename,
+                    'candidate_name': parsed_data.get('resume_candidate_name', 'Unknown'),
+                    'skills': existing_resume.skills,
+                    'updated': True
+                }
+            else:
+                # Create new record with file_content
+                resume = Resume(
+                    filename=file.filename,
+                    file_url=file_url,  # Will be updated with actual resume_id after save
+                    file_content=file_content,  # Store file in database
+                    file_mime_type=mime_type,
+                    source_type='company_employee',
+                    source_id=employee_id,
+                    source_metadata={
+                        'employee_id': employee_id,
+                        'department': clean_null_bytes(department) if department else None,
+                        'company_name': clean_null_bytes(company_name) if company_name else None
+                    },
+                    raw_text=clean_null_bytes(parsed_data.get('raw_text', '')),
+                    parsed_data=parsed_data,
+                    skills=all_skills,
+                    experience_years=parsed_data.get('resume_experience', 0),
+                    uploaded_by=current_user['email'],
+                    meta_data={
+                        'parsing_method': parsed_data.get('parsing_method', 'unknown'),
+                        'file_size': len(file_content),
+                        'user_type': get_user_type_from_source_type('company_employee')  # Always set normalized user_type
+                    }
+                )
+                
+                db.add(resume)
+                await db.commit()
+                await db.refresh(resume)
+                
+                # Update file_url with actual resume_id
+                resume.file_url = f"/api/resumes/{resume.id}/file"
+                await db.commit()
+                
+                # Save structured child records
+                await save_structured_resume_data(db, resume.id, parsed_data)
+                await db.commit()
+                
+                logger.info(f"Successfully uploaded company employee resume: {employee_id}")
+                
+                return {
+                    'success': True,
+                    'message': 'Resume uploaded successfully',
+                    'resume_id': resume.id,
+                    'filename': resume.filename,
+                    'candidate_name': parsed_data.get('resume_candidate_name', 'Unknown'),
+                    'skills': resume.skills,
+                    'updated': False
+                }
+        finally:
+            # Clean up temporary file
+            if os.path.exists(file_path):
+                try:
+                    os.unlink(file_path)
+                except:
+                    pass
     
     except HTTPException:
         raise

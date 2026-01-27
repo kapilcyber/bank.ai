@@ -334,6 +334,294 @@ Decompose into the strict JSON format required.
         raise
 
 
+async def extract_jd_structure_v2(jd_text: str, dimension_library: List[Dict]) -> Dict:
+    """
+    V2: Extract JD structure by selecting ONLY from a backend-controlled dimension library.
+
+    GPT responsibilities:
+    - Select relevant dimension IDs from the provided library
+    - Extract role, min experience, and skills per selected dimension
+    - (Optional) include evidence_snippets, but scoring must NOT depend on them
+
+    GPT must NEVER:
+    - Invent new dimension IDs
+    - Assign weights or numeric scores
+    """
+    from src.schemas.jd_v2 import JDStructureV2, JDSelectedDimensionV2
+
+    client = get_openai_client()
+    if not client:
+        logger.error("OpenAI client not initialized - API key missing or invalid")
+        raise ValueError("OpenAI API key not configured")
+
+    allowed_ids = {d.get("id") for d in (dimension_library or []) if isinstance(d, dict)}
+    if not allowed_ids:
+        raise ValueError("Dimension library is empty or invalid")
+
+    # Keep the library compact in the prompt (ids + definitions + seed_skills).
+    lib_payload = [
+        {
+            "id": d.get("id"),
+            "label": d.get("label"),
+            "definition": d.get("definition"),
+            "seed_skills": d.get("seed_skills", []),
+        }
+        for d in (dimension_library or [])
+        if isinstance(d, dict)
+    ]
+
+    system_prompt = """You are a Job Description (JD) extraction engine.
+
+Your job:
+- Read the JD text and output ONLY valid JSON (no markdown, no commentary).
+- Select relevant dimension IDs ONLY from the provided DIMENSION_LIBRARY.
+- Extract skills/requirements per selected dimension.
+
+Hard rules (STRICT - for deterministic output):
+- You MUST NOT invent new dimension IDs.
+- You MUST NOT output weights or numeric scoring.
+- Skills must be concise, normalized strings (e.g., \"Palo Alto\", \"BGP\", \"NGFW\", \"AWS\").
+- Prefer explicit requirements; do not hallucinate.
+- Do NOT vary dimension selection between runs for the same input.
+- Output MUST be stable and deterministic.
+- If a requirement fits multiple dimensions, choose the BEST single match based on explicit JD text.
+- If the JD text does not clearly support a dimension, DO NOT include it.
+
+Output JSON schema (exact keys):
+{
+  "jd_role": "<string>",
+  "min_experience_years": <number>,
+  "selected_dimensions": [
+    {
+      "dimension_id": "<one_of_library_ids>",
+      "priority": "MUST" | "SHOULD" | "NICE",
+      "required_skills": ["<skill>", "..."],
+      "preferred_skills": ["<skill>", "..."],
+      "evidence_snippets": ["<optional short quotes from JD>", "..."] // OPTIONAL
+    }
+  ]
+}
+"""
+
+    user_prompt = f"""DIMENSION_LIBRARY (use ONLY these ids):
+{json.dumps(lib_payload, indent=2)[:12000]}
+
+JOB_DESCRIPTION:
+{jd_text[:6000]}
+
+Select 3-8 relevant dimensions from the library (use 'other_relevant' only if necessary).
+Extract required_skills and preferred_skills per selected dimension.
+IMPORTANT: Be consistent - the same JD text must always produce the same dimension selection.
+Return JSON only."""
+
+    response = await client.chat.completions.create(
+        model=OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        response_format={"type": "json_object"},
+        max_tokens=min(OPENAI_MAX_TOKENS, 2048),
+        temperature=0.0,
+    )
+
+    raw = response.choices[0].message.content
+    result = json.loads(raw)
+
+    # Validate schema
+    parsed = JDStructureV2.model_validate(result)
+
+    # ------------------------------------------------------------------
+    # Dimension dilution guardrails (Option A):
+    # - Always include experience_seniority and core_technical_skills
+    # - Limit selected dimensions to a maximum of 5 (deterministic)
+    # ------------------------------------------------------------------
+    must_include = ["experience_seniority", "core_technical_skills"]
+    existing_ids = [d.dimension_id for d in parsed.selected_dimensions]
+    for dim_id in must_include:
+        if dim_id not in existing_ids and dim_id in allowed_ids:
+            parsed.selected_dimensions.insert(
+                0,
+                JDSelectedDimensionV2(
+                    dimension_id=dim_id,
+                    priority="MUST",
+                    required_skills=[],
+                    preferred_skills=[],
+                    evidence_snippets=None,
+                ),
+            )
+
+    # Deduplicate while preserving order (keep first occurrence)
+    seen = set()
+    deduped = []
+    for d in parsed.selected_dimensions:
+        if d.dimension_id in seen:
+            continue
+        seen.add(d.dimension_id)
+        deduped.append(d)
+
+    # Ensure must_include appear first, then keep remaining original order
+    prioritized = []
+    for dim_id in must_include:
+        for d in deduped:
+            if d.dimension_id == dim_id:
+                prioritized.append(d)
+                break
+    for d in deduped:
+        if d.dimension_id not in must_include:
+            prioritized.append(d)
+
+    parsed.selected_dimensions = prioritized[:5]
+
+    # Enforce library-only dimension ids
+    used_ids = {d.dimension_id for d in parsed.selected_dimensions}
+    unknown = sorted([i for i in used_ids if i not in allowed_ids])
+    if unknown:
+        raise ValueError(f"JD v2 extraction returned unknown dimension ids: {unknown}")
+
+    # Return normalized dict
+    return parsed.model_dump()
+
+
+async def extract_resume_evidence_v2(resume_data: Dict, jd_structure_v2: Dict) -> Dict:
+    """
+    V2: For a given resume and an already-extracted JD structure, return evidence + confidence per dimension.
+
+    Confidence is strictly one of: high | medium | low | none
+
+    GPT responsibilities:
+    - Provide confidence label per dimension
+    - Provide evidence_skills (skill strings) and optionally a short evidence_text
+
+    GPT must NEVER:
+    - Assign weights or numeric scores
+    - Rank candidates
+    """
+    from src.schemas.jd_v2 import ResumeEvidenceV2
+
+    client = get_openai_client()
+    if not client:
+        logger.error("OpenAI client not initialized - API key missing or invalid")
+        raise ValueError("OpenAI API key not configured")
+
+    # Compact JD structure for prompt
+    selected = (jd_structure_v2 or {}).get("selected_dimensions", []) or []
+    jd_role = (jd_structure_v2 or {}).get("jd_role", "Not mentioned")
+    jd_min_exp = (jd_structure_v2 or {}).get("min_experience_years", 0)
+
+    jd_dim_payload = [
+        {
+            "dimension_id": d.get("dimension_id"),
+            "priority": d.get("priority"),
+            "required_skills": d.get("required_skills", []),
+            "preferred_skills": d.get("preferred_skills", []),
+        }
+        for d in selected
+        if isinstance(d, dict) and d.get("dimension_id")
+    ]
+
+    # Skills: keep it safe and string-only (this should be the canonical resume skill set)
+    skills = resume_data.get("skills", []) or []
+    skill_strs = []
+    for s in skills[:40]:
+        if s is None:
+            continue
+        if isinstance(s, str) and s.strip():
+            skill_strs.append(s.strip())
+        else:
+            try:
+                ss = str(s).strip()
+                if ss:
+                    skill_strs.append(ss)
+            except Exception:
+                continue
+
+    # Work history: bounded concatenation to enrich evidence extraction deterministically
+    work_items = resume_data.get("work_history") or []
+    wh_lines = []
+    if isinstance(work_items, list):
+        for w in work_items[:8]:
+            if not isinstance(w, dict):
+                continue
+            role = (w.get("role") or "").strip()
+            company = (w.get("company") or "").strip()
+            desc = (w.get("description") or "").strip()
+            head = " - ".join([x for x in [role, company] if x])
+            line = f"{head}: {desc}" if head and desc else (head or desc)
+            if line:
+                wh_lines.append(line)
+    work_history_block = "\n".join(wh_lines)[:2000]
+
+    # Larger raw text window (bounded)
+    raw_text_block = (resume_data.get("raw_text") or "")[:10000]
+
+    system_prompt = """You are a Resume Evidence Extractor for ATS matching.
+
+Return JSON only.
+
+For EACH JD dimension provided, output:
+- confidence: high | medium | low | none
+- evidence_skills: list of skill strings found in resume that support the dimension
+- evidence_text: OPTIONAL short phrase (no more than 200 chars)
+
+Rules:
+- Do NOT output numeric scores or percentages.
+- Do NOT invent skills. Only extract what is present or strongly supported by the resume text.
+- If there is no evidence, confidence must be 'none' and evidence_skills should be [].
+
+Output JSON schema:
+{
+  "evidence_by_dimension": {
+    "<dimension_id>": {
+      "confidence": "high|medium|low|none",
+      "evidence_skills": ["..."],
+      "evidence_text": "..." // optional
+    }
+  }
+}
+"""
+
+    user_prompt = f"""JD ROLE: {jd_role}
+JD MIN EXPERIENCE: {jd_min_exp}
+
+JD DIMENSIONS:
+{json.dumps(jd_dim_payload, indent=2)[:8000]}
+
+RESUME:
+Name: {resume_data.get('resume_candidate_name') or resume_data.get('name') or 'Unknown'}
+Role: {resume_data.get('resume_role') or resume_data.get('role') or 'Not mentioned'}
+Experience Years: {resume_data.get('resume_experience') or resume_data.get('experience_years') or 0}
+Canonical Skills: {', '.join(skill_strs) if skill_strs else 'None'}
+
+Work History (most relevant):
+{work_history_block if work_history_block else 'None'}
+
+Resume Summary:
+{(resume_data.get('summary') or '')[:2500]}
+
+Resume Raw Text:
+{raw_text_block}
+
+Return JSON only."""
+
+    response = await client.chat.completions.create(
+        model=OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        response_format={"type": "json_object"},
+        max_tokens=min(OPENAI_MAX_TOKENS, 2048),
+        temperature=0.0,
+    )
+
+    raw = response.choices[0].message.content
+    result = json.loads(raw)
+
+    parsed = ResumeEvidenceV2.model_validate(result)
+    return parsed.model_dump()
+
+
 async def calculate_intelligent_match(resume_data: Dict, jd_requirements: Dict) -> Dict:
     """
     Use GPT-4 to perform intelligent semantic matching.

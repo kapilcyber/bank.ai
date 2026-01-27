@@ -76,58 +76,79 @@ async def upload_user_profile_resume(
         if not validate_file_type(file.filename, ALLOWED_EXTENSIONS):
             raise HTTPException(status_code=400, detail="Invalid file type. Only PDF and DOCX allowed.")
         
-        # Save file to disk
-        file_path, file_url = await save_uploaded_file(file, subfolder="resumes")
+        # Save file to database (returns file_content and mime_type)
+        file_id, file_url, file_content, mime_type = await save_uploaded_file(file, subfolder="resumes", save_to_db=True)
         file_extension = file.filename.split('.')[-1]
         
-        # Prepare form data for parser
-        form_data = {
-            'fullName': fullName,
-            'email': email,
-            'phone': phone
-        }
+        # Save file temporarily for parsing (parser needs file path)
+        import tempfile
+        import os
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}") as tmp_file:
+            tmp_file.write(file_content)
+            file_path = tmp_file.name
         
-        # Parse resume
-        logger.info(f"Parsing user resume: {file.filename}")
-        parsed_data = await parse_resume(file_path, file_extension, form_data=form_data)
-        
-        # Clean null bytes from parsed data
-        parsed_data = clean_dict_values(parsed_data)
-        
-        # Create resume record with user profile metadata
-        resume = Resume(
-            filename=file.filename,
-            file_url=file_url,
-            source_type=source_type,
-            source_id=None,  # Can be set if we have unique identifier
-            source_metadata={
-                'user_type': userType,
-                'form_data': {
-                    'fullName': clean_null_bytes(fullName) if fullName else None,
-                    'email': clean_null_bytes(email) if email else uploader_email,
-                    'phone': clean_null_bytes(phone) if phone else None
-                }
-            },
-            raw_text=clean_null_bytes(parsed_data.get('raw_text', '')),
-            parsed_data=parsed_data,
-            skills=parsed_data.get('all_skills', parsed_data.get('resume_technical_skills', [])),
-            experience_years=parsed_data.get('resume_experience', 0),
-            uploaded_by=uploader_email,
-            meta_data={
-                'parsing_method': parsed_data.get('parsing_method', 'unknown'),
-                'file_size': file.size if hasattr(file, 'size') else 0,
-                'user_type': normalized_user_type,  # Always use normalized user_type
-                'user_profile': {
-                    'fullName': clean_null_bytes(fullName) if fullName else None,
-                    'email': clean_null_bytes(email) if email else uploader_email,
-                    'phone': clean_null_bytes(phone) if phone else None
-                }
+        try:
+            # Prepare form data for parser
+            form_data = {
+                'fullName': fullName,
+                'email': email,
+                'phone': phone
             }
-        )
-        
-        db.add(resume)
-        await db.commit()
-        await db.refresh(resume)
+            
+            # Parse resume
+            logger.info(f"Parsing user resume: {file.filename}")
+            parsed_data = await parse_resume(file_path, file_extension, form_data=form_data)
+            
+            # Clean null bytes from parsed data
+            parsed_data = clean_dict_values(parsed_data)
+            
+            # Create resume record with user profile metadata and file_content
+            resume = Resume(
+                filename=file.filename,
+                file_url=file_url,  # Will be updated with actual resume_id after save
+                file_content=file_content,  # Store file in database
+                file_mime_type=mime_type,
+                source_type=source_type,
+                source_id=None,  # Can be set if we have unique identifier
+                source_metadata={
+                    'user_type': userType,
+                    'form_data': {
+                        'fullName': clean_null_bytes(fullName) if fullName else None,
+                        'email': clean_null_bytes(email) if email else uploader_email,
+                        'phone': clean_null_bytes(phone) if phone else None
+                    }
+                },
+                raw_text=clean_null_bytes(parsed_data.get('raw_text', '')),
+                parsed_data=parsed_data,
+                skills=parsed_data.get('all_skills', parsed_data.get('resume_technical_skills', [])),
+                experience_years=parsed_data.get('resume_experience', 0),
+                uploaded_by=uploader_email,
+                meta_data={
+                    'parsing_method': parsed_data.get('parsing_method', 'unknown'),
+                    'file_size': len(file_content),
+                    'user_type': normalized_user_type,  # Always use normalized user_type
+                    'user_profile': {
+                        'fullName': clean_null_bytes(fullName) if fullName else None,
+                        'email': clean_null_bytes(email) if email else uploader_email,
+                        'phone': clean_null_bytes(phone) if phone else None
+                    }
+                }
+            )
+            
+            db.add(resume)
+            await db.commit()
+            await db.refresh(resume)
+            
+            # Update file_url with actual resume_id
+            resume.file_url = f"/api/resumes/{resume.id}/file"
+            await db.commit()
+        finally:
+            # Clean up temporary file
+            if os.path.exists(file_path):
+                try:
+                    os.unlink(file_path)
+                except:
+                    pass
         
         # Save structured child records
         await save_structured_resume_data(db, resume.id, parsed_data)

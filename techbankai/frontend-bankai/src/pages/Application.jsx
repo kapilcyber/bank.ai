@@ -588,12 +588,6 @@ const Application = () => {
             </div>
             {selectedEmploymentType?.id !== 'guest-user' && (
               <div className="form-group">
-                <label>
-                  Work Experience
-                  {isAutoFilled('experiences') && (
-                    <span className="auto-filled-badge" title="Auto-filled from resume">✨</span>
-                  )}
-                </label>
                 {formData.experiences.map((exp, index) => (
                   <div key={index} className="experience-entry" style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid rgba(50, 130, 184, 0.3)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.05)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -732,75 +726,6 @@ const Application = () => {
                     </div>
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData({
-                      ...formData,
-                      experiences: [...formData.experiences, {
-                        role: '',
-                        company: '',
-                        location: '',
-                        start_date: '',
-                        end_date: '',
-                        is_current: false,
-                        description: ''
-                      }]
-                    })
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: 'rgba(50, 130, 184, 0.1)',
-                    color: '#3282b8',
-                    border: '2px dashed #3282b8',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    marginTop: '0.5rem',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = 'rgba(50, 130, 184, 0.2)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = 'rgba(50, 130, 184, 0.1)'
-                  }}
-                >
-                  + Add Another Experience
-                </button>
-                {formData.experiences.length === 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormData({
-                        ...formData,
-                        experiences: [{
-                          role: '',
-                          company: '',
-                          location: '',
-                          start_date: '',
-                          end_date: '',
-                          is_current: false,
-                          description: ''
-                        }]
-                      })
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: 'rgba(50, 130, 184, 0.1)',
-                      color: '#3282b8',
-                      border: '2px dashed #3282b8',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      marginTop: '0.5rem'
-                    }}
-                  >
-                    + Add Work Experience
-                  </button>
-                )}
               </div>
             )}
             <div className="form-group">
@@ -993,12 +918,6 @@ const Application = () => {
             )}
             {selectedEmploymentType?.id !== 'guest-user' && (
               <div className="form-group">
-                <label>
-                  Education
-                  {isAutoFilled('education') && (
-                    <span className="auto-filled-badge" title="Auto-filled from resume">✨</span>
-                  )}
-                </label>
                 {formData.education.map((edu, index) => (
                   <div key={index} className="education-entry" style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid rgba(50, 130, 184, 0.3)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.05)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -1117,73 +1036,6 @@ const Application = () => {
                     </div>
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData({
-                      ...formData,
-                      education: [...formData.education, {
-                        degree: '',
-                        institution: '',
-                        field_of_study: '',
-                        start_date: '',
-                        end_date: '',
-                        grade: ''
-                      }]
-                    })
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: 'rgba(50, 130, 184, 0.1)',
-                    color: '#3282b8',
-                    border: '2px dashed #3282b8',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    marginTop: '0.5rem',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = 'rgba(50, 130, 184, 0.2)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = 'rgba(50, 130, 184, 0.1)'
-                  }}
-                >
-                  + Add Another Education
-                </button>
-                {formData.education.length === 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormData({
-                        ...formData,
-                        education: [{
-                          degree: '',
-                          institution: '',
-                          field_of_study: '',
-                          start_date: '',
-                          end_date: '',
-                          grade: ''
-                        }]
-                      })
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: 'rgba(50, 130, 184, 0.1)',
-                      color: '#3282b8',
-                      border: '2px dashed #3282b8',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      marginTop: '0.5rem'
-                    }}
-                  >
-                    + Add Education
-                  </button>
-                )}
               </div>
             )}
           </motion.div>

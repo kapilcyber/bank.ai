@@ -453,7 +453,7 @@ const AdminDashboard = () => {
                       </div>
                     </td>
                     <td>
-                      <span className={`type-badge-new ${resume.user_type || resume.source_type || 'default'}`}>
+                      <span className={`type-badge-new ${String(resume.user_type || resume.source_type || 'default').toLowerCase().replace(/\s+/g, '_')}`}>
                         {formatUserType(resume.user_type || resume.source_type)}
                       </span>
                     </td>
@@ -485,7 +485,7 @@ const AdminDashboard = () => {
                         {(resume.parsed_data?.resume_certificates || [])
                           .filter(c => c && c !== "Not mentioned")
                           .slice(0, 1).map((cert, idx) => (
-                            <span key={idx} className="cert-tag-new">{cleanCertText(cert)}</span>
+                            <span key={idx} className="cert-tag-new">{cleanCertText(typeof cert === 'object' && cert.name ? cert.name : cert)}</span>
                           ))}
                         {resume.parsed_data?.resume_certificates?.filter(c => c && c !== "Not mentioned")?.length > 1 && (
                           <span className="more-count">+{resume.parsed_data.resume_certificates.filter(c => c && c !== "Not mentioned").length - 1}</span>

@@ -7,7 +7,6 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts'
 import { API_BASE_URL } from '../../config/api'
-import RoleCirclePacking from './RoleCirclePacking'
 import './AdminDashboard.css'
 
 // Helper to clean text from unwanted characters
@@ -99,7 +98,6 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
   const [error, setError] = useState(null)
   const [selectedCandidate, setSelectedCandidate] = useState(null)
   const [timeframe, setTimeframe] = useState('month') // 'day', 'month', 'quarter'
-  const [selectedRole, setSelectedRole] = useState(null)
   const [selectedState, setSelectedState] = useState('')
   const [syncing, setSyncing] = useState(false)
   const [syncStatus, setSyncStatus] = useState(null)
@@ -584,7 +582,7 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={filteredTopSkills.slice(0, 8)}>
-                  <PolarGrid stroke="rgba(0, 242, 255, 0.1)" />
+                  <PolarGrid stroke="rgba(16, 185, 129, 0.1)" />
                   <PolarAngleAxis
                     dataKey="skill"
                     tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }}
@@ -598,11 +596,11 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                   <Radar
                     name="Skills"
                     dataKey="count"
-                    stroke="#00f2ff"
+                    stroke="#10b981"
                     strokeWidth={2}
-                    fill="#00f2ff"
+                    fill="#10b981"
                     fillOpacity={0.3}
-                    dot={{ r: 4, fill: '#00f2ff', fillOpacity: 1 }}
+                    dot={{ r: 4, fill: '#10b981', fillOpacity: 1 }}
                   />
                   <Tooltip
                     content={({ active, payload }) => {
@@ -610,7 +608,7 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                         return (
                           <div className="custom-recharts-tooltip">
                             <p style={{ color: '#fff', fontSize: '12px', fontWeight: 800, margin: 0 }}>{payload[0].payload.skill}</p>
-                            <p style={{ color: '#00f2ff', fontSize: '14px', fontWeight: 900, margin: '4px 0 0' }}>Count: {payload[0].value}</p>
+                            <p style={{ color: '#10b981', fontSize: '14px', fontWeight: 900, margin: '4px 0 0' }}>Count: {payload[0].value}</p>
                           </div>
                         );
                       }
@@ -676,12 +674,12 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                 >
                   <defs>
                     <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#00f2ff" stopOpacity={0.1} />
-                      <stop offset="100%" stopColor="#00f2ff" stopOpacity={0.8} />
+                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.1} />
+                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.8} />
                     </linearGradient>
                     <linearGradient id="highlightGradient" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#facc15" stopOpacity={0.2} />
-                      <stop offset="100%" stopColor="#facc15" stopOpacity={1} />
+                      <stop offset="0%" stopColor="#ec4899" stopOpacity={0.2} />
+                      <stop offset="100%" stopColor="#ec4899" stopOpacity={1} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
@@ -695,17 +693,17 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                     tickLine={false}
                   />
                   <Tooltip
-                    cursor={{ fill: 'rgba(0, 242, 255, 0.05)' }}
+                    cursor={{ fill: 'rgba(139, 92, 246, 0.05)' }}
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const isHighlighted = payload[0].payload.state === selectedState;
                         return (
-                          <div className="custom-recharts-tooltip" style={{ borderColor: isHighlighted ? '#facc15' : 'rgba(255,255,255,0.1)' }}>
+                          <div className="custom-recharts-tooltip" style={{ borderColor: isHighlighted ? '#ec4899' : 'rgba(255,255,255,0.1)' }}>
                             <p style={{ color: '#fff', fontSize: '12px', fontWeight: 800, margin: 0 }}>
                               {payload[0].payload.state}
-                              {isHighlighted && <span style={{ marginLeft: '8px', color: '#facc15', fontSize: '10px' }}>● Selected Focus</span>}
+                              {isHighlighted && <span style={{ marginLeft: '8px', color: '#ec4899', fontSize: '10px' }}>● Selected Focus</span>}
                             </p>
-                            <p style={{ color: isHighlighted ? '#facc15' : '#00f2ff', fontSize: '14px', fontWeight: 900, margin: '4px 0 0' }}>{payload[0].value} Professionals</p>
+                            <p style={{ color: isHighlighted ? '#ec4899' : '#8b5cf6', fontSize: '14px', fontWeight: 900, margin: '4px 0 0' }}>{payload[0].value} Professionals</p>
                           </div>
                         );
                       }
@@ -740,40 +738,6 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
           </div>
         </motion.div>
 
-        <motion.div
-          className="dashboard-section role-packing-section"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          <div className="section-header-row">
-            <div className="header-left">
-              <h3>Role-Based Talent Clusters</h3>
-              <span className="section-subtitle">Circle Packing Analysis</span>
-            </div>
-
-            <div className="role-filter-wrapper">
-              <select
-                className="premium-cyber-select"
-                value={selectedRole || ''}
-                onChange={(e) => setSelectedRole(e.target.value || null)}
-              >
-                <option value="">Search / Select Role Cluster</option>
-                {dashboardData.roleDistribution.slice(0, 30).map(item => (
-                  <option key={item.role} value={item.role}>
-                    {item.role} ({item.count})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <RoleCirclePacking
-            data={dashboardData.roleDistribution}
-            selectedRole={selectedRole}
-            onRoleClick={setSelectedRole}
-            onNavigateToRecords={onNavigateToRecords}
-          />
-        </motion.div>
       </div>
 
 

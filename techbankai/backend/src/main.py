@@ -120,6 +120,17 @@ app.add_api_route(
     response_description="Parsed resume data for autofill"
 )
 
+# Add backward compatibility route for old /resumes/{filename} URLs
+from src.routes.resume import get_resume_by_filename
+app.add_api_route(
+    "/resumes/{filename:path}",
+    get_resume_by_filename,
+    methods=["GET"],
+    tags=["Resumes"],
+    summary="Get Resume by Filename (Legacy)",
+    description="Backward compatibility route for old resume URLs"
+)
+
 app.include_router(resume.router)  # Main resume routes (search, list, get, delete)
 app.include_router(company.router)  # Company employee uploads
 app.include_router(resume_admin.router)  # Admin bulk uploads
@@ -137,7 +148,7 @@ for route in app.routes:
         methods = getattr(route, 'methods', set())
         logger.info(f"  {route.path} - Methods: {methods}")
         if 'parse-only' in route.path:
-            logger.info(f"  ✅ FOUND parse-only route: {route.path} with methods: {methods}")
+            logger.info(f"  [OK] FOUND parse-only route: {route.path} with methods: {methods}")
 
 # Request logging middleware
 @app.middleware("http")

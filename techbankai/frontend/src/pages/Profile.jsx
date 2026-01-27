@@ -176,7 +176,7 @@ const Profile = () => {
             <div className="profile-info-cyber">
               <h1 className="cyber-name">{userProfile?.name || 'Admin User'}</h1>
               <div className="cyber-status-pill">
-                <span className="status-dot"></span> SYSTEM {userProfile?.mode?.toUpperCase() || 'ROOT'} ACCESS
+                <span className="status-dot"></span> {userProfile?.mode?.toUpperCase() || 'ADMINISTRATOR'} ACCESS
               </div>
             </div>
           </div>
@@ -186,33 +186,34 @@ const Profile = () => {
           {/* Information Grid */}
           <div className="profile-grid">
             <div className="cyber-info-box">
-              <label><span className="icon">🛡️</span> FULL NAME</label>
+              <label><span className="icon">👤</span> FULL NAME</label>
               {isEditing ? (
                 <input
                   name="name"
                   value={editedProfile.name}
                   onChange={handleChange}
                   className="cyber-input"
+                  placeholder="Enter your name"
                 />
               ) : (
-                <p className="cyber-value">{userProfile?.name || 'Not Defined'}</p>
+                <p className="cyber-value">{userProfile?.name || 'Not Set'}</p>
               )}
             </div>
 
             <div className="cyber-info-box">
-              <label><span className="icon">📧</span> SYSTEM EMAIL</label>
+              <label><span className="icon">📧</span> EMAIL ADDRESS</label>
               <p className="cyber-value secondary">{userProfile?.email || 'N/A'}</p>
             </div>
 
             <div className="cyber-info-box">
-              <label><span className="icon">⚔️</span> ASSIGNED ROLE</label>
+              <label><span className="icon">🎯</span> ASSIGNED ROLE</label>
               <p className="cyber-value highlight">{userProfile?.mode?.toUpperCase() || 'ADMINISTRATOR'}</p>
             </div>
 
             <div className="cyber-info-box">
-              <label><span className="icon">📅</span> ACCESS GRANTED</label>
+              <label><span className="icon">📅</span> ACCOUNT CREATED</label>
               <p className="cyber-value secondary">
-                {userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString() : 'Dec 2023'}
+                {userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString() : 'N/A'}
               </p>
             </div>
           </div>
@@ -221,23 +222,23 @@ const Profile = () => {
           <div className="profile-footer-cyber">
             {!isEditing ? (
               <button className="cyber-btn primary" onClick={() => setIsEditing(true)}>
-                EDIT PROTOCOLS
+                Edit Profile
               </button>
             ) : (
               <div className="edit-actions">
                 <button className="cyber-btn success" onClick={handleSave} disabled={loading}>
-                  {loading ? 'SYNCING...' : 'SAVE CHANGES'}
+                  {loading ? 'Saving...' : 'Save Changes'}
                 </button>
                 <button className="cyber-btn cancel" onClick={() => setIsEditing(false)}>
-                  ABORT
+                  Cancel
                 </button>
               </div>
             )}
             <button className="cyber-btn primary" onClick={() => navigate('/admin')}>
-              RETURN TO MAINFRAME
+              Back to Dashboard
             </button>
             <button className="cyber-btn danger" onClick={() => { logout(); navigate('/'); }}>
-              TERMINATE SESSION
+              Logout
             </button>
           </div>
         </motion.div>

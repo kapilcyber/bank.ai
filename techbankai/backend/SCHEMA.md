@@ -84,7 +84,7 @@ CREATE TABLE users (
 CREATE TABLE resumes (
     id SERIAL PRIMARY KEY,
     source_type VARCHAR(50) NOT NULL,
-    source_id VARCHAR(100),
+    source_id VARCHAR(500),
     source_metadata JSONB,
     filename VARCHAR(255) NOT NULL,
     file_url VARCHAR(500) NOT NULL,
@@ -105,7 +105,7 @@ CREATE TABLE resumes (
 |--------|------|----------|---------|-------------|
 | `id` | SERIAL | NO | Auto-increment | Primary key, unique identifier |
 | `source_type` | VARCHAR(50) | NO | - | Source type: 'company_employee', 'gmail', 'admin', 'freelancer', 'guest', 'hired_force' |
-| `source_id` | VARCHAR(100) | YES | - | Source-specific identifier (employee_id, message_id, etc.) |
+| `source_id` | VARCHAR(500) | YES | - | Source-specific identifier (employee_id, message_id, etc.) |
 | `source_metadata` | JSONB | YES | - | Source-specific metadata (employee_id, department, gmail metadata, etc.) |
 | `filename` | VARCHAR(255) | NO | - | Original filename of uploaded resume |
 | `file_url` | VARCHAR(500) | NO | - | URL/path to stored resume file |
