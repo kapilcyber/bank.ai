@@ -208,11 +208,11 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_postgres_
         result = await db.execute(query)
         user = result.scalar_one_or_none()
         if not user:
-            raise HTTPException(status_code=401, detail="Invalid email or password")
+            raise HTTPException(status_code=401, detail="Invalid email")
         
         # Verify password
         if not verify_password(credentials.password, user.password_hash):
-            raise HTTPException(status_code=401, detail="Invalid email or password")
+            raise HTTPException(status_code=401, detail="Invalid password")
         
         # Create JWT token
         token_data = {

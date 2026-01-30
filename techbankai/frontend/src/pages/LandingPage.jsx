@@ -135,6 +135,27 @@ const LandingPage = () => {
 
     return (
         <div className="login-container">
+            {authError && (
+                <div className="auth-popup-overlay" onClick={() => setAuthError('')}>
+                    <motion.div
+                        className="auth-popup"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="auth-popup-icon">!</div>
+                        <p className="auth-popup-message">{authError}</p>
+                        <button
+                            type="button"
+                            className="auth-popup-btn"
+                            onClick={() => setAuthError('')}
+                        >
+                            OK
+                        </button>
+                    </motion.div>
+                </div>
+            )}
             <div className="page-logos">
                 <img src="/women.png" alt="Women Owned" className="logo-left" />
                 <img src="/cache.png" alt="Cache" className="logo-right" />
@@ -161,23 +182,13 @@ const LandingPage = () => {
                     </motion.div>
 
                     <form onSubmit={handleSubmit} className="login-form">
-                        {authError && (
-                            <motion.div
-                                className="auth-error"
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                            >
-                                {authError}
-                            </motion.div>
-                        )}
-
                         <motion.div
                             className="form-group"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.2 }}
                         >
-                            <label htmlFor="email">Email Address</label>
+                            <label htmlFor="email">Email Address <span className="required">*</span></label>
                             <input
                                 type="email"
                                 id="email"
@@ -189,7 +200,6 @@ const LandingPage = () => {
                                 className={errors.email ? 'error' : ''}
                                 autoComplete="off"
                             />
-                            {errors.email && <span className="error-message">{errors.email}</span>}
                         </motion.div>
 
                         <motion.div
@@ -198,7 +208,7 @@ const LandingPage = () => {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.3 }}
                         >
-                            <label htmlFor="password">Password</label>
+                            <label htmlFor="password">Password <span className="required">*</span></label>
                             <div className="password-input-wrapper">
                                 <input
                                     type={showPassword ? 'text' : 'password'}
@@ -219,7 +229,6 @@ const LandingPage = () => {
                                     {showPassword ? '🙈' : '👁️'}
                                 </button>
                             </div>
-                            {errors.password && <span className="error-message">{errors.password}</span>}
                         </motion.div>
 
                         <motion.button
