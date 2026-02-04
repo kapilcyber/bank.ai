@@ -83,24 +83,64 @@ class EmailFetcher:
                 return True
         return False
 
-    def fetch_unread_emails(self, max_count: int = 50) -> List[Dict[str, Any]]:
+    def fetch_unread_emails(self, max_count: int = 100, include_read: bool = False, require_keywords: bool = False) -> List[Dict[str, Any]]:
+        """
+        Fetch emails from Outlook inbox with pagination support.
+        
+        Args:
+            max_count: Maximum number of emails to fetch (default 100)
+            include_read: If True, also fetch read emails (default False)
+            require_keywords: If True, only fetch emails with resume keywords in subject (default False)
+        """
         headers = self.authenticator.get_auth_headers()
         url = self._build_inbox_url()
+        
+        # Build filter based on parameters
+        filter_parts = ["hasAttachments eq true"]
+        if not include_read:
+            filter_parts.append("isRead eq false")
+        
         params = {
-            "$filter": "isRead eq false and hasAttachments eq true",
-            "$select": "id,subject,from,receivedDateTime,hasAttachments",
-            "$top": min(max_count, 25)
+            "$filter": " and ".join(filter_parts),
+            "$select": "id,subject,from,receivedDateTime,hasAttachments,isRead",
+            "$top": min(max_count, 100)  # Microsoft Graph API max is 100 per request
         }
+        
+        all_emails = []
         try:
-            response = requests.get(url, headers=headers, params=params, timeout=30)
-            response.raise_for_status()
-            return response.json().get("value", [])
+            while len(all_emails) < max_count:
+                response = requests.get(url, headers=headers, params=params, timeout=30)
+                response.raise_for_status()
+                data = response.json()
+                emails = data.get("value", [])
+                
+                if not emails:
+                    break
+                
+                # Apply keyword filter if required
+                if require_keywords:
+                    emails = [e for e in emails if self._contains_resume_keywords(e.get("subject", ""))]
+                
+                all_emails.extend(emails)
+                
+                # Check for next page
+                next_link = data.get("@odata.nextLink")
+                if not next_link or len(all_emails) >= max_count:
+                    break
+                
+                url = next_link
+                params = {}  # Next link already has all params
+            
+            return all_emails[:max_count]  # Return up to max_count
         except Exception as e:
             logger.error(f"Error fetching emails: {e}")
             raise
 
-    def filter_resume_emails(self, emails: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        return [e for e in emails if self._contains_resume_keywords(e.get("subject", ""))]
+    def filter_resume_emails(self, emails: List[Dict[str, Any]], require_keywords: bool = False) -> List[Dict[str, Any]]:
+        """Filter emails by resume keywords if required."""
+        if require_keywords:
+            return [e for e in emails if self._contains_resume_keywords(e.get("subject", ""))]
+        return emails
 
     def mark_as_read(self, message_id: str) -> bool:
         headers = self.authenticator.get_auth_headers()
@@ -116,7 +156,10 @@ class EmailFetcher:
 class AttachmentHandler:
     """Handles downloading and validating email attachments."""
     GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0"
-    VALID_EXTENSIONS = {".pdf", ".docx"}
+    # Accept common resume formats from Outlook.
+    # Note: `.doc` (legacy Word) support depends on having a conversion tool available server-side
+    # (e.g., MS Word via COM on Windows, LibreOffice, or antiword). See file_processor.extract_text_from_doc.
+    VALID_EXTENSIONS = {".pdf", ".docx", ".doc"}
     EXCLUDED_CONTENT_TYPES = {"image/png", "image/jpeg", "image/gif", "image/bmp", "image/webp", "image/svg+xml"}
 
     def __init__(self, authenticator: GraphAuthenticator):
@@ -165,9 +208,17 @@ class OutlookService:
         self.email_fetcher = EmailFetcher(self.authenticator)
         self.attachment_handler = AttachmentHandler(self.authenticator)
 
-    def fetch_emails_to_process(self, max_emails: int = 50) -> List[Dict[str, Any]]:
-        unread = self.email_fetcher.fetch_unread_emails(max_emails)
-        return self.email_fetcher.filter_resume_emails(unread)
+    def fetch_emails_to_process(self, max_emails: int = 100, include_read: bool = False, require_keywords: bool = False) -> List[Dict[str, Any]]:
+        """
+        Fetch emails to process.
+        
+        Args:
+            max_emails: Maximum number of emails to fetch (default 100)
+            include_read: If True, also process read emails (default False)
+            require_keywords: If True, only process emails with resume keywords (default False)
+        """
+        unread = self.email_fetcher.fetch_unread_emails(max_emails, include_read, require_keywords)
+        return self.email_fetcher.filter_resume_emails(unread, require_keywords)
 
     def get_email_attachments(self, message_id: str) -> List[Dict[str, Any]]:
         return self.attachment_handler.get_valid_resume_attachments(message_id)
