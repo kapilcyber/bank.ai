@@ -814,6 +814,7 @@ async def analyze_jd_v2(
                     "ready_to_relocate": detached.get("ready_to_relocate"),
                     "preferred_location": detached.get("preferred_location"),
                     "notice_period": detached.get("notice_period"),
+                    "uploaded_at": detached.get("uploaded_at"),
                     "_cached": True,
                 }
 
@@ -897,6 +898,7 @@ async def analyze_jd_v2(
                 "ready_to_relocate": detached.get("ready_to_relocate"),
                 "preferred_location": detached.get("preferred_location"),
                 "notice_period": detached.get("notice_period"),
+                "uploaded_at": detached.get("uploaded_at"),
                 "_cached": False,
             }
 

@@ -6,8 +6,9 @@ import { API_BASE_URL } from '../config/api'
 import LogoutTransition from './admin/LogoutTransition'
 import './Navbar.css'
 
-const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, adminTabs, activeTab, setActiveTab }) => {
-  const props = { adminTabs, activeTab, setActiveTab } // Helper to keep the previous code working without changing 'props.' prefixes everywhere in the previous step instruction context, or I can just fix the usage in previous step. Actually, the Previous Step inserted `props.adminTabs`. So I need `props` to be defined. 
+const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, showLogout = true, adminTabs, activeTab, setActiveTab, centerHeading }) => {
+  const props = { adminTabs, activeTab, setActiveTab }
+  const isPortalMode = !!centerHeading // Helper to keep the previous code working without changing 'props.' prefixes everywhere in the previous step instruction context, or I can just fix the usage in previous step. Actually, the Previous Step inserted `props.adminTabs`. So I need `props` to be defined. 
   // BETTER STRATEGY: Update the signature to `const Navbar = (props) => { const { userProfile, showAdminToggle = false, showProfile = true } = props; ...`
   // But that changes too much. 
   // I will just add the new props to destructuring and assign them to a 'props' object effectively or just change the signature to accept `props` directly and destructure userProfile etc from it.
@@ -53,11 +54,19 @@ const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, admi
             className="navbar-heading"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/admin')}
+            onClick={() => !isPortalMode && navigate('/admin')}
+            style={{ cursor: isPortalMode ? 'default' : 'pointer' }}
           >
             techbankai
           </motion.h1>
         </div>
+
+        {/* Center heading (e.g. role title on application page) */}
+        {centerHeading && (
+          <div className="navbar-center-heading">
+            <h1 className="navbar-center-heading-text">{centerHeading}</h1>
+          </div>
+        )}
 
         {/* Central Admin Tabs */}
         {props.adminTabs && (
@@ -108,13 +117,15 @@ const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, admi
             </button>
           )}
 
-          <button
-            className="logout-button-nav"
-            onClick={handleLogout}
-            title="Logout"
-          >
-            Logout
-          </button>
+          {showLogout && (
+            <button
+              className="logout-button-nav"
+              onClick={handleLogout}
+              title="Logout"
+            >
+              Logout
+            </button>
+          )}
 
           <img 
             src="/cache.png" 

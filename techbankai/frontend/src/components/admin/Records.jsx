@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { createPortal } from 'react-dom'
-import { API_BASE_URL } from '../../config/api'
+import { API_BASE_URL, getAuthToken, API_ENDPOINTS } from '../../config/api'
 import './AdminDashboard.css' // Reuse existing styles for consistency
 
 // Helper to clean text (reused)
@@ -42,8 +42,24 @@ const renderSafe = (value, fallback = 'N/A') => {
     return value;
 }
 
+const TYPE_FILTER_OPTIONS = [
+    { value: '', label: 'All' },
+    { value: 'company_employee', label: 'Company Employee' },
+    { value: 'freelancer', label: 'Freelancer' },
+    { value: 'guest', label: 'Guest User' },
+    { value: 'admin', label: 'Admin Uploads' },
+]
+
+const RECORD_TYPE_EDIT_OPTIONS = [
+    { value: 'company_employee', label: 'Company Employee' },
+    { value: 'freelancer', label: 'Freelancer' },
+    { value: 'guest', label: 'Guest User' },
+    { value: 'admin', label: 'Admin Uploads' },
+]
+
 const Records = ({ initialFilter, setInitialFilter }) => {
     const [searchTerm, setSearchTerm] = useState(initialFilter || '')
+    const [typeFilter, setTypeFilter] = useState('')
     const [records, setRecords] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -152,21 +168,32 @@ const Records = ({ initialFilter, setInitialFilter }) => {
                 </div>
 
                 <div className="records-search-wrapper">
+                    <select
+                        className="records-type-filter-select"
+                        value={typeFilter}
+                        onChange={(e) => setTypeFilter(e.target.value)}
+                        title="Filter by user type"
+                    >
+                        {TYPE_FILTER_OPTIONS.map((opt) => (
+                            <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
                     <div className="search-input-group">
                         <input
                             type="text"
                             placeholder="Search talent database..."
                             className="premium-cyber-input"
-                            style={{ width: '350px' }}
+                            style={{ width: '280px' }}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    {searchTerm && (
+                    {(searchTerm || typeFilter) && (
                         <button
                             className="reset-view-btn"
                             onClick={() => {
                                 setSearchTerm('');
+                                setTypeFilter('');
                                 if (setInitialFilter) setInitialFilter(null);
                             }}
                             title="Clear All Filters"
@@ -188,15 +215,16 @@ const Records = ({ initialFilter, setInitialFilter }) => {
                     <table className="data-table">
                         <colgroup>
                             <col style={{ width: '4%' }} />
-                            <col style={{ width: '17%' }} />
+                            <col style={{ width: '16%' }} />
                             <col style={{ width: '8%' }} />
-                            <col style={{ width: '9%' }} />
-                            <col style={{ width: '9%' }} />
+                            <col style={{ width: '8%' }} />
                             <col style={{ width: '8%' }} />
                             <col style={{ width: '7%' }} />
-                            <col style={{ width: '7%' }} />
-                            <col style={{ width: '12%' }} />
-                            <col style={{ width: '19%' }} />
+                            <col style={{ width: '6%' }} />
+                            <col style={{ width: '6%' }} />
+                            <col style={{ width: '11%' }} />
+                            <col style={{ width: '18%' }} />
+                            <col style={{ width: '8%' }} />
                         </colgroup>
                         <thead>
                             <tr>
@@ -210,26 +238,52 @@ const Records = ({ initialFilter, setInitialFilter }) => {
                                 <th>Relocate</th>
                                 <th>Skills</th>
                                 <th>Certifications</th>
+                                <th>Links</th>
                             </tr>
                         </thead>
                         <tbody>
                             {(() => {
+                                const getSourceType = (r) => {
+                                    const st = (r.source_type || '').toLowerCase();
+                                    if (st) return st;
+                                    const ut = (r.user_type || '').toLowerCase().replace(/\s+/g, '_');
+                                    if (ut.includes('company') || ut === 'company_employee') return 'company_employee';
+                                    if (ut.includes('freelancer')) return 'freelancer';
+                                    if (ut.includes('guest') || ut === 'gmail') return 'guest';
+                                    if (ut.includes('admin')) return 'admin';
+                                    return ut || '';
+                                };
                                 const filtered = records.filter(r => {
+                                    const srcType = getSourceType(r);
+                                    if (typeFilter) {
+                                        if (typeFilter === 'company_employee' && srcType !== 'company_employee') return false;
+                                        if (typeFilter === 'freelancer' && srcType !== 'freelancer') return false;
+                                        if (typeFilter === 'guest' && srcType !== 'guest' && srcType !== 'gmail') return false;
+                                        if (typeFilter === 'admin' && srcType !== 'admin') return false;
+                                    }
                                     if (!searchTerm) return true;
                                     const search = searchTerm.toLowerCase();
                                     return (
                                         (r.name || r.full_name || '').toLowerCase().includes(search) ||
                                         (r.role || '').toLowerCase().includes(search) ||
                                         (r.location || '').toLowerCase().includes(search) ||
-                                        (r.skills || []).some(s => s.toLowerCase().includes(search))
+                                        (r.skills || []).some(s => (s && String(s).toLowerCase().includes(search)))
                                     );
                                 });
 
                                 if (filtered.length === 0) {
+                                    const filterDesc = typeFilter ? TYPE_FILTER_OPTIONS.find(o => o.value === typeFilter)?.label || typeFilter : '';
+                                    const msg = searchTerm && filterDesc
+                                        ? `No results for "${searchTerm}" in ${filterDesc}`
+                                        : searchTerm
+                                            ? `No results found for "${searchTerm}"`
+                                            : filterDesc
+                                                ? `No ${filterDesc} records found`
+                                                : 'No records found';
                                     return (
                                         <tr>
-                                            <td colSpan="10" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                                                {searchTerm ? `No results found for "${searchTerm}"` : 'No records found'}
+                                            <td colSpan="11" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                                                {msg}
                                             </td>
                                         </tr>
                                     );
@@ -294,6 +348,33 @@ const Records = ({ initialFilter, setInitialFilter }) => {
                                                 )}
                                             </div>
                                         </td>
+                                        <td>
+                                            <div className="links-cell" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                {(resume.linked_in || resume.meta_data?.form_data?.linkedIn) && (() => {
+                                                    const raw = resume.linked_in || resume.meta_data?.form_data?.linkedIn || ''
+                                                    const u = raw.trim()
+                                                    const href = (u.startsWith('http://') || u.startsWith('https://')) ? u : `https://${u}`
+                                                    return (
+                                                        <a href={href} target="_blank" rel="noreferrer" className="link-icon-btn" title="LinkedIn" style={{ padding: '4px 8px', background: 'rgba(10, 102, 194, 0.15)', color: '#0a66c2', borderRadius: '6px', textDecoration: 'none', fontSize: '0.85rem' }}>
+                                                            LinkedIn
+                                                        </a>
+                                                    )
+                                                })()}
+                                                {(resume.portfolio || resume.meta_data?.form_data?.portfolio) && (() => {
+                                                    const raw = resume.portfolio || resume.meta_data?.form_data?.portfolio || ''
+                                                    const u = raw.trim()
+                                                    const href = (u.startsWith('http://') || u.startsWith('https://')) ? u : `https://${u}`
+                                                    return (
+                                                        <a href={href} target="_blank" rel="noreferrer" className="link-icon-btn" title="Portfolio" style={{ padding: '4px 8px', background: 'rgba(50, 130, 184, 0.15)', color: '#3282b8', borderRadius: '6px', textDecoration: 'none', fontSize: '0.85rem' }}>
+                                                            Portfolio
+                                                        </a>
+                                                    )
+                                                })()}
+                                                {!(resume.linked_in || resume.meta_data?.form_data?.linkedIn || resume.portfolio || resume.meta_data?.form_data?.portfolio) && (
+                                                    <span className="na-text">—</span>
+                                                )}
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))
                             })()}
@@ -310,15 +391,37 @@ const Records = ({ initialFilter, setInitialFilter }) => {
             <CandidateDetailModal
                 candidate={selectedCandidate}
                 onClose={() => setSelectedCandidate(null)}
+                onTypeUpdated={(updated) => {
+                    const updatedId = updated.id ?? updated.resume_id
+                    setRecords(prev => prev.map(r => ((r.id ?? r.resume_id) === updatedId ? { ...r, ...updated, id: updated.id ?? r.id, resume_id: updated.resume_id ?? r.resume_id } : r)))
+                    setSelectedCandidate(prev => (prev && (prev.id ?? prev.resume_id) === updatedId ? { ...prev, ...updated, id: updated.id ?? prev.id, resume_id: updated.resume_id ?? prev.resume_id } : prev))
+                }}
+                onRecordsRefresh={fetchRecords}
             />
         </div>
     )
 }
 
 // Duplicated modal for strict isolation as per usual React component patterns if not in shared file
-const CandidateDetailModal = ({ candidate, onClose }) => {
+const CandidateDetailModal = ({ candidate, onClose, onTypeUpdated, onRecordsRefresh }) => {
+    const getCurrentSourceType = (c) => {
+        const st = (c?.source_type || '').toLowerCase()
+        if (st) return st
+        const ut = (c?.user_type || '').toLowerCase().replace(/\s+/g, '_')
+        if (ut.includes('company') || ut === 'company_employee') return 'company_employee'
+        if (ut.includes('freelancer')) return 'freelancer'
+        if (ut.includes('guest') || ut === 'gmail') return 'guest'
+        if (ut.includes('admin')) return 'admin'
+        return 'guest'
+    }
+    const [editSourceType, setEditSourceType] = useState(() => getCurrentSourceType(candidate))
+    const [typeSaving, setTypeSaving] = useState(false)
+    const [typeError, setTypeError] = useState('')
+
     useEffect(() => {
         if (candidate) {
+            setEditSourceType(getCurrentSourceType(candidate))
+            setTypeError('')
             document.body.style.overflow = 'hidden'
         } else {
             document.body.style.overflow = 'unset'
@@ -327,6 +430,43 @@ const CandidateDetailModal = ({ candidate, onClose }) => {
             document.body.style.overflow = 'unset'
         }
     }, [candidate])
+
+    const handleSaveType = async () => {
+        const resumeId = candidate?.id ?? candidate?.resume_id
+        if (resumeId == null || !onTypeUpdated) return
+        const current = getCurrentSourceType(candidate)
+        const targetType = current === 'company_employee' ? 'guest' : editSourceType
+        if (targetType === current) return
+        setTypeSaving(true)
+        setTypeError('')
+        try {
+            const token = getAuthToken()
+            const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.ADMIN_UPDATE_RESUME_TYPE}/${resumeId}/type`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` }),
+                },
+                body: JSON.stringify({
+                    source_type: targetType,
+                    ...(current === 'company_employee' && candidate?.source_id && { source_id: candidate.source_id }),
+                }),
+            })
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}))
+                throw new Error(data.detail || response.statusText || 'Failed to update type')
+            }
+            const updated = await response.json()
+            if (!updated.id && resumeId != null) updated.id = resumeId
+            onTypeUpdated(updated)
+            if (onRecordsRefresh) await onRecordsRefresh()
+            onClose()
+        } catch (err) {
+            setTypeError(err.message || 'Failed to update record type')
+        } finally {
+            setTypeSaving(false)
+        }
+    }
 
     if (!candidate) return null
 
@@ -353,7 +493,7 @@ const CandidateDetailModal = ({ candidate, onClose }) => {
 
     return createPortal(
         <motion.div
-            className="modal-overlay"
+            className="modal-overlay record-detail-modal"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -384,169 +524,198 @@ const CandidateDetailModal = ({ candidate, onClose }) => {
 
                 <div className="modal-body">
                     <div className="modal-grid-container">
+                        {onTypeUpdated && getCurrentSourceType(candidate) === 'company_employee' && (
+                            <section className="modal-section record-type-edit-section">
+                                <h3 className="section-title-sm">Record type</h3>
+                                <div className="record-type-edit-row">
+                                    <button
+                                        type="button"
+                                        className="record-type-save-btn record-type-save-btn-red"
+                                        onClick={handleSaveType}
+                                        disabled={typeSaving}
+                                    >
+                                        {typeSaving ? 'Saving...' : 'Change to Guest User'}
+                                    </button>
+                                </div>
+                                {typeError && <p className="record-type-error">{typeError}</p>}
+                            </section>
+                        )}
                         <section className="modal-section">
                             <h3 className="section-title-sm">Quick Contacts & Essentials</h3>
-                            <div className="info-cards-row">
-                                <div className="info-mini-card">
-                                    <span className="mini-icon">📧</span>
-                                    <div className="mini-content">
-                                        <label>Email Address</label>
-                                        <p>{renderSafe(candidate.email)}</p>
-                                    </div>
+                            <div className="record-fields-list">
+                                <div className="record-field">
+                                    <span className="record-field-label">Email Address</span>
+                                    <div className="record-field-value">{renderSafe(candidate.email)}</div>
                                 </div>
-                                <div className="info-mini-card">
-                                    <span className="mini-icon">📍</span>
-                                    <div className="mini-content">
-                                        <label>Current Location</label>
-                                        <p>{renderSafe(candidate.location)}</p>
-                                    </div>
+                                <div className="record-field">
+                                    <span className="record-field-label">Phone</span>
+                                    <div className="record-field-value">{renderSafe(candidate.phone)}</div>
                                 </div>
-                                <div className="info-mini-card">
-                                    <span className="mini-icon">💼</span>
-                                    <div className="mini-content">
-                                        <label>Total Experience</label>
-                                        <p>{candidate.experience_years ? `${parseFloat(candidate.experience_years).toFixed(1)} Years` : 'N/A'}</p>
-                                    </div>
+                                <div className="record-field">
+                                    <span className="record-field-label">Current Location</span>
+                                    <div className="record-field-value">{renderSafe(candidate.location)}</div>
                                 </div>
-                                <div className="info-mini-card">
-                                    <span className="mini-icon">⏳</span>
-                                    <div className="mini-content">
-                                        <label>Notice Period</label>
-                                        <p>{candidate.notice_period !== undefined ? `${candidate.notice_period} Days` : 'N/A'}</p>
-                                    </div>
+                                <div className="record-field">
+                                    <span className="record-field-label">Total Experience</span>
+                                    <div className="record-field-value">{candidate.experience_years ? `${parseFloat(candidate.experience_years).toFixed(1)} Years` : 'N/A'}</div>
                                 </div>
-                            </div>
-                        </section>
-
-                        <section className="modal-section highlight">
-                            <div className="detail-item-premium">
-                                <label>Relocation Status & Preference</label>
-                                <div className={`status-box ${candidate.ready_to_relocate ? 'active' : ''}`}>
-                                    {candidate.ready_to_relocate ? (
-                                        <div className="status-content">
-                                            <span className="status-main">Ready to Relocate</span>
-                                            <span className="status-sub">Preferred: {candidate.preferred_location || 'Open'}</span>
+                                <div className="record-field">
+                                    <span className="record-field-label">Notice Period</span>
+                                    <div className="record-field-value">{candidate.notice_period !== undefined ? `${candidate.notice_period} Days` : 'N/A'}</div>
+                                </div>
+                                {(candidate.linked_in || candidate.meta_data?.form_data?.linkedIn) && (() => {
+                                    const linkedInUrl = candidate.linked_in || candidate.meta_data?.form_data?.linkedIn
+                                    const href = (() => { const u = (linkedInUrl || '').trim(); return (u.startsWith('http://') || u.startsWith('https://')) ? u : `https://${u}` })()
+                                    return (
+                                        <div className="record-field">
+                                            <span className="record-field-label">LinkedIn</span>
+                                            <div className="record-field-value">
+                                                <a href={href} target="_blank" rel="noreferrer">{linkedInUrl.length > 60 ? linkedInUrl.slice(0, 57) + '...' : linkedInUrl}</a>
+                                            </div>
                                         </div>
-                                    ) : 'Not open to relocation'}
+                                    )
+                                })()}
+                                {(candidate.portfolio || candidate.meta_data?.form_data?.portfolio) && (() => {
+                                    const portfolioUrl = candidate.portfolio || candidate.meta_data?.form_data?.portfolio
+                                    const href = (() => { const u = (portfolioUrl || '').trim(); return (u.startsWith('http://') || u.startsWith('https://')) ? u : `https://${u}` })()
+                                    return (
+                                        <div className="record-field">
+                                            <span className="record-field-label">Portfolio / Website</span>
+                                            <div className="record-field-value">
+                                                <a href={href} target="_blank" rel="noreferrer">{portfolioUrl.length > 60 ? portfolioUrl.slice(0, 57) + '...' : portfolioUrl}</a>
+                                            </div>
+                                        </div>
+                                    )
+                                })()}
+                                <div className="record-field">
+                                    <span className="record-field-label">Relocation Status & Preference</span>
+                                    <div className="record-field-value">
+                                        {candidate.ready_to_relocate ? `Ready to Relocate${candidate.preferred_location ? ` — Preferred: ${candidate.preferred_location}` : ''}` : 'Not open to relocation'}
+                                    </div>
                                 </div>
                             </div>
                         </section>
 
                         <div className="skills-certs-grid">
                             <div className="content-block">
-                                <h3><span className="block-icon">🚀</span> Core Skills</h3>
-                                <div className="premium-tag-list">
-                                    {skills.length > 0 ? (
-                                        skills.map((skill, idx) => (
-                                            <span key={idx} className="premium-skill-tag">{skill}</span>
-                                        ))
-                                    ) : <p className="no-data-text">No skills detected</p>}
+                                <h3 className="section-title-sm">Core Skills</h3>
+                                <div className="record-field">
+                                    <span className="record-field-label">Skills</span>
+                                    <div className="record-tags-wrap">
+                                        {skills.length > 0 ? (
+                                            skills.map((skill, idx) => (
+                                                <span key={idx} className="record-tag">{skill}</span>
+                                            ))
+                                        ) : (
+                                            <span className="record-tag record-tag-empty">No skills detected</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="content-block">
-                                <h3><span className="block-icon">📜</span> Certifications</h3>
-                                <div className="premium-tag-list">
-                                    {certs.length > 0 ? (
-                                        certs.map((cert, idx) => (
-                                            <span key={idx} className="premium-cert-tag">{cleanCertText(cert.name)}</span>
-                                        ))
-                                    ) : <p className="no-data-text">No certifications found</p>}
+                                <h3 className="section-title-sm">Certifications</h3>
+                                <div className="record-field">
+                                    <span className="record-field-label">Certifications</span>
+                                    <div className="record-tags-wrap">
+                                        {certs.length > 0 ? (
+                                            certs.map((cert, idx) => (
+                                                <span key={idx} className="record-tag">{cleanCertText(cert.name)}</span>
+                                            ))
+                                        ) : (
+                                            <span className="record-tag record-tag-empty">No certifications found</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <section className="modal-section">
-                            <h3 className="section-title-sm"><span className="block-icon">💼</span> Work Experience</h3>
+                            <h3 className="section-title-sm">Work Experience</h3>
                             {candidate.work_history && candidate.work_history.length > 0 ? (
-                                <div className="experience-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div className="experience-list record-fields-list">
                                     {candidate.work_history.map((exp, idx) => (
-                                        <div key={idx} className="experience-item" style={{ 
-                                            padding: '1rem', 
-                                            background: 'rgba(50, 130, 184, 0.05)', 
-                                            borderRadius: '8px',
-                                            border: '1px solid rgba(50, 130, 184, 0.2)'
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                                                <h4 style={{ margin: 0, color: '#3282b8', fontSize: '1rem', fontWeight: '700' }}>
-                                                    {exp.role || 'Position'}
-                                                </h4>
-                                                {(exp.start_date || exp.end_date) && (
-                                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-                                                        {exp.start_date || ''} {exp.start_date && exp.end_date ? '-' : ''} {exp.end_date || ''}
-                                                        {exp.is_current && ' (Current)'}
-                                                    </span>
-                                                )}
+                                        <div key={idx} className="experience-item record-field-block">
+                                            <div className="record-field">
+                                                <span className="record-field-label">Role</span>
+                                                <div className="record-field-value">{exp.role || '—'}</div>
                                             </div>
-                                            {exp.company && (
-                                                <p style={{ margin: '0.25rem 0', color: '#64748b', fontSize: '0.9rem' }}>
-                                                    <strong>Company:</strong> {exp.company}
-                                                </p>
-                                            )}
-                                            {exp.location && (
-                                                <p style={{ margin: '0.25rem 0', color: '#64748b', fontSize: '0.9rem' }}>
-                                                    <strong>Location:</strong> {exp.location}
-                                                </p>
-                                            )}
+                                            <div className="record-field">
+                                                <span className="record-field-label">Company</span>
+                                                <div className="record-field-value">{exp.company || '—'}</div>
+                                            </div>
+                                            <div className="record-field">
+                                                <span className="record-field-label">Location</span>
+                                                <div className="record-field-value">{exp.location || '—'}</div>
+                                            </div>
+                                            <div className="record-field">
+                                                <span className="record-field-label">Period</span>
+                                                <div className="record-field-value">
+                                                    {exp.start_date || ''} {exp.start_date && exp.end_date ? '–' : ''} {exp.end_date || ''}
+                                                    {exp.is_current ? ' (Current)' : ''}
+                                                </div>
+                                            </div>
                                             {exp.description && (
-                                                <p style={{ margin: '0.5rem 0 0', color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic' }}>
-                                                    {exp.description}
-                                                </p>
+                                                <div className="record-field">
+                                                    <span className="record-field-label">Description</span>
+                                                    <div className="record-field-value">{exp.description}</div>
+                                                </div>
                                             )}
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="no-data-text">No work experience records found</p>
+                                <div className="record-field">
+                                    <span className="record-field-label">Work Experience</span>
+                                    <div className="record-field-value">No work experience records found</div>
+                                </div>
                             )}
                         </section>
 
                         <section className="modal-section">
-                            <h3 className="section-title-sm"><span className="block-icon">🎓</span> Education</h3>
+                            <h3 className="section-title-sm">Education</h3>
                             {educations.length > 0 ? (
-                                <div className="education-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div className="education-list record-fields-list">
                                     {educations.map((edu, idx) => (
-                                        <div key={idx} className="education-item" style={{ 
-                                            padding: '1rem', 
-                                            background: 'rgba(50, 130, 184, 0.05)', 
-                                            borderRadius: '8px',
-                                            border: '1px solid rgba(50, 130, 184, 0.2)'
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                                                <h4 style={{ margin: 0, color: '#3282b8', fontSize: '1rem', fontWeight: '700' }}>
-                                                    {edu.degree || 'Education'}
-                                                </h4>
-                                                {(edu.start_date || edu.end_date) && (
-                                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-                                                        {edu.start_date || ''} {edu.start_date && edu.end_date ? '-' : ''} {edu.end_date || ''}
-                                                    </span>
-                                                )}
+                                        <div key={idx} className="education-item record-field-block">
+                                            <div className="record-field">
+                                                <span className="record-field-label">Degree</span>
+                                                <div className="record-field-value">{edu.degree || '—'}</div>
                                             </div>
-                                            {edu.institution && (
-                                                <p style={{ margin: '0.25rem 0', color: '#64748b', fontSize: '0.9rem' }}>
-                                                    <strong>Institution:</strong> {edu.institution}
-                                                </p>
-                                            )}
-                                            {edu.field_of_study && (
-                                                <p style={{ margin: '0.25rem 0', color: '#64748b', fontSize: '0.9rem' }}>
-                                                    <strong>Field:</strong> {edu.field_of_study}
-                                                </p>
-                                            )}
+                                            <div className="record-field">
+                                                <span className="record-field-label">Institution</span>
+                                                <div className="record-field-value">{edu.institution || '—'}</div>
+                                            </div>
+                                            <div className="record-field">
+                                                <span className="record-field-label">Field of study</span>
+                                                <div className="record-field-value">{edu.field_of_study || '—'}</div>
+                                            </div>
+                                            <div className="record-field">
+                                                <span className="record-field-label">Period</span>
+                                                <div className="record-field-value">
+                                                    {edu.start_date || ''} {edu.start_date && edu.end_date ? '–' : ''} {edu.end_date || ''}
+                                                </div>
+                                            </div>
                                             {edu.grade && (
-                                                <p style={{ margin: '0.25rem 0', color: '#64748b', fontSize: '0.9rem' }}>
-                                                    <strong>Grade:</strong> {edu.grade}
-                                                </p>
+                                                <div className="record-field">
+                                                    <span className="record-field-label">Grade</span>
+                                                    <div className="record-field-value">{edu.grade}</div>
+                                                </div>
                                             )}
                                             {edu.description && (
-                                                <p style={{ margin: '0.5rem 0 0', color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic' }}>
-                                                    {edu.description}
-                                                </p>
+                                                <div className="record-field">
+                                                    <span className="record-field-label">Description</span>
+                                                    <div className="record-field-value">{edu.description}</div>
+                                                </div>
                                             )}
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="no-data-text">No education records found</p>
+                                <div className="record-field">
+                                    <span className="record-field-label">Education</span>
+                                    <div className="record-field-value">No education records found</div>
+                                </div>
                             )}
                         </section>
                     </div>

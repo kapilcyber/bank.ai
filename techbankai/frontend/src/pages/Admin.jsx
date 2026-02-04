@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useApp } from '../context/AppContext'
 import Navbar from '../components/Navbar'
 import AdminDashboard from '../components/admin/AdminDashboard'
+import AdminPortalLinks from '../components/admin/AdminPortalLinks'
 import SearchTalent from '../components/admin/SearchTalent'
 import SearchUsingJD from '../components/admin/SearchUsingJD'
 import AddNewResume from '../components/admin/AddNewResume'
@@ -36,6 +37,7 @@ const Admin = () => {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊', colorClass: 'tab-dashboard' },
+    { id: 'links', label: 'Links', icon: '🔗', colorClass: 'tab-links' },
     { id: 'records', label: 'Records', icon: '📂', colorClass: 'tab-records' },
     { id: 'search-talent', label: 'Search Talent', icon: '🔍', colorClass: 'tab-search-talent' },
     { id: 'search-jd', label: 'Search Using JD', icon: '📝', colorClass: 'tab-search-jd' },
@@ -46,6 +48,8 @@ const Admin = () => {
     switch (activeTab) {
       case 'dashboard':
         return <AdminDashboard onNavigateToRecords={navigateToRecords} />
+      case 'links':
+        return <AdminPortalLinks />
       case 'records':
         return <Records initialFilter={initialFilter} setInitialFilter={setInitialFilter} />
       case 'search-talent':

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useApp } from '../context/AppContext'
@@ -7,6 +7,26 @@ import Navbar from '../components/Navbar'
 import './Application.css'
 
 const Application = () => {
+  const navigate = useNavigate()
+  const { selectedEmploymentType, userProfile, portalEmployeeId } = useApp()
+
+  useEffect(() => {
+    if (!selectedEmploymentType) {
+      navigate('/', { replace: true })
+    }
+  }, [selectedEmploymentType, navigate])
+
+  // Back: portal users have no back button; logged-in users go to dashboard
+  const isPortalUser = () => {
+    if (!selectedEmploymentType) return false
+    const id = selectedEmploymentType.id
+    const title = (selectedEmploymentType.title || '').toLowerCase()
+    return id === 'guest-user' || title === 'guest user' ||
+      id === 'freelancer' || title === 'freelancer' ||
+      id === 'company-employee' || title === 'company employee'
+  }
+  const getBackPath = () => '/dashboard'
+
   const [file, setFile] = useState(null)
   const [dragActive, setDragActive] = useState(false)
   const [formData, setFormData] = useState({
@@ -32,10 +52,9 @@ const Application = () => {
     noticePeriod: 0
   })
   const [submitting, setSubmitting] = useState(false)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
   const [autoFilledFields, setAutoFilledFields] = useState(new Set())
   const [uploadProgress, setUploadProgress] = useState(0)
-  const navigate = useNavigate()
-  const { selectedEmploymentType, userProfile } = useApp()
 
   // Helper function to check if field is auto-filled
   const isAutoFilled = (fieldName) => {
@@ -287,15 +306,24 @@ const Application = () => {
         currentlyWorking: formData.currentlyWorking,
         currentCompany: formData.currentCompany,
         readyToRelocate: formData.readyToRelocate,
-        preferredLocation: formData.preferredLocation
+        preferredLocation: formData.preferredLocation,
+        linkedIn: formData.linkedIn || '',
+        portfolio: formData.portfolio || ''
+      }
+      if (portalEmployeeId && (selectedEmploymentType?.id === 'company-employee' || selectedEmploymentType?.title === 'Company Employee')) {
+        profileData.employee_id = portalEmployeeId
       }
 
       // Upload resume with profile data
       const result = await uploadResumeWithProfile(file, profileData)
 
       setSubmitting(false)
-      alert(`Application submitted successfully! Resume ID: ${result.resume_id}`)
-      navigate('/dashboard')
+      if (isPortalUser()) {
+        setSubmitSuccess(true)
+      } else {
+        alert(`Application submitted successfully! Resume ID: ${result.resume_id}`)
+        navigate('/dashboard')
+      }
     } catch (error) {
       console.error('Application submission error:', error)
       alert(error.message || 'Failed to submit application. Please try again.')
@@ -312,36 +340,65 @@ const Application = () => {
         <div className="gradient-orb orb-4"></div>
       </div>
 
-      <Navbar userProfile={userProfile} />
+      <Navbar
+        userProfile={userProfile}
+        showProfile={false}
+        showLogout={false}
+        centerHeading={
+          selectedEmploymentType
+            ? selectedEmploymentType.id === 'guest-user' || selectedEmploymentType.title === 'Guest User'
+              ? 'Candidate'
+              : selectedEmploymentType.id === 'freelancer' || selectedEmploymentType.title === 'Freelancer'
+                ? 'Freelancer'
+                : selectedEmploymentType.id === 'company-employee' || selectedEmploymentType.title === 'Company Employee'
+                  ? 'Company Employee'
+                  : selectedEmploymentType.title || null
+            : null
+        }
+      />
 
-      <div className="application-content">
-        <motion.div
-          className="application-header"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+      {submitSuccess ? (
+        <div
+          className="thank-you-wrapper"
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: 'calc(100vh - 120px)',
+            padding: '2rem',
+            boxSizing: 'border-box'
+          }}
         >
           <motion.div
-            className="header-glass"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            className="application-content thank-you-content form-section"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            style={{
+              maxWidth: '560px',
+              width: '100%',
+              margin: '0 auto',
+              padding: '3rem 2rem',
+              textAlign: 'center',
+              background: 'rgba(255, 255, 255, 0.5)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              borderRadius: '18px',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+            }}
           >
-            <h1>Submit Your Application</h1>
-            <p>Upload your CV/Resume and fill in your personal information</p>
-            {selectedEmploymentType && (
-              <motion.div
-                className="employment-type-badge"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", delay: 0.4 }}
-              >
-                {selectedEmploymentType.title}
-              </motion.div>
-            )}
+            <div style={{ fontSize: '3.5rem', marginBottom: '1rem', color: '#000' }}>✓</div>
+            <h2 style={{ color: '#000', marginBottom: '1rem', fontSize: '1.75rem', fontWeight: '600' }}>
+              Thank you for your response
+            </h2>
+            <p style={{ color: '#000', fontSize: '1.1rem', lineHeight: 1.6 }}>
+              We have received your application and will contact you soon.
+            </p>
           </motion.div>
-        </motion.div>
-
+        </div>
+      ) : (
+      <div className="application-content">
         <motion.form
           className="application-form"
           onSubmit={handleSubmit}
@@ -1080,40 +1137,39 @@ const Application = () => {
             )}
           </motion.div>
 
-          {selectedEmploymentType?.id !== 'guest-user' && (
-            <motion.div
-              className="form-section"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.8 }}
-            >
-              <h2>Links</h2>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="linkedIn">LinkedIn Profile</label>
-                  <input
-                    type="url"
-                    id="linkedIn"
-                    name="linkedIn"
-                    value={formData.linkedIn}
-                    onChange={handleChange}
-                    placeholder="https://linkedin.com/in/yourprofile"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="portfolio">Portfolio/Website</label>
-                  <input
-                    type="url"
-                    id="portfolio"
-                    name="portfolio"
-                    value={formData.portfolio}
-                    onChange={handleChange}
-                    placeholder="https://yourportfolio.com"
-                  />
-                </div>
+          {/* LinkedIn & Portfolio – shown for all portals (Guest, Freelancer, Employee) so links are stored */}
+          <motion.div
+            className="form-section"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.8 }}
+          >
+            <h2>Links</h2>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="linkedIn">LinkedIn Profile</label>
+                <input
+                  type="url"
+                  id="linkedIn"
+                  name="linkedIn"
+                  value={formData.linkedIn}
+                  onChange={handleChange}
+                  placeholder="https://linkedin.com/in/yourprofile"
+                />
               </div>
-            </motion.div>
-          )}
+              <div className="form-group">
+                <label htmlFor="portfolio">Portfolio/Website</label>
+                <input
+                  type="url"
+                  id="portfolio"
+                  name="portfolio"
+                  value={formData.portfolio}
+                  onChange={handleChange}
+                  placeholder="https://yourportfolio.com"
+                />
+              </div>
+            </div>
+          </motion.div>
 
           <motion.div
             className="form-actions"
@@ -1121,13 +1177,15 @@ const Application = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.9 }}
           >
-            <button
-              type="button"
-              className="back-button"
-              onClick={() => navigate('/dashboard')}
-            >
-              ← Back
-            </button>
+            {!isPortalUser() && (
+              <button
+                type="button"
+                className="back-button"
+                onClick={() => navigate(getBackPath())}
+              >
+                ← Back
+              </button>
+            )}
             <button
               type="submit"
               className="submit-button"
@@ -1138,6 +1196,7 @@ const Application = () => {
           </motion.div>
         </motion.form>
       </div>
+      )}
     </div>
   )
 }

@@ -122,11 +122,22 @@ async def get_current_user(
     }
 
 
+ADMIN_MODES = {'admin', 'talent_acquisition', 'talent acquisition', 'hr'}
+
+
+def is_admin_mode(mode: str) -> bool:
+    """Check if user mode grants admin dashboard access (Admin, Talent Acquisition, HR)."""
+    if not mode:
+        return False
+    m = str(mode).strip().lower()
+    return m in ADMIN_MODES or 'admin' in m
+
+
 async def get_admin_user(current_user: dict = Depends(get_current_user)):
-    """Verify user is admin."""
-    if current_user.get("mode") != "admin":
+    """Verify user has admin access (Admin, Talent Acquisition, HR)."""
+    if not is_admin_mode(current_user.get("mode", "")):
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail="Admin access required. This endpoint is restricted to admin users only. Please contact your administrator or use /api/resumes/upload/user-profile for regular uploads."
         )
     return current_user

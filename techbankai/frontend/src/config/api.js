@@ -14,6 +14,14 @@ const getBackendURL = () => {
 
 export const API_BASE_URL = getBackendURL()
 
+// Admin modes (Admin, Talent Acquisition, HR) - all get admin dashboard access
+const ADMIN_MODES = ['admin', 'talent_acquisition', 'talent acquisition', 'hr']
+export const isAdminRole = (mode) => {
+  if (!mode || typeof mode !== 'string') return false
+  const m = mode.trim().toLowerCase()
+  return ADMIN_MODES.includes(m) || m.includes('admin')
+}
+
 // API Endpoints
 export const API_ENDPOINTS = {
   // Authentication
@@ -21,10 +29,12 @@ export const API_ENDPOINTS = {
   GOOGLE_LOGIN: '/auth/google-login',
   LOGOUT: '/auth/logout',
   SIGNUP: '/auth/signup',
+  ADMIN_SIGNUP: '/auth/admin-signup',
   ME: '/auth/me',
   FORGOT_PASSWORD_SEND_CODE: '/auth/forgot-password/send-code',
   FORGOT_PASSWORD_VERIFY_CODE: '/auth/forgot-password/verify-code',
   FORGOT_PASSWORD_RESET: '/auth/forgot-password/reset',
+  VERIFY_EMPLOYEE: '/auth/verify-employee',
 
   // User Profile
   GET_PROFILE: '/user/profile',
@@ -40,6 +50,7 @@ export const API_ENDPOINTS = {
   ADMIN_STATS: '/admin/stats',
   ADMIN_USERS: '/admin/users',
   ADMIN_UPLOAD_RESUMES: '/resumes/upload',
+  ADMIN_UPDATE_RESUME_TYPE: '/admin/resumes',
 }
 
 /**
@@ -210,6 +221,20 @@ export const googleLogin = async (credential) => {
 }
 
 /**
+ * Verify employee ID and email against company CSV (no auth).
+ * @param {string} employee_id - Employee ID
+ * @param {string} email - Employee email
+ * @returns {Promise<{valid: boolean, full_name?: string, message?: string}>}
+ */
+export const verifyEmployee = async (employee_id, email) => {
+  const data = await apiRequest(API_ENDPOINTS.VERIFY_EMPLOYEE, {
+    method: 'POST',
+    body: JSON.stringify({ employee_id, email }),
+  })
+  return data
+}
+
+/**
  * Register new user
  * @param {object} userData - User registration data
  * @returns {Promise} - Registration response
@@ -218,6 +243,18 @@ export const register = async (userData) => {
   return await apiRequest(API_ENDPOINTS.SIGNUP, {
     method: 'POST',
     body: JSON.stringify(userData),
+  })
+}
+
+/**
+ * Admin signup (Admin, Talent Acquisition, HR)
+ * @param {object} data - { name, email, password, role, employee_id }
+ * @returns {Promise} - User response
+ */
+export const adminSignup = async (data) => {
+  return await apiRequest(API_ENDPOINTS.ADMIN_SIGNUP, {
+    method: 'POST',
+    body: JSON.stringify(data),
   })
 }
 
@@ -391,6 +428,9 @@ export const uploadResumeWithProfile = async (file, profileData = {}) => {
   if (profileData.phone) {
     formData.append('phone', profileData.phone)
   }
+  if (profileData.employee_id) {
+    formData.append('employee_id', profileData.employee_id)
+  }
 
   // Additional fields for richer profile data
   if (profileData.experience) {
@@ -417,6 +457,9 @@ export const uploadResumeWithProfile = async (file, profileData = {}) => {
   if (profileData.preferredLocation) {
     formData.append('preferredLocation', profileData.preferredLocation)
   }
+  // Always send LinkedIn and Portfolio so backend can store them (empty string if not provided)
+  formData.append('linkedIn', profileData.linkedIn != null ? String(profileData.linkedIn).trim() : '')
+  formData.append('portfolio', profileData.portfolio != null ? String(profileData.portfolio).trim() : '')
 
   return await uploadFile(API_ENDPOINTS.UPLOAD_USER_PROFILE, formData)
 }

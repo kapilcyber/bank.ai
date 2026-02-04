@@ -185,6 +185,42 @@
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+.results-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.results-sort {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.results-sort label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgba(26, 26, 26, 0.85);
+}
+
+.sort-select {
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
 .results-count {
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
@@ -355,7 +391,7 @@
   color: #1a1a1a;
 }
 
-/* Card Body - Metric Grid */
+/* Card Body - Field heading + value in a box */
 .talent-card-body {
   padding: 1.75rem;
   flex: 1;
@@ -364,63 +400,50 @@
   gap: 1.5rem;
 }
 
-.talent-metrics-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  padding: 1rem;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.talent-fields-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.talent-metric {
+.talent-field-box {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
 
-.talent-metric.full-span {
-  grid-column: span 2;
-}
-
-.talent-metric label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: rgba(26, 26, 26, 0.7);
+.talent-field-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(26, 26, 26, 0.85);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  opacity: 0.9;
+  letter-spacing: 0.5px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.talent-metric p {
-  margin: 0;
-  font-size: 0.9rem;
+.talent-field-value {
+  padding: 0.6rem 0.85rem;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #1a1a1a;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  word-break: break-word;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.role-text-highlight {
-  color: #1a1a1a !important;
-  font-weight: 800 !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+.talent-field-value-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 /* Skills Layout */
-.talent-skills-section label {
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: rgba(26, 26, 26, 0.8);
-  text-transform: uppercase;
-  margin-bottom: 0.75rem;
-  letter-spacing: 1.5px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
 
 .talent-skills-list {
   display: flex;
@@ -482,11 +505,9 @@
 
 .talent-action-btn {
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, #0d9488 0%, #059669 100%);
+  color: #fff;
+  border: 1px solid rgba(5, 150, 105, 0.5);
   padding: 0.6rem 1.5rem;
   border-radius: 10px;
   font-size: 0.75rem;
@@ -495,16 +516,140 @@
   align-items: center;
   gap: 0.6rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
-              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .talent-action-btn:hover {
   transform: scale(1.05);
-  background: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #0f766e 0%, #047857 100%);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4);
+}
+
+/* "+N more" clickable button – opens full skills popup */
+.talent-more-count.talent-more-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  background: rgba(59, 130, 246, 0.2);
+  color: #1d4ed8;
+  transition: all 0.2s ease;
+  margin: 0;
+  font-family: inherit;
+}
+
+.talent-more-count.talent-more-btn:hover {
+  background: rgba(59, 130, 246, 0.35);
+  border-color: rgba(59, 130, 246, 0.7);
+  color: #1e40af;
+}
+
+/* Full skills popup – same card info + all skills, fits in window */
+.skills-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.skills-modal-overlay .skills-modal-card {
+  pointer-events: auto;
+}
+
+.skills-modal-card {
+  position: absolute;
+  z-index: 10001;
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  min-height: 200px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.skills-modal-header {
+  flex-shrink: 0;
+  padding: 1.25rem 1.5rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  position: relative;
+}
+
+.skills-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: rgba(0, 0, 0, 0.08);
+  color: #1a1a1a;
+  border-radius: 10px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.2s;
+}
+
+.skills-modal-close:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.skills-modal-body {
+  flex: 1;
+  min-height: 0;
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.skills-modal-body .talent-field-label {
+  color: #374151;
+}
+
+.skills-modal-body .talent-field-value {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #1a1a1a;
+}
+
+.skills-modal-all-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.skills-modal-all-skills .talent-skill-badge {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #1d4ed8;
+}
+
+.skills-modal-footer {
+  flex-shrink: 0;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  justify-content: center;
 }
 
 /* Responsive Overrides */
@@ -517,13 +662,5 @@
 @media (max-width: 640px) {
   .filters-grid {
     grid-template-columns: 1fr;
-  }
-
-  .talent-metrics-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .talent-metric.full-span {
-    grid-column: span 1;
   }
 }

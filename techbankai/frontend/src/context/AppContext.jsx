@@ -53,6 +53,9 @@ export const AppProvider = ({ children }) => {
     }
   })
 
+  // Portal-only: employee_id after verify (no login). Session-only, not persisted.
+  const [portalEmployeeId, setPortalEmployeeId] = useState(null)
+
   // Persist authentication state
   useEffect(() => {
     if (isAuthenticated) {
@@ -104,6 +107,8 @@ export const AppProvider = ({ children }) => {
         setUserProfile,
         selectedEmploymentType,
         setSelectedEmploymentType,
+        portalEmployeeId,
+        setPortalEmployeeId,
         logout,
       }}
     >

@@ -90,6 +90,7 @@ async def search_resumes(
     q: str | None = Query(None, description="Free-text search"),
     user_types: Optional[List[str]] = Query(None, description="Filter by user types"),
     min_experience: Optional[float] = Query(None, ge=0, description="Minimum years of experience"),
+    max_experience: Optional[float] = Query(None, ge=0, description="Maximum years of experience"),
     locations: Optional[List[str]] = Query(None, description="Filter by locations"),
     roles: Optional[List[str]] = Query(None, description="Filter by roles"),
     current_user: Optional[dict] = Depends(get_optional_user),
@@ -155,6 +156,9 @@ async def search_resumes(
         # Filter by minimum experience
         if min_experience is not None:
             query = query.where(Resume.experience_years >= min_experience)
+        # Filter by maximum experience
+        if max_experience is not None:
+            query = query.where(Resume.experience_years <= max_experience)
         
         # Execute query
         query = query.order_by(Resume.uploaded_at.desc()).limit(500)  # Increased limit for search
@@ -164,9 +168,19 @@ async def search_resumes(
         # Apply client-side filters for locations and roles (JSONB filtering is complex)
         filtered_results = []
         for r in results:
+            parsed = r.parsed_data or {}
+            # Filter by experience range (use same source as display: column or parsed_data)
+            effective_years = r.experience_years if r.experience_years is not None else (parsed.get('resume_experience') or parsed.get('experience_years') or 0)
+            try:
+                effective_years = float(effective_years)
+            except (TypeError, ValueError):
+                effective_years = 0.0
+            if min_experience is not None and effective_years < min_experience:
+                continue
+            if max_experience is not None and effective_years > max_experience:
+                continue
             # Filter by locations
             if locations:
-                parsed = r.parsed_data or {}
                 location = parsed.get('resume_location', parsed.get('location', ''))
                 if not location or location == 'Not mentioned':
                     continue

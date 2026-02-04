@@ -7,6 +7,7 @@ const SearchTalent = () => {
   const [filters, setFilters] = useState({
     userType: '',
     minExperience: '',
+    maxExperience: '',
     location: '',
     phone: '',
     email: '',
@@ -17,6 +18,14 @@ const SearchTalent = () => {
   const [searchResults, setSearchResults] = useState([])
   const [hasSearched, setHasSearched] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [sortByDate, setSortByDate] = useState('newest') // 'newest' | 'oldest' - latest resume on top
+  const [skillsModalResult, setSkillsModalResult] = useState(null)
+  const [skillsModalAnchor, setSkillsModalAnchor] = useState({ top: 0, left: 0 })
+
+  // Apply sort: newest first (default, matches API) or oldest first
+  const displayedResults = sortByDate === 'oldest'
+    ? [...searchResults].sort((a, b) => new Date(a.uploaded_at || 0) - new Date(b.uploaded_at || 0))
+    : [...searchResults].sort((a, b) => new Date(b.uploaded_at || 0) - new Date(a.uploaded_at || 0))
 
   const userTypes = ['Company Employee', 'Freelancer', 'Guest User']
 
@@ -42,7 +51,10 @@ const SearchTalent = () => {
 
       if (filters.skills) params.append('skills', filters.skills)
       if (filters.userType) params.append('user_types', filters.userType)
-      if (filters.minExperience) params.append('min_experience', filters.minExperience)
+      const minExp = filters.minExperience !== '' && filters.minExperience != null ? String(filters.minExperience).trim() : ''
+      const maxExp = filters.maxExperience !== '' && filters.maxExperience != null ? String(filters.maxExperience).trim() : ''
+      if (minExp !== '' && !Number.isNaN(Number(minExp))) params.append('min_experience', minExp)
+      if (maxExp !== '' && !Number.isNaN(Number(maxExp))) params.append('max_experience', maxExp)
       if (filters.location) params.append('locations', filters.location)
       if (filters.role) params.append('roles', filters.role)
       if (filters.email) params.append('q', filters.email)
@@ -74,6 +86,7 @@ const SearchTalent = () => {
     setFilters({
       userType: '',
       minExperience: '',
+      maxExperience: '',
       location: '',
       phone: '',
       email: '',
@@ -136,6 +149,17 @@ const SearchTalent = () => {
               value={filters.minExperience}
               onChange={(e) => handleInputChange('minExperience', e.target.value)}
               placeholder="e.g. 2"
+              min="0"
+            />
+          </div>
+
+          <div className="filter-group">
+            <label>Max Experience (Years)</label>
+            <input
+              type="number"
+              value={filters.maxExperience}
+              onChange={(e) => handleInputChange('maxExperience', e.target.value)}
+              placeholder="e.g. 10"
               min="0"
             />
           </div>
@@ -226,9 +250,24 @@ const SearchTalent = () => {
       >
         <div className="results-header">
           <h3>Search Results</h3>
-          <span className="results-count">
-            {searchResults.length} {searchResults.length === 1 ? 'Candidate' : 'Candidates'} Found
-          </span>
+          <div className="results-header-right">
+            <div className="results-sort">
+              <label htmlFor="sort-by-date">Sort:</label>
+              <select
+                id="sort-by-date"
+                className="sort-select"
+                value={sortByDate}
+                onChange={(e) => setSortByDate(e.target.value)}
+                title="Show latest or oldest resumes first"
+              >
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+              </select>
+            </div>
+            <span className="results-count">
+              {searchResults.length} {searchResults.length === 1 ? 'Candidate' : 'Candidates'} Found
+            </span>
+          </div>
         </div>
 
         <div className="results-content">
@@ -238,7 +277,7 @@ const SearchTalent = () => {
             <p className="empty-message">No candidates found matching your criteria.</p>
           ) : (
             <div className="results-list">
-              {searchResults.map((result, index) => {
+              {displayedResults.map((result, index) => {
                 const name = result.name || result.full_name || 'Unknown Candidate';
                 const initials = getInitials(name);
                 const matchedSkills = result.matched_skills || [];
@@ -267,44 +306,64 @@ const SearchTalent = () => {
                     </div>
 
                     <div className="talent-card-body">
-                      {/* Professional Metric Grid */}
-                      <div className="talent-metrics-grid">
-                        <div className="talent-metric">
-                          <label>Experience</label>
-                          <p>{result.experience_years ? `${result.experience_years} Years` : 'N/A'}</p>
+                      {/* Field heading + value in a box */}
+                      <div className="talent-fields-list">
+                        <div className="talent-field-box">
+                          <span className="talent-field-label">Experience</span>
+                          <div className="talent-field-value">{result.experience_years ? `${result.experience_years} Years` : 'N/A'}</div>
                         </div>
-                        <div className="talent-metric">
-                          <label>Notice</label>
-                          <p>{result.notice_period !== undefined ? `${result.notice_period} Days` : 'N/A'}</p>
+                        <div className="talent-field-box">
+                          <span className="talent-field-label">Notice</span>
+                          <div className="talent-field-value">{result.notice_period !== undefined ? `${result.notice_period} Days` : 'N/A'}</div>
                         </div>
-                        <div className="talent-metric full-span">
-                          <label>Current Role</label>
-                          <p className="role-text-highlight">{result.role || 'Not Mentioned'}</p>
+                        <div className="talent-field-box">
+                          <span className="talent-field-label">Current Role</span>
+                          <div className="talent-field-value">{result.role || 'Not Mentioned'}</div>
                         </div>
-                        <div className="talent-metric full-span">
-                          <label>Location</label>
-                          <p>{result.location || 'N/A'}</p>
+                        <div className="talent-field-box">
+                          <span className="talent-field-label">Location</span>
+                          <div className="talent-field-value">{result.location || 'N/A'}</div>
                         </div>
-                      </div>
-
-                      {allSkills.length > 0 && (
-                        <div className="talent-skills-section">
-                          <label>Featured Skills</label>
-                          <div className="talent-skills-list">
-                            {allSkills.slice(0, 4).map((skill, idx) => (
-                              <span
-                                key={idx}
-                                className={`talent-skill-badge ${matchedSkills.includes(skill) ? 'matched' : ''}`}
-                              >
-                                {skill}
-                              </span>
-                            ))}
-                            {allSkills.length > 4 && (
-                              <span className="talent-more-count">+{allSkills.length - 4}</span>
-                            )}
+                        {allSkills.length > 0 && (
+                          <div className="talent-field-box">
+                            <span className="talent-field-label">Featured Skills</span>
+                            <div className="talent-field-value talent-field-value-skills">
+                              {allSkills.slice(0, 4).map((skill, idx) => (
+                                <span
+                                  key={idx}
+                                  className={`talent-skill-badge ${matchedSkills.includes(skill) ? 'matched' : ''}`}
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                              {allSkills.length > 4 && (
+                                <button
+                                  type="button"
+                                  className="talent-more-count talent-more-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    const cardEl = e.currentTarget.closest('.talent-premium-card')
+                                    const rect = cardEl ? cardEl.getBoundingClientRect() : e.currentTarget.getBoundingClientRect()
+                                    const popupWidth = 420
+                                    const popupHeight = Math.min(450, window.innerHeight - 80)
+                                    let top = rect.top + (rect.height / 2) - (popupHeight / 2)
+                                    let left = rect.left + (rect.width / 2) - (popupWidth / 2)
+                                    if (left + popupWidth > window.innerWidth - 16) left = window.innerWidth - popupWidth - 16
+                                    if (left < 16) left = 16
+                                    if (top < 16) top = 16
+                                    if (top + popupHeight > window.innerHeight - 16) top = window.innerHeight - popupHeight - 16
+                                    setSkillsModalAnchor({ top, left })
+                                    setSkillsModalResult(result)
+                                  }}
+                                  title="View all skills"
+                                >
+                                  +{allSkills.length - 4} more
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
 
                     <div className="talent-card-footer">
@@ -328,6 +387,79 @@ const SearchTalent = () => {
           )}
         </div>
       </motion.div>
+
+      {/* Full skills popup – same card info + all skills */}
+      {skillsModalResult && (
+        <div
+          className="skills-modal-overlay"
+          onClick={() => setSkillsModalResult(null)}
+          role="presentation"
+        >
+          <motion.div
+            className="skills-modal-card"
+            style={{
+              top: skillsModalAnchor.top,
+              left: skillsModalAnchor.left
+            }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="skills-modal-header">
+              <div className="talent-profile-main">
+                <div className={`talent-avatar ${String(skillsModalResult.user_type || skillsModalResult.source_type || 'candidate').toLowerCase().replace(/\s+/g, '_')}`}>
+                  {getInitials(skillsModalResult.name || skillsModalResult.full_name || 'Unknown')}
+                </div>
+                <div className="talent-title-area">
+                  <h4>{skillsModalResult.name || skillsModalResult.full_name || 'Unknown Candidate'}</h4>
+                  <div className="talent-badges">
+                    <span className={`talent-type-badge ${String(skillsModalResult.user_type || skillsModalResult.source_type || 'candidate').toLowerCase().replace(/\s+/g, '_')}`}>
+                      {skillsModalResult.user_type || skillsModalResult.source_type || 'Candidate'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button type="button" className="skills-modal-close" onClick={() => setSkillsModalResult(null)} aria-label="Close">&times;</button>
+            </div>
+            <div className="skills-modal-body">
+              <div className="talent-fields-list">
+                <div className="talent-field-box">
+                  <span className="talent-field-label">Experience</span>
+                  <div className="talent-field-value">{skillsModalResult.experience_years ? `${skillsModalResult.experience_years} Years` : 'N/A'}</div>
+                </div>
+                <div className="talent-field-box">
+                  <span className="talent-field-label">Notice</span>
+                  <div className="talent-field-value">{skillsModalResult.notice_period !== undefined ? `${skillsModalResult.notice_period} Days` : 'N/A'}</div>
+                </div>
+                <div className="talent-field-box">
+                  <span className="talent-field-label">Current Role</span>
+                  <div className="talent-field-value">{skillsModalResult.role || 'Not Mentioned'}</div>
+                </div>
+                <div className="talent-field-box">
+                  <span className="talent-field-label">Location</span>
+                  <div className="talent-field-value">{skillsModalResult.location || 'N/A'}</div>
+                </div>
+                <div className="talent-field-box">
+                  <span className="talent-field-label">All Skills</span>
+                  <div className="talent-field-value talent-field-value-skills skills-modal-all-skills">
+                    {((skillsModalResult.skills || [])).map((skill, idx) => (
+                      <span key={idx} className="talent-skill-badge">{skill}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {skillsModalResult.file_url && (
+              <div className="skills-modal-footer">
+                <a href={skillsModalResult.file_url} target="_blank" rel="noreferrer" className="talent-action-btn">
+                  <span>📄</span> Resume
+                </a>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }

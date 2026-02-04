@@ -136,8 +136,8 @@
   width: 100%;
   padding: 1.5rem;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(100, 100, 108, 0.35);
+  background: rgba(120, 120, 128, 0.2);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   font-family: inherit;
@@ -156,36 +156,36 @@
 
 .jd-textarea:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2),
+  border-color: rgba(100, 100, 108, 0.5);
+  background: rgba(120, 120, 128, 0.28);
+  box-shadow: 0 0 0 4px rgba(100, 100, 108, 0.15),
               0 8px 16px rgba(0, 0, 0, 0.15);
 }
 
 .find-candidates-btn {
   width: 100%;
   max-width: 320px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(120, 120, 128, 0.25);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   color: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(100, 100, 108, 0.35);
   padding: 1rem;
   border-radius: 16px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2),
-              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .find-candidates-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(100, 100, 108, 0.35);
   transform: translateY(-3px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .find-candidates-btn:disabled {
@@ -216,7 +216,38 @@
 
 .results-summary-badges {
   display: flex;
+  align-items: center;
   gap: 0.75rem;
+}
+
+.results-summary-badges .results-sort {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.results-summary-badges .results-sort label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(26, 26, 26, 0.85);
+}
+
+.results-summary-badges .sort-select {
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
+.results-summary-badges .sort-select:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .summary-badge {
@@ -317,6 +348,50 @@
   text-transform: uppercase;
   margin-bottom: 1rem;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-select {
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
+.sidebar-select:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-input {
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  box-sizing: border-box;
+}
+
+.sidebar-input::placeholder {
+  color: rgba(26, 26, 26, 0.5);
+}
+
+.sidebar-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .sidebar-search-box {
