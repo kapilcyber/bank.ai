@@ -555,7 +555,20 @@ const CandidateDetailModal = ({ candidate, onClose }) => {
                 {(candidate.file_url || candidate.id || candidate.resume_id) && (
                     <div className="modal-footer-premium">
                         <a
-                            href={candidate.file_url || `${API_BASE_URL}/resumes/${candidate.id || candidate.resume_id}/file`}
+                            href={(() => {
+                                if (candidate.file_url) {
+                                    // If file_url is a relative path (starts with /), construct full URL
+                                    if (candidate.file_url.startsWith('/')) {
+                                        // Remove /api from API_BASE_URL and append file_url
+                                        const baseUrl = API_BASE_URL.replace('/api', '')
+                                        return `${baseUrl}${candidate.file_url}`
+                                    }
+                                    // If it's already a full URL, use it as is
+                                    return candidate.file_url
+                                }
+                                // Fallback: construct from API_BASE_URL
+                                return `${API_BASE_URL.replace('/api', '')}/api/resumes/${candidate.id || candidate.resume_id}/file`
+                            })()}
                             target="_blank"
                             rel="noreferrer"
                             className="view-resume-action-btn"
