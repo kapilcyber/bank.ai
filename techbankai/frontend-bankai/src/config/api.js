@@ -40,6 +40,9 @@ export const API_ENDPOINTS = {
   ADMIN_STATS: '/admin/stats',
   ADMIN_USERS: '/admin/users',
   ADMIN_UPLOAD_RESUMES: '/resumes/upload',
+
+  // Job Openings Endpoints
+  GET_JOB_OPENING: '/job-openings',
 }
 
 /**
@@ -476,5 +479,14 @@ export const parseResumeOnly = async (file) => {
     }
     throw new Error('Failed to parse resume. Please try again.')
   }
+}
+
+/**
+ * Get a specific job opening by job_id
+ * @param {string} jobId - Job ID
+ * @returns {Promise} - Job opening data
+ */
+export const getJobOpening = async (jobId) => {
+  return await apiRequest(`${API_ENDPOINTS.GET_JOB_OPENING}/${jobId}`)
 }
 

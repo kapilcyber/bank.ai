@@ -153,6 +153,11 @@ async def init_postgres_db():
                 
                 # Token blacklist indexes
                 await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_token_blacklist_token ON token_blacklist (token);"))
+                
+                # Job Openings indexes
+                await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_job_openings_status ON job_openings (status);"))
+                await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_job_openings_business_area ON job_openings (business_area);"))
+                await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_job_openings_created_at ON job_openings (created_at DESC);"))
             print("PostgreSQL tables and indexes initialized")
         except Exception as e:
             print(f"PostgreSQL index initialization warning: {e}")

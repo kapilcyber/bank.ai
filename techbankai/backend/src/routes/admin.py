@@ -48,11 +48,12 @@ async def get_dashboard_stats(
         
         # Get all resumes with formatted responses and prefetch relationships
         from sqlalchemy.orm import selectinload
+        from sqlalchemy import nulls_last
         all_resumes_query = select(Resume).options(
             selectinload(Resume.work_history),
             selectinload(Resume.certificates),
             selectinload(Resume.educations)
-        ).order_by(Resume.uploaded_at.desc())
+        ).order_by(nulls_last(Resume.uploaded_at.desc()))
         all_resumes_result = await db.execute(all_resumes_query)
         all_resumes = all_resumes_result.scalars().all()
 
@@ -150,8 +151,8 @@ async def get_dashboard_stats(
             exp_bin = int(exp) # Round down to nearest year
             experience_counts[exp_bin] = experience_counts.get(exp_bin, 0) + 1
 
-            # Populate Trends
-            if resume.uploaded_at >= one_year_ago:
+            # Populate Trends (only if uploaded_at is not None)
+            if resume.uploaded_at and resume.uploaded_at >= one_year_ago:
                 keys = get_trend_keys(resume.uploaded_at)
                 for period in ['day', 'month', 'quarter']:
                     key = keys[period]
@@ -232,6 +233,17 @@ async def get_dashboard_stats(
         recent_jd_result = await db.execute(recent_jd_query)
         recent_jd = recent_jd_result.scalars().all()
 
+        # Format resumes safely, skipping any that cause errors
+        formatted_resumes = []
+        for r in all_resumes:
+            if r is None:
+                continue
+            try:
+                formatted_resumes.append(format_resume_response(r))
+            except Exception as resume_error:
+                logger.warning(f"Failed to format resume {r.id if hasattr(r, 'id') else 'unknown'}: {resume_error}")
+                # Skip this resume but continue processing others
+
         # Log the counts for debugging
         logger.info(f"Dashboard stats - Total resumes: {total_resumes}, Total users: {total_users}")
         logger.info(f"User type breakdown: {user_type_counts}")
@@ -251,9 +263,9 @@ async def get_dashboard_stats(
                 for ut, skills_list in top_skills_by_user_type.items()
             },
             'experience_distribution': sorted(
-                [{'exp': exp, 'count': experience_counts.get(exp, 0)} for exp in range(0, (max(experience_counts.keys()) if experience_counts else 0) + 1)],
+                [{'exp': exp, 'count': experience_counts.get(exp, 0)} for exp in range(0, (max(experience_counts.keys()) if experience_counts and len(experience_counts) > 0 else 0) + 1)],
                 key=lambda x: x['exp']
-            ),
+            ) if experience_counts and len(experience_counts) > 0 else [],
             'location_distribution': [{'state': s, 'count': c} for s, c in state_distribution.items()],
             'role_distribution': sorted([
                 {
@@ -264,10 +276,7 @@ async def get_dashboard_stats(
                 for r, cands in role_candidates.items()
             ], key=lambda x: x['count'], reverse=True),
             'trends': formatted_trends,
-            'recentResumes': [ # Renamed for frontend consistency
-                format_resume_response(r)
-                for r in all_resumes # Return all resumes, frontend can paginate if needed
-            ],
+            'recentResumes': formatted_resumes, # Renamed for frontend consistency
             'recent_jd_analyses': [
                 {
                     'job_id': jd.job_id,
@@ -280,7 +289,9 @@ async def get_dashboard_stats(
         }
     
     except Exception as e:
+        import traceback
         logger.error(f"Get stats error: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/users")
