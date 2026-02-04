@@ -106,7 +106,7 @@ async def init_postgres_db():
             await conn.execute(text("SELECT 1"))
         
         # Import all models to ensure they're registered with Base
-        from src.models import resume, jd_analysis, user_db, token_blacklist, job_opening
+        from src.models import resume, jd_analysis, user_db, token_blacklist
         
         # Create all tables
         async with engine.begin() as conn:

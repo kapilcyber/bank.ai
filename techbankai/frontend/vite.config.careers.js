@@ -39,48 +39,15 @@ const networkIPPlugin = () => {
       // Get actual port after server starts
       server.httpServer?.once('listening', () => {
         const address = server.httpServer?.address()
-        const actualPort = typeof address === 'object' && address?.port ? address.port : (server.config.server?.port || 3003)
+        const actualPort = typeof address === 'object' && address?.port ? address.port : 3005
         const networkURL = `http://${networkIP}:${actualPort}`
         
         // Show network IP prominently
-        console.log(`\n🌐 Network Access: ${networkURL}\n`)
+        console.log(`\n🌐 Careers Page - Network Access: ${networkURL}/careers.html\n`)
+        console.log(`📋 Careers page running on port ${actualPort}\n`)
+        console.log(`📍 Access at: http://localhost:${actualPort}/careers.html\n`)
+        console.log(`💡 Careers page is standalone and accessible separately from main app\n`)
       })
-      
-      // Override printUrls to filter localhost
-      const originalPrintUrls = server.printUrls
-      server.printUrls = function() {
-        // Intercept console output temporarily to filter localhost
-        const originalLog = console.log
-        const originalInfo = console.info
-        
-        const filterLocalhost = (args) => {
-          const message = args.join(' ')
-          return !message.includes('Local:') && 
-                 !message.includes('localhost:') &&
-                 !message.match(/➜\s+Local:/)
-        }
-        
-        console.log = function(...args) {
-          if (filterLocalhost(args)) {
-            originalLog.apply(console, args)
-          }
-        }
-        
-        console.info = function(...args) {
-          if (filterLocalhost(args)) {
-            originalInfo.apply(console, args)
-          }
-        }
-        
-        // Call original printUrls
-        if (originalPrintUrls) {
-          originalPrintUrls.call(this)
-        }
-        
-        // Restore console methods
-        console.log = originalLog
-        console.info = originalInfo
-      }
     }
   }
 }
@@ -88,14 +55,15 @@ const networkIPPlugin = () => {
 export default defineConfig({
   plugins: [react(), networkIPPlugin()],
   server: {
-    port: 3003,
+    port: 3005,
     host: '0.0.0.0', // Allow external connections
-    open: `http://${networkIP}:3003`, // Open network IP instead of localhost
-    strictPort: false, // Allow Vite to use next available port if 3003 is busy
+    open: false, // Don't auto-open, user can navigate manually
+    strictPort: false, // Allow Vite to use next available port if 3005 is busy
   },
   build: {
     rollupOptions: {
-      input: './index.html'
-    }
+      input: './careers.html'
+    },
+    outDir: 'dist-careers'
   }
 })
