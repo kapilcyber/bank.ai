@@ -85,6 +85,59 @@
   margin-bottom: 0.75rem;
 }
 
+.job-info-banner {
+  background: rgba(229, 56, 59, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  border: 1px solid rgba(229, 56, 59, 0.3);
+}
+
+.job-info-content h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #e5383b;
+  margin: 0 0 0.5rem 0;
+}
+
+.job-info-location {
+  font-size: 0.95rem;
+  color: rgba(26, 26, 26, 0.7);
+  margin: 0 0 1rem 0;
+}
+
+.job-description-details {
+  margin-top: 1rem;
+  cursor: pointer;
+}
+
+.job-description-details summary {
+  font-weight: 600;
+  color: #e5383b;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: rgba(229, 56, 59, 0.1);
+  transition: all 0.3s;
+}
+
+.job-description-details summary:hover {
+  background: rgba(229, 56, 59, 0.2);
+}
+
+.job-description-text {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  color: rgba(26, 26, 26, 0.8);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
 .employment-type-badge {
   display: inline-block;
   background: rgba(188, 108, 37, 0.2);

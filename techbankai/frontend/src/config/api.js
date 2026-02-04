@@ -51,6 +51,14 @@ export const API_ENDPOINTS = {
   ADMIN_USERS: '/admin/users',
   ADMIN_UPLOAD_RESUMES: '/resumes/upload',
   ADMIN_UPDATE_RESUME_TYPE: '/admin/resumes',
+
+  // Job Openings Endpoints
+  GET_JOB_OPENINGS: '/job-openings',
+  GET_JOB_OPENING: '/job-openings',
+  FILTER_JOB_OPENINGS: '/job-openings/filter',
+  CREATE_JOB_OPENING: '/job-openings',
+  UPDATE_JOB_OPENING: '/job-openings',
+  DELETE_JOB_OPENING: '/job-openings',
 }
 
 /**
@@ -519,5 +527,99 @@ export const parseResumeOnly = async (file) => {
     }
     throw new Error('Failed to parse resume. Please try again.')
   }
+}
+
+// Job Openings API Functions
+// ===========================
+
+/**
+ * Get all job openings
+ * @param {object} params - Query parameters (status, business_area, skip, limit)
+ * @returns {Promise} - Job openings list
+ */
+export const getJobOpenings = async (params = {}) => {
+  const queryParams = new URLSearchParams()
+  if (params.status) queryParams.append('status', params.status)
+  if (params.business_area) queryParams.append('business_area', params.business_area)
+  if (params.skip) queryParams.append('skip', params.skip)
+  if (params.limit) queryParams.append('limit', params.limit)
+  
+  const queryString = queryParams.toString()
+  const endpoint = queryString ? `${API_ENDPOINTS.GET_JOB_OPENINGS}?${queryString}` : API_ENDPOINTS.GET_JOB_OPENINGS
+  
+  return await apiRequest(endpoint)
+}
+
+/**
+ * Get a specific job opening by job_id
+ * @param {string} jobId - Job ID
+ * @returns {Promise} - Job opening data
+ */
+export const getJobOpening = async (jobId) => {
+  return await apiRequest(`${API_ENDPOINTS.GET_JOB_OPENING}/${jobId}`)
+}
+
+/**
+ * Filter job openings by business_area or title
+ * @param {object} params - Filter parameters (business_area, title)
+ * @returns {Promise} - Filtered job openings
+ */
+export const filterJobOpenings = async (params = {}) => {
+  const queryParams = new URLSearchParams()
+  if (params.business_area) queryParams.append('business_area', params.business_area)
+  if (params.title) queryParams.append('title', params.title)
+  
+  const queryString = queryParams.toString()
+  const endpoint = queryString ? `${API_ENDPOINTS.FILTER_JOB_OPENINGS}?${queryString}` : API_ENDPOINTS.FILTER_JOB_OPENINGS
+  
+  return await apiRequest(endpoint)
+}
+
+/**
+ * Create a new job opening (admin only)
+ * @param {object} jobData - Job opening data
+ * @param {File} jdFile - Optional JD file
+ * @returns {Promise} - Created job opening
+ */
+export const createJobOpening = async (jobData, jdFile = null) => {
+  const formData = new FormData()
+  formData.append('title', jobData.title)
+  formData.append('location', jobData.location)
+  formData.append('business_area', jobData.business_area)
+  if (jobData.description) formData.append('description', jobData.description)
+  if (jobData.status) formData.append('status', jobData.status)
+  if (jdFile) formData.append('jd_file', jdFile)
+  
+  return await uploadFile(API_ENDPOINTS.CREATE_JOB_OPENING, formData)
+}
+
+/**
+ * Update a job opening (admin only)
+ * @param {string} jobId - Job ID
+ * @param {object} jobData - Updated job opening data
+ * @param {File} jdFile - Optional JD file
+ * @returns {Promise} - Updated job opening
+ */
+export const updateJobOpening = async (jobId, jobData, jdFile = null) => {
+  const formData = new FormData()
+  if (jobData.title) formData.append('title', jobData.title)
+  if (jobData.location) formData.append('location', jobData.location)
+  if (jobData.business_area) formData.append('business_area', jobData.business_area)
+  if (jobData.description !== undefined) formData.append('description', jobData.description)
+  if (jobData.status) formData.append('status', jobData.status)
+  if (jdFile) formData.append('jd_file', jdFile)
+  
+  return await uploadFile(`${API_ENDPOINTS.UPDATE_JOB_OPENING}/${jobId}`, formData)
+}
+
+/**
+ * Delete a job opening (admin only)
+ * @param {string} jobId - Job ID
+ * @returns {Promise} - Deletion response
+ */
+export const deleteJobOpening = async (jobId) => {
+  return await apiRequest(`${API_ENDPOINTS.DELETE_JOB_OPENING}/${jobId}`, {
+    method: 'DELETE',
+  })
 }
 

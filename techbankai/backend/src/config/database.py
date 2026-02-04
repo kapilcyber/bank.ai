@@ -106,7 +106,7 @@ async def init_postgres_db():
             await conn.execute(text("SELECT 1"))
         
         # Import all models to ensure they're registered with Base
-        from src.models import resume, jd_analysis, user_db, token_blacklist
+        from src.models import resume, jd_analysis, user_db, token_blacklist, job_opening
         
         # Create all tables
         async with engine.begin() as conn:
@@ -153,6 +153,11 @@ async def init_postgres_db():
                 
                 # Token blacklist indexes
                 await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_token_blacklist_token ON token_blacklist (token);"))
+                
+                # Job Openings indexes
+                await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_job_openings_status ON job_openings (status);"))
+                await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_job_openings_business_area ON job_openings (business_area);"))
+                await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_job_openings_created_at ON job_openings (created_at DESC);"))
             print("PostgreSQL tables and indexes initialized")
         except Exception as e:
             print(f"PostgreSQL index initialization warning: {e}")

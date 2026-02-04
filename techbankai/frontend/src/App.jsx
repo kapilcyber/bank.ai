@@ -8,6 +8,7 @@ import Admin from './pages/Admin'
 import GuestPortal from './pages/GuestPortal'
 import FreelancerPortal from './pages/FreelancerPortal'
 import EmployeePortal from './pages/EmployeePortal'
+import Careers from './pages/Careers'
 import Application from './pages/Application'
 
 function AppRoutes() {
@@ -17,6 +18,7 @@ function AppRoutes() {
       <Route path="/guest" element={<GuestPortal />} />
       <Route path="/freelancer" element={<FreelancerPortal />} />
       <Route path="/employee" element={<EmployeePortal />} />
+      <Route path="/careers" element={<Careers />} />
       <Route path="/application" element={<Application />} />
       <Route
         path="/profile"

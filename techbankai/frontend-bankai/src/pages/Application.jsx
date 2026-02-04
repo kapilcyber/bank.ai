@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import ResumeNotificationModal from '../components/ResumeNotificationModal'
-import { uploadResumeWithProfile, parseResumeOnly } from '../config/api'
+import { uploadResumeWithProfile, parseResumeOnly, getJobOpening } from '../config/api'
 import { useApp } from '../context/AppContext'
 import './Application.css'
 
@@ -37,8 +37,33 @@ const Application = () => {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [showNotification, setShowNotification] = useState(false)
   const [notificationFields, setNotificationFields] = useState([])
+  const [jobInfo, setJobInfo] = useState(null)
+  const [loadingJob, setLoadingJob] = useState(false)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { selectedEmploymentType, userProfile } = useApp()
+
+  // Fetch job information if jobId is in URL
+  useEffect(() => {
+    const jobId = searchParams.get('jobId')
+    if (jobId) {
+      fetchJobInfo(jobId)
+    }
+  }, [searchParams])
+
+  // Fetch job information
+  const fetchJobInfo = async (jobId) => {
+    try {
+      setLoadingJob(true)
+      const job = await getJobOpening(jobId)
+      setJobInfo(job)
+    } catch (err) {
+      console.error('Error fetching job info:', err)
+      // Don't show error to user, just continue without job info
+    } finally {
+      setLoadingJob(false)
+    }
+  }
 
   // Helper function to check if field is auto-filled
   const isAutoFilled = (fieldName) => {
@@ -307,6 +332,25 @@ const Application = () => {
           >
             <h1>Submit Your Application</h1>
             <p>Upload your CV/Resume and fill in your personal information</p>
+            {jobInfo && (
+              <motion.div
+                className="job-info-banner"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <div className="job-info-content">
+                  <h3>Applying for: {jobInfo.title}</h3>
+                  <p className="job-info-location">{jobInfo.location} | {jobInfo.business_area}</p>
+                  {jobInfo.description && (
+                    <details className="job-description-details">
+                      <summary>View Job Description</summary>
+                      <div className="job-description-text">{jobInfo.description}</div>
+                    </details>
+                  )}
+                </div>
+              </motion.div>
+            )}
             {selectedEmploymentType && (
               <motion.div
                 className="employment-type-badge"
