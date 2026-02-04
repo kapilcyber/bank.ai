@@ -130,8 +130,57 @@ const SearchUsingJD = () => {
   const [error, setError] = useState(null)
   const [results, setResults] = useState(null)
   const [locationFilter, setLocationFilter] = useState('')
+  const [userTypeFilter, setUserTypeFilter] = useState('') // '', 'Company Employee', 'Freelancer', 'Guest User'
+  const [minExperience, setMinExperience] = useState('')
+  const [maxExperience, setMaxExperience] = useState('')
+  const [minNoticePeriod, setMinNoticePeriod] = useState('')
+  const [maxNoticePeriod, setMaxNoticePeriod] = useState('') // max notice period in days (e.g. 30 = within 30 days)
+  const [sortByDate, setSortByDate] = useState('newest') // 'newest' | 'oldest' - latest resume on top
   const [jdMethod, setJdMethod] = useState('upload') // 'upload' or 'manual'
   const [jdText, setJdText] = useState('')
+
+  const normalizeUserType = (ut) => {
+    if (!ut) return ''
+    const s = String(ut).toLowerCase()
+    if (s.includes('company') || s === 'company_employee') return 'Company Employee'
+    if (s.includes('freelancer')) return 'Freelancer'
+    if (s.includes('guest') || s === 'guest_user' || s === 'gmail') return 'Guest User'
+    return ut
+  }
+
+  const filteredResults = (results?.results || []).filter((m) => {
+    const locMatch = !locationFilter || (m.location && m.location.toLowerCase().includes(locationFilter.toLowerCase())) || (m.preferred_location && m.preferred_location.toLowerCase().includes(locationFilter.toLowerCase()))
+    const normalized = normalizeUserType(m.user_type || m.source_type)
+    const typeMatch = !userTypeFilter || normalized === userTypeFilter
+
+    const expYears = Number(m.experience_years) || 0
+    const minExp = minExperience !== '' && !Number.isNaN(Number(minExperience)) ? Number(minExperience) : null
+    const maxExp = maxExperience !== '' && !Number.isNaN(Number(maxExperience)) ? Number(maxExperience) : null
+    const expMatch = (!minExp || expYears >= minExp) && (!maxExp || expYears <= maxExp)
+
+    const notice = m.notice_period != null ? Number(m.notice_period) : null
+    const minNotice = minNoticePeriod !== '' && !Number.isNaN(Number(minNoticePeriod)) ? Number(minNoticePeriod) : null
+    const maxNotice = maxNoticePeriod !== '' && !Number.isNaN(Number(maxNoticePeriod)) ? Number(maxNoticePeriod) : null
+    const noticeMatch =
+      (!minNotice || (notice != null && notice >= minNotice)) &&
+      (!maxNotice || (notice == null || notice <= maxNotice))
+
+    return locMatch && typeMatch && expMatch && noticeMatch
+  })
+
+  // Sort key: use uploaded_at if present (ISO string), else fall back to resume_id (higher id = newer)
+  const sortKey = (m) => {
+    const at = m.uploaded_at
+    if (at) return new Date(at).getTime()
+    const id = m.resume_id ?? m.id ?? 0
+    return id
+  }
+  const displayedResults = [...filteredResults].sort((a, b) => {
+    const keyA = sortKey(a)
+    const keyB = sortKey(b)
+    if (sortByDate === 'oldest') return keyA - keyB
+    return keyB - keyA
+  })
 
   const handleDrag = (e) => {
     e.preventDefault()
@@ -344,11 +393,24 @@ const SearchUsingJD = () => {
           <div className="results-header">
             <h3>Analysis Results</h3>
             <div className="results-summary-badges">
+              <div className="results-sort">
+                <label htmlFor="jd-sort-by-date">Sort:</label>
+                <select
+                  id="jd-sort-by-date"
+                  className="sort-select"
+                  value={sortByDate}
+                  onChange={(e) => setSortByDate(e.target.value)}
+                  title="Show latest or oldest resumes first"
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                </select>
+              </div>
               <span className="summary-badge total">
                 Found {results.results?.length || 0} Total
               </span>
               <span className="summary-badge visible">
-                Showing {(results.results || []).filter(m => !locationFilter || (m.location && m.location.toLowerCase().includes(locationFilter.toLowerCase())) || (m.preferred_location && m.preferred_location.toLowerCase().includes(locationFilter.toLowerCase()))).length} Visible
+                Showing {filteredResults.length} Visible
               </span>
             </div>
           </div>
@@ -371,8 +433,66 @@ const SearchUsingJD = () => {
 
           <div className="results-container-main">
             <aside className="results-sidebar">
-
-
+              <div className="filter-group">
+                <h4>User Type</h4>
+                <select
+                  className="sidebar-select"
+                  value={userTypeFilter}
+                  onChange={(e) => setUserTypeFilter(e.target.value)}
+                  title="Filter by user type"
+                >
+                  <option value="">All</option>
+                  <option value="Company Employee">Company Employee</option>
+                  <option value="Freelancer">Freelancer</option>
+                  <option value="Guest User">Guest User</option>
+                </select>
+              </div>
+              <div className="filter-group">
+                <h4>Min Experience (Years)</h4>
+                <input
+                  type="number"
+                  className="sidebar-input"
+                  placeholder="e.g. 2"
+                  min="0"
+                  value={minExperience}
+                  onChange={(e) => setMinExperience(e.target.value)}
+                />
+              </div>
+              <div className="filter-group">
+                <h4>Max Experience (Years)</h4>
+                <input
+                  type="number"
+                  className="sidebar-input"
+                  placeholder="e.g. 10"
+                  min="0"
+                  value={maxExperience}
+                  onChange={(e) => setMaxExperience(e.target.value)}
+                />
+              </div>
+              <div className="filter-group">
+                <h4>Min Notice Period (Days)</h4>
+                <input
+                  type="number"
+                  className="sidebar-input"
+                  placeholder="e.g. 0"
+                  min="0"
+                  value={minNoticePeriod}
+                  onChange={(e) => setMinNoticePeriod(e.target.value)}
+                  title="Show only candidates with notice period ≥ this many days"
+                />
+              </div>
+              <div className="filter-group">
+                <h4>Max Notice Period (Days)</h4>
+                <input
+                  type="number"
+                  className="sidebar-input"
+                  placeholder="e.g. 30"
+                  min="0"
+                  value={maxNoticePeriod}
+                  onChange={(e) => setMaxNoticePeriod(e.target.value)}
+                  title="Show only candidates with notice period ≤ this many days"
+                />
+              </div>
               <div className="filter-group">
                 <h4>Preferred Location</h4>
                 <div className="sidebar-search-box">
@@ -389,21 +509,17 @@ const SearchUsingJD = () => {
 
             <div className="results-list-wrapper">
               <div className="results-list">
-                {(results.results || [])
-                  .filter(m => !locationFilter || (m.location && m.location.toLowerCase().includes(locationFilter.toLowerCase())) || (m.preferred_location && m.preferred_location.toLowerCase().includes(locationFilter.toLowerCase())))
-                  .length === 0 ? (
+                {displayedResults.length === 0 ? (
                   <p className="no-matches">No candidates match the selected filters.</p>
                 ) : (
-                  (results.results || [])
-                    .filter(m => !locationFilter || (m.location && m.location.toLowerCase().includes(locationFilter.toLowerCase())) || (m.preferred_location && m.preferred_location.toLowerCase().includes(locationFilter.toLowerCase())))
-                    .map((match, index) => (
-                      <ResultCard
-                        key={match.resume_id}
-                        match={match}
-                        index={index}
-                        dimensionLabels={Object.fromEntries((results.dimensions || []).map(d => [d.dimension_id, d.label]))}
-                      />
-                    ))
+                  displayedResults.map((match, index) => (
+                    <ResultCard
+                      key={match.resume_id}
+                      match={match}
+                      index={index}
+                      dimensionLabels={Object.fromEntries((results.dimensions || []).map(d => [d.dimension_id, d.label]))}
+                    />
+                  ))
                 )}
               </div>
             </div>

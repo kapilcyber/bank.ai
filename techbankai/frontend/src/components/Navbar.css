@@ -37,6 +37,26 @@
   white-space: nowrap;
 }
 
+/* Center heading (role title on application page) */
+.navbar-center-heading {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.navbar-center-heading-text {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin: 0;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+}
+
 /* Central Tabs Container - Floating Glass Pill */
 .navbar-center-tabs {
   position: absolute;
@@ -117,19 +137,23 @@
 
 /* Active Tab Colors (Optional Specific Highlights) */
 .nav-glass-tab.tab-dashboard.active {
-  color: #ffffff;
+  color: #1a1a1a;
+}
+
+.nav-glass-tab.tab-links.active {
+  color: #1a1a1a;
 }
 
 .nav-glass-tab.tab-search-talent.active {
-  color: #ffffff;
+  color: #1a1a1a;
 }
 
 .nav-glass-tab.tab-search-jd.active {
-  color: #ffffff;
+  color: #1a1a1a;
 }
 
 .nav-glass-tab.tab-add-resume.active {
-  color: #ffffff;
+  color: #1a1a1a;
 }
 
 .tab-icon {

@@ -307,6 +307,67 @@
     border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
+/* Portal Links section */
+.portal-links-section {
+    margin-bottom: 1.5rem;
+}
+
+.portal-links-section .section-header-row {
+    margin-bottom: 1rem;
+}
+
+.portal-links-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.portal-link-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.portal-link-label {
+    font-weight: 700;
+    color: #1a1a1a;
+    min-width: 180px;
+}
+
+.portal-link-url {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.portal-link-copy-btn {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2));
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: 10px;
+    color: #8b5cf6;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.portal-link-copy-btn:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(236, 72, 153, 0.35));
+    border-color: #8b5cf6;
+}
+
 .chart-container-new {
     flex: 1;
     min-height: 350px;
@@ -997,6 +1058,225 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
+/* Record detail modal: solid grey background, no blur, all text black */
+.record-detail-modal.modal-overlay {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.record-detail-modal .modal-content {
+    background: #e5e7eb;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid #d1d5db;
+    color: #000;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    overflow: hidden;
+}
+.record-detail-modal .modal-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #e5e7eb;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    color: #000;
+}
+.record-detail-modal .modal-body::-webkit-scrollbar {
+    width: 10px;
+}
+.record-detail-modal .modal-body::-webkit-scrollbar-track {
+    background: #b8bcc0;
+    border-radius: 10px;
+    margin: 4px 0;
+}
+.record-detail-modal .modal-body::-webkit-scrollbar-thumb {
+    background: #7a7e82;
+    border-radius: 10px;
+    border: 2px solid #b8bcc0;
+}
+.record-detail-modal .modal-body::-webkit-scrollbar-thumb:hover {
+    background: #5c6064;
+}
+
+.record-detail-modal .modal-header {
+    background: #d1d5db;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: 1px solid #9ca3af;
+}
+
+.record-detail-modal .profile-avatar-lg {
+    background: #9ca3af;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    color: #000;
+    border: 1px solid #6b7280;
+}
+
+.record-detail-modal .profile-info-main h2,
+.record-detail-modal .premium-badge,
+.record-detail-modal .close-btn-new {
+    color: #000;
+}
+
+.record-detail-modal .close-btn-new {
+    background: #d1d5db;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid #9ca3af;
+    color: #000;
+}
+
+.record-detail-modal .modal-section,
+.record-detail-modal .section-title-sm,
+.record-detail-modal .content-block h3,
+.record-detail-modal .content-block {
+    color: #000;
+}
+
+.record-detail-modal .content-block h3 {
+    border-bottom-color: #9ca3af;
+}
+
+.record-detail-modal .info-mini-card,
+.record-detail-modal .status-box,
+.record-detail-modal .status-box.active {
+    background: #d1d5db;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid #9ca3af;
+    color: #000;
+}
+
+.record-detail-modal .mini-content label,
+.record-detail-modal .mini-content p,
+.record-detail-modal .status-main,
+.record-detail-modal .status-sub {
+    color: #000;
+}
+
+.record-detail-modal .premium-skill-tag,
+.record-detail-modal .premium-cert-tag {
+    background: #d1d5db;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid #9ca3af;
+    color: #000;
+}
+
+.record-detail-modal .modal-footer-premium {
+    background: #d1d5db;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-top: 1px solid #9ca3af;
+}
+
+.record-detail-modal .view-resume-action-btn {
+    background: #9ca3af;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    color: #000;
+    border: 1px solid #6b7280;
+}
+
+.record-detail-modal .no-data-text {
+    color: #000;
+}
+
+/* Record field: heading + value in a box (used inside record detail modal) */
+.record-field {
+    margin-bottom: 1rem;
+}
+
+.record-field-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.35rem;
+}
+
+.record-field-value {
+    display: block;
+    padding: 0.6rem 0.85rem;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #000;
+    word-break: break-word;
+}
+
+.record-detail-modal .record-field-value a {
+    color: #000;
+    text-decoration: underline;
+}
+
+.record-detail-modal .record-field-value a:hover {
+    color: #1f2937;
+}
+
+.record-fields-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.record-field-block {
+    padding: 1rem;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.record-detail-modal .record-field-block .record-field-value {
+    background: #fff;
+    border-color: #e5e7eb;
+}
+
+.record-tags-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.record-tag {
+    display: inline-block;
+    padding: 0.4rem 0.75rem;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #000;
+    font-weight: 500;
+}
+
+.record-detail-modal .record-tag {
+    background: #d1d5db;
+    border-color: #9ca3af;
+    color: #000;
+}
+
+.record-tag-empty {
+    font-style: italic;
+    color: #374151;
+}
+
+.record-detail-modal .record-type-edit-section,
+.record-detail-modal .record-type-edit-section *,
+.record-detail-modal .record-type-hint,
+.record-detail-modal .record-type-error {
+    color: #000;
+}
+
 /* Loading & Error States */
 .loading-message,
 .error-message {
@@ -1241,6 +1521,88 @@
     display: flex;
     align-items: center;
     gap: 1rem;
+}
+
+.records-type-filter-select {
+    height: 48px;
+    padding: 0 1.25rem;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    font-size: 0.95rem;
+    color: #1a1a1a;
+    background: #ffffff;
+    cursor: pointer;
+    min-width: 180px;
+    font-weight: 600;
+    box-sizing: border-box;
+}
+.records-type-filter-select:focus {
+    outline: none;
+    border-color: rgba(0, 0, 0, 0.35);
+    background: #ffffff;
+}
+.records-type-filter-select option {
+    background: #ffffff;
+    color: #1a1a1a;
+}
+
+.record-type-edit-section {
+    margin-bottom: 1rem;
+}
+.record-type-hint {
+    font-size: 0.85rem;
+    color: rgba(26, 26, 26, 0.7);
+    margin: 0.25rem 0 0.75rem 0;
+}
+.record-type-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.record-type-edit-select {
+    min-width: 180px;
+}
+.record-type-save-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: rgba(34, 197, 94, 0.9);
+    color: #fff;
+}
+.record-type-save-btn:hover:not(:disabled) {
+    background: rgba(34, 197, 94, 1);
+}
+.record-type-save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.record-type-save-btn-red {
+    color: #374151;
+    background: #e5e7eb;
+    border: 1px solid #d1d5db;
+}
+.record-type-save-btn-red:hover,
+.record-type-save-btn-red:focus,
+.record-type-save-btn-red:active {
+    color: #374151;
+    background: #e5e7eb;
+    border-color: #d1d5db;
+    transform: none;
+    box-shadow: none;
+    outline: none;
+}
+.record-type-save-btn-red:disabled {
+    color: #9ca3af;
+    background: #f3f4f6;
+    opacity: 0.8;
+}
+.record-type-error {
+    font-size: 0.85rem;
+    color: #dc3545;
+    margin: 0.5rem 0 0 0;
 }
 
 .search-input-group {

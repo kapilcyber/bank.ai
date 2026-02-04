@@ -1,5 +1,6 @@
-# TechBank.ai Backend Startup Script
-# This script starts the backend server with proper setup
+# TechBank.ai Backend Startup Script (Network mode)
+# Binds to 0.0.0.0 so other devices on your network can call the API.
+# For local-only (this PC): .\start-backend-local.ps1
 
 Write-Host "`n╔════════════════════════════════════════════════════╗" -ForegroundColor Cyan
 Write-Host "║     🚀 Starting TechBank.ai Backend Server 🚀      ║" -ForegroundColor Cyan
@@ -100,11 +101,12 @@ try {
     # Backend is not running, which is what we want
 }
 
-# Start the backend server
-Write-Host "`n🚀 Starting backend server..." -ForegroundColor Green
-Write-Host "   Backend will be available at: http://localhost:8000" -ForegroundColor Cyan
+# Start the backend server (HOST=0.0.0.0 from .env for network access)
+Write-Host "`n🚀 Starting backend server (network mode)..." -ForegroundColor Green
+Write-Host "   This PC: http://localhost:8000" -ForegroundColor Cyan
+Write-Host "   Network: http://YOUR_IP:8000 (other devices use your PC IP)" -ForegroundColor Cyan
 Write-Host "   API Docs: http://localhost:8000/docs" -ForegroundColor Cyan
-Write-Host "   Health Check: http://localhost:8000/health" -ForegroundColor Cyan
+Write-Host "   Local-only? Run: .\start-backend-local.ps1" -ForegroundColor Gray
 Write-Host "`n   Press Ctrl+C to stop the server`n" -ForegroundColor Yellow
 
 python -m src.main

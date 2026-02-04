@@ -102,6 +102,13 @@ def format_resume_response(resume: Resume) -> Dict[str, Any]:
         preferred_location = meta.get('preferred_location')
     if not notice_period:
         notice_period = meta.get('notice_period', 0)
+
+    # LinkedIn & Portfolio (from form_data)
+    linked_in = None
+    portfolio_url = None
+    if resume.source_metadata and 'form_data' in resume.source_metadata:
+        linked_in = resume.source_metadata['form_data'].get('linkedIn')
+        portfolio_url = resume.source_metadata['form_data'].get('portfolio')
     
     # Construct absolute URL for file
     # Priority: If file_content exists in database, use API endpoint
@@ -146,6 +153,8 @@ def format_resume_response(resume: Resume) -> Dict[str, Any]:
         'ready_to_relocate': ready_to_relocate,
         'preferred_location': preferred_location,
         'notice_period': notice_period,
+        'linked_in': linked_in,
+        'portfolio': portfolio_url,
         'source_id': resume.source_id,
         'parsed_data': parsed,
         'meta_data': formatted_meta,

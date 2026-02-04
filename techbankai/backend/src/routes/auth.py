@@ -45,7 +45,49 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 
+class VerifyEmployeeRequest(BaseModel):
+    """Request to verify employee ID and email against company CSV (no auth)."""
+    employee_id: str
+    email: str
+
+
+class AdminSignupRequest(BaseModel):
+    """Admin/staff signup - Admin, Talent Acquisition, HR."""
+    name: str
+    email: EmailStr
+    password: str
+    role: str  # Admin, Talent Acquisition, HR
+    employee_id: str  # Required for all admin roles
+
+
 _reset_tokens: Dict[str, Dict[str, datetime]] = {}
+
+# Roles that get admin dashboard access
+ADMIN_ROLES = {'admin', 'talent_acquisition', 'talent acquisition', 'hr'}
+
+
+def _company_employee_csv_paths():
+    """Return candidate paths for comapny_employee.csv (project root, backend dir, cwd, env)."""
+    import os
+    _auth_dir = os.path.dirname(os.path.abspath(__file__))
+    _backend_dir = os.path.dirname(os.path.dirname(_auth_dir))
+    _project_root = os.path.dirname(_backend_dir)
+    _csv_name = "comapny_employee.csv"
+    paths = [
+        os.path.join(_project_root, _csv_name),
+        os.path.join(_backend_dir, _csv_name),
+        os.path.join(os.getcwd(), _csv_name),
+    ]
+    if os.environ.get("COMPANY_EMPLOYEE_CSV_PATH"):
+        paths.insert(0, os.environ.get("COMPANY_EMPLOYEE_CSV_PATH"))
+    return paths
+
+
+def is_admin_role(mode: str) -> bool:
+    """Check if user mode grants admin dashboard access."""
+    if not mode:
+        return False
+    return mode.strip().lower() in ADMIN_ROLES or 'admin' in mode.lower()
 
 
 def _generate_reset_code() -> str:
@@ -198,6 +240,136 @@ async def signup(user: UserCreate, db: AsyncSession = Depends(get_postgres_db)):
         if "users" in error_detail.lower() and "does not exist" in error_detail.lower():
             error_detail = "Database table 'users' does not exist. Please restart the backend to create tables."
         raise HTTPException(status_code=500, detail=f"Internal server error: {error_detail}")
+
+
+@router.post("/admin-signup", response_model=UserResponse)
+async def admin_signup(payload: AdminSignupRequest, db: AsyncSession = Depends(get_postgres_db)):
+    """Register a new admin/staff user (Admin, Talent Acquisition, HR). Stored in DB for login."""
+    try:
+        # Check if user already exists
+        query = select(User).where(User.email == payload.email.lower())
+        result = await db.execute(query)
+        existing_user = result.scalar_one_or_none()
+        if existing_user:
+            raise HTTPException(status_code=409, detail="User with this email already exists")
+
+        # Map role to mode (stored in DB)
+        role_lower = payload.role.strip().lower()
+        if role_lower in ('admin', 'administrator'):
+            mode = "admin"
+        elif role_lower in ('talent acquisition', 'talent_acquisition', 'ta'):
+            mode = "talent_acquisition"
+        elif role_lower in ('hr', 'human resources'):
+            mode = "hr"
+        else:
+            mode = "admin"  # Default
+
+        if len(payload.password) < 8:
+            raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+        if not payload.employee_id or not payload.employee_id.strip():
+            raise HTTPException(status_code=400, detail="Employee ID is required for admin signup")
+
+        import csv
+        import os
+
+        candidate_paths = _company_employee_csv_paths()
+        verified = False
+        csv_found = False
+        for path in candidate_paths:
+            if not path or not os.path.isfile(path):
+                continue
+            csv_found = True
+            try:
+                with open(path, 'r', encoding='utf-8-sig') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        # Normalize keys (strip BOM/whitespace from header names)
+                        row = {k.strip().lstrip('\ufeff'): v for k, v in row.items()}
+                        csv_id = (row.get('employee_id') or '').strip().upper()
+                        csv_email = (row.get('email') or '').strip().lower()
+                        if csv_id == payload.employee_id.strip().upper() and csv_email == payload.email.strip().lower():
+                            verified = True
+                            break
+                if verified:
+                    break
+            except Exception as e:
+                logger.warning(f"Admin signup verification read error {path}: {e}")
+                continue
+
+        if not csv_found:
+            logger.error("Admin signup: company employee CSV not found at any path")
+            raise HTTPException(
+                status_code=503,
+                detail="Company employee list is not available. Please contact your administrator."
+            )
+        if not verified:
+            raise HTTPException(
+                status_code=403,
+                detail="Verification failed: this Employee ID and Email do not match any company record. Use the exact ID and email from your company list."
+            )
+
+        employee_id_clean = payload.employee_id.strip().upper()
+
+        new_user = User(
+            name=payload.name.strip(),
+            email=payload.email.lower(),
+            password_hash=hash_password(payload.password),
+            mode=mode,
+            employee_id=employee_id_clean,
+            employment_type=None,
+        )
+        db.add(new_user)
+        await db.commit()
+        await db.refresh(new_user)
+
+        logger.info(f"New admin user registered: {payload.email} (role={payload.role}, mode={mode})")
+
+        return UserResponse(
+            id=new_user.id,
+            name=new_user.name,
+            email=new_user.email,
+            mode=new_user.mode,
+            employment_type=new_user.employment_type,
+            employee_id=new_user.employee_id,
+            freelancer_id=new_user.freelancer_id,
+            created_at=new_user.created_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin signup error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/verify-employee")
+async def verify_employee(payload: VerifyEmployeeRequest):
+    """
+    Verify employee ID and email against company CSV.
+    No authentication required - used before upload in employee portal.
+    """
+    import csv
+    import os
+
+    for path in _company_employee_csv_paths():
+        if not path or not os.path.isfile(path):
+            continue
+        try:
+            with open(path, 'r', encoding='utf-8-sig') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    row = {k.strip().lstrip('\ufeff'): v for k, v in row.items()}
+                    csv_id = (row.get('employee_id') or '').strip().upper()
+                    csv_email = (row.get('email') or '').strip().lower()
+                    if csv_id == payload.employee_id.strip().upper() and csv_email == payload.email.strip().lower():
+                        full_name = (row.get('full_name') or '').strip()
+                        return {"valid": True, "full_name": full_name}
+        except Exception as e:
+            logger.warning(f"verify-employee read {path}: {e}")
+            continue
+
+    return {"valid": False, "message": "Employee ID and Email do not match company records"}
+
 
 @router.post("/login")
 async def login(credentials: UserLogin, db: AsyncSession = Depends(get_postgres_db)):

@@ -238,6 +238,7 @@ async def search_resumes(
     q: str | None = Query(None, description="Free-text search"),
     user_types: Optional[List[str]] = Query(None, description="Filter by user types"),
     min_experience: Optional[float] = Query(None, ge=0, description="Minimum years of experience"),
+    max_experience: Optional[float] = Query(None, ge=0, description="Maximum years of experience"),
     locations: Optional[List[str]] = Query(None, description="Filter by locations"),
     roles: Optional[List[str]] = Query(None, description="Filter by roles"),
     current_user: Optional[dict] = Depends(get_optional_user),
@@ -247,7 +248,10 @@ async def search_resumes(
     try:
         import time
         start_time = time.time()
-        
+        # Coerce experience params so filtering is always applied when user sets them
+        min_exp = float(min_experience) if min_experience is not None else None
+        max_exp = float(max_experience) if max_experience is not None else None
+
         query = select(Resume)
         skill_list = None
         
@@ -300,10 +304,9 @@ async def search_resumes(
             if conditions:
                 query = query.where(or_(*conditions))
         
-        # Filter by minimum experience
-        if min_experience is not None:
-            query = query.where(Resume.experience_years >= min_experience)
-        
+        # Experience filtering is done in-loop below using effective_years (column or parsed_data)
+        # so display and filter use the same value; no SQL filter here.
+
         from sqlalchemy.orm import selectinload
         # Execute query
         query = query.options(
@@ -321,6 +324,17 @@ async def search_resumes(
             parsed = r.parsed_data or {}
             source_meta = r.source_metadata or {}
             form_data = source_meta.get('form_data', {})
+
+            # Filter by experience range (use same source as display: column or parsed_data)
+            raw_exp = r.experience_years if r.experience_years is not None else (parsed.get('resume_experience') or parsed.get('experience_years') or 0)
+            try:
+                effective_years = float(raw_exp) if raw_exp not in (None, '') else 0.0
+            except (TypeError, ValueError):
+                effective_years = 0.0
+            if min_exp is not None and effective_years < min_exp:
+                continue
+            if max_exp is not None and effective_years > max_exp:
+                continue
 
             # Filter by locations
             if locations:
@@ -974,6 +988,8 @@ async def upload_user_profile_resume(
     currentCompany: str = Form(None),
     readyToRelocate: bool = Form(False),
     preferredLocation: str = Form(None),
+    linkedIn: str = Form(None),
+    portfolio: str = Form(None),
     credentials: Optional[HTTPAuthorizationCredentials] = Security(security),
     db: AsyncSession = Depends(get_postgres_db)
 ):
@@ -1067,7 +1083,9 @@ async def upload_user_profile_resume(
                     'currentlyWorking': currentlyWorking,
                     'currentCompany': clean_null_bytes(currentCompany) if currentCompany else None,
                     'readyToRelocate': readyToRelocate,
-                    'preferredLocation': clean_null_bytes(preferredLocation) if preferredLocation else None
+                    'preferredLocation': clean_null_bytes(preferredLocation) if preferredLocation else None,
+                    'linkedIn': clean_null_bytes(linkedIn) if linkedIn else None,
+                    'portfolio': clean_null_bytes(portfolio) if portfolio else None
                 }
             }
             

@@ -5,11 +5,19 @@ import ErrorBoundary from './components/ErrorBoundary'
 import LandingPage from './pages/LandingPage'
 import Profile from './pages/Profile'
 import Admin from './pages/Admin'
+import GuestPortal from './pages/GuestPortal'
+import FreelancerPortal from './pages/FreelancerPortal'
+import EmployeePortal from './pages/EmployeePortal'
+import Application from './pages/Application'
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/guest" element={<GuestPortal />} />
+      <Route path="/freelancer" element={<FreelancerPortal />} />
+      <Route path="/employee" element={<EmployeePortal />} />
+      <Route path="/application" element={<Application />} />
       <Route
         path="/profile"
         element={

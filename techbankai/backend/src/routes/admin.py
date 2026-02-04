@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 from src.models.resume import Resume, Education
 from src.models.jd_analysis import JDAnalysis, MatchResult
 from src.models.user_db import User
@@ -13,6 +14,13 @@ from src.utils.response_formatter import format_resume_response
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
+
+ALLOWED_SOURCE_TYPES = {'company_employee', 'freelancer', 'guest', 'admin', 'gmail'}
+
+
+class UpdateResumeTypeRequest(BaseModel):
+    source_type: str
+    source_id: str | None = None  # optional: current source_id for fallback lookup when id not found
 
 @router.get("/stats")
 async def get_dashboard_stats(
@@ -337,6 +345,74 @@ async def delete_user(
     except Exception as e:
         logger.error(f"Delete user error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.patch("/resumes/{resume_id}/type")
+async def update_resume_type(
+    resume_id: int,
+    payload: UpdateResumeTypeRequest,
+    current_user: dict = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_postgres_db)
+):
+    """Update a resume's source type (e.g. Company Employee → Guest User when they leave). Admin only."""
+    try:
+        source_type = (payload.source_type or '').strip().lower().replace(' ', '_')
+        if source_type not in ALLOWED_SOURCE_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid source_type. Allowed: {', '.join(sorted(ALLOWED_SOURCE_TYPES))}"
+            )
+        result = await db.execute(select(Resume).where(Resume.id == resume_id))
+        resume = result.scalar_one_or_none()
+        if not resume and payload.source_id and (payload.source_id or '').strip():
+            # Fallback: find by (company_employee, source_id) when id not found (e.g. wrong id from frontend)
+            lookup_id = (payload.source_id or '').strip().upper()
+            fallback_result = await db.execute(
+                select(Resume).where(
+                    Resume.source_type == 'company_employee',
+                    func.upper(func.coalesce(Resume.source_id, '')) == lookup_id
+                )
+            )
+            resume = fallback_result.scalar_one_or_none()
+        if not resume:
+            logger.warning(f"Resume not found: id={resume_id}, source_id={getattr(payload, 'source_id', None)}")
+            raise HTTPException(status_code=404, detail="Resume not found")
+        resume.source_type = source_type
+        meta = dict(resume.meta_data or {})
+        meta['user_type'] = get_user_type_from_source_type(source_type)
+        resume.meta_data = meta
+        if source_type == 'guest':
+            resume.source_id = None
+        await db.commit()
+        pk = resume.id
+        logger.info(f"Admin updated resume {resume_id} type to {source_type}")
+
+        # Build response: reload with relationships and format. If anything fails, return 200 with minimal payload.
+        try:
+            from sqlalchemy.orm import selectinload
+            reload_result = await db.execute(
+                select(Resume).where(Resume.id == pk).options(
+                    selectinload(Resume.work_history),
+                    selectinload(Resume.certificates),
+                    selectinload(Resume.educations),
+                )
+            )
+            resume_loaded = reload_result.scalar_one_or_none()
+            if resume_loaded:
+                return format_resume_response(resume_loaded)
+        except Exception as e:
+            logger.warning(f"Format response after type update failed (update succeeded): {e}", exc_info=True)
+
+        return {
+            "id": pk,
+            "source_type": source_type,
+            "user_type": get_user_type_from_source_type(source_type),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Update resume type error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.delete("/resumes/bulk")
 async def bulk_delete_resumes(

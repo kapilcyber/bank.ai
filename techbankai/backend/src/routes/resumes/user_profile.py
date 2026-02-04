@@ -49,6 +49,9 @@ async def upload_user_profile_resume(
     fullName: str = Form(None),
     email: str = Form(None),
     phone: str = Form(None),
+    employee_id: Optional[str] = Form(None),
+    linkedIn: Optional[str] = Form(None),
+    portfolio: Optional[str] = Form(None),
     credentials: Optional[HTTPAuthorizationCredentials] = Security(security),
     db: AsyncSession = Depends(get_postgres_db)
 ):
@@ -71,7 +74,9 @@ async def upload_user_profile_resume(
         # Normalize user type and map to source_type
         normalized_user_type = normalize_user_type(userType) if userType else 'Guest'
         source_type = get_source_type_from_user_type(normalized_user_type)
-        
+        # For Company Employee portal: use employee_id as source_id when provided
+        source_id = employee_id.strip() if (employee_id and normalized_user_type == 'Company Employee') else None
+
         # Validate file type
         if not validate_file_type(file.filename, ALLOWED_EXTENSIONS):
             raise HTTPException(status_code=400, detail="Invalid file type. Only PDF and DOCX allowed.")
@@ -102,6 +107,20 @@ async def upload_user_profile_resume(
             # Clean null bytes from parsed data
             parsed_data = clean_dict_values(parsed_data)
             
+            # Build source_metadata (include employee_id, linkedIn, portfolio)
+            source_metadata = {
+                'user_type': userType,
+                'form_data': {
+                    'fullName': clean_null_bytes(fullName) if fullName else None,
+                    'email': clean_null_bytes(email) if email else uploader_email,
+                    'phone': clean_null_bytes(phone) if phone else None,
+                    'linkedIn': clean_null_bytes(linkedIn) if linkedIn else None,
+                    'portfolio': clean_null_bytes(portfolio) if portfolio else None
+                }
+            }
+            if source_id:
+                source_metadata['employee_id'] = source_id
+
             # Create resume record with user profile metadata and file_content
             resume = Resume(
                 filename=file.filename,
@@ -109,15 +128,8 @@ async def upload_user_profile_resume(
                 file_content=file_content,  # Store file in database
                 file_mime_type=mime_type,
                 source_type=source_type,
-                source_id=None,  # Can be set if we have unique identifier
-                source_metadata={
-                    'user_type': userType,
-                    'form_data': {
-                        'fullName': clean_null_bytes(fullName) if fullName else None,
-                        'email': clean_null_bytes(email) if email else uploader_email,
-                        'phone': clean_null_bytes(phone) if phone else None
-                    }
-                },
+                source_id=source_id,
+                source_metadata=source_metadata,
                 raw_text=clean_null_bytes(parsed_data.get('raw_text', '')),
                 parsed_data=parsed_data,
                 skills=parsed_data.get('all_skills', parsed_data.get('resume_technical_skills', [])),

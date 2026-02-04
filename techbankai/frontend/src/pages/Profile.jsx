@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { getProfile, updateProfile, uploadProfilePhoto, removeProfilePhoto, API_BASE_URL } from '../config/api'
+import { getProfile, uploadProfilePhoto, removeProfilePhoto, API_BASE_URL } from '../config/api'
 import Navbar from '../components/Navbar'
 import CyberBackground from '../components/admin/CyberBackground'
 import './Profile.css'
@@ -10,7 +10,6 @@ import './Profile.css'
 const Profile = () => {
   const navigate = useNavigate()
   const { userProfile, logout, setUserProfile } = useApp()
-  const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
@@ -20,12 +19,10 @@ const Profile = () => {
     ? (userProfile.profile_img.startsWith('http') ? userProfile.profile_img : `${API_BASE_URL.replace('/api', '')}${userProfile.profile_img}`)
     : null
 
-  const [editedProfile, setEditedProfile] = useState({
-    name: userProfile?.name || '',
-    email: userProfile?.email || '',
-    phone: userProfile?.phone || '',
-    role: userProfile?.mode || userProfile?.role || 'Administrator'
-  })
+  const formatRole = (mode) => {
+    if (!mode) return 'ADMINISTRATOR'
+    return mode.replace(/_/g, ' ').toUpperCase()
+  }
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0]
@@ -81,15 +78,9 @@ const Profile = () => {
         const mergedProfile = {
           ...userProfile,
           ...profile,
-          role: profile.mode || 'Administrator'
+          role: formatRole(profile.mode || userProfile?.mode || userProfile?.role)
         }
         setUserProfile(mergedProfile)
-        setEditedProfile({
-          name: mergedProfile.name || '',
-          email: mergedProfile.email || '',
-          phone: mergedProfile.phone || '',
-          role: mergedProfile.role || 'Administrator'
-        })
       } catch (err) {
         console.error('Error loading profile:', err)
         setError('Could not sync profile with mainframe.')
@@ -99,24 +90,6 @@ const Profile = () => {
     }
     fetchProfile()
   }, [])
-
-  const handleSave = async () => {
-    try {
-      setLoading(true)
-      const payload = { name: editedProfile.name }
-      const updated = await updateProfile(payload)
-      setUserProfile({ ...userProfile, ...editedProfile, name: updated.name })
-      setIsEditing(false)
-    } catch (err) {
-      setError('Update failed. Connection unstable.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleChange = (e) => {
-    setEditedProfile({ ...editedProfile, [e.target.name]: e.target.value })
-  }
 
   return (
     <div className="profile-page">
@@ -176,7 +149,7 @@ const Profile = () => {
             <div className="profile-info-cyber">
               <h1 className="cyber-name">{userProfile?.name || 'Admin User'}</h1>
               <div className="cyber-status-pill">
-                <span className="status-dot"></span> {userProfile?.mode?.toUpperCase() || 'ADMINISTRATOR'} ACCESS
+                <span className="status-dot"></span> {formatRole(userProfile?.mode)} ACCESS
               </div>
             </div>
           </div>
@@ -187,17 +160,7 @@ const Profile = () => {
           <div className="profile-grid">
             <div className="cyber-info-box">
               <label><span className="icon">👤</span> FULL NAME</label>
-              {isEditing ? (
-                <input
-                  name="name"
-                  value={editedProfile.name}
-                  onChange={handleChange}
-                  className="cyber-input"
-                  placeholder="Enter your name"
-                />
-              ) : (
-                <p className="cyber-value">{userProfile?.name || 'Not Set'}</p>
-              )}
+              <p className="cyber-value">{userProfile?.name || 'Not Set'}</p>
             </div>
 
             <div className="cyber-info-box">
@@ -207,7 +170,12 @@ const Profile = () => {
 
             <div className="cyber-info-box">
               <label><span className="icon">🎯</span> ASSIGNED ROLE</label>
-              <p className="cyber-value highlight">{userProfile?.mode?.toUpperCase() || 'ADMINISTRATOR'}</p>
+              <p className="cyber-value highlight">{formatRole(userProfile?.mode)}</p>
+            </div>
+
+            <div className="cyber-info-box">
+              <label><span className="icon">🆔</span> EMPLOYEE ID</label>
+              <p className="cyber-value secondary">{userProfile?.employee_id || 'N/A'}</p>
             </div>
 
             <div className="cyber-info-box">
@@ -220,20 +188,6 @@ const Profile = () => {
 
           {/* Actions */}
           <div className="profile-footer-cyber">
-            {!isEditing ? (
-              <button className="cyber-btn primary" onClick={() => setIsEditing(true)}>
-                Edit Profile
-              </button>
-            ) : (
-              <div className="edit-actions">
-                <button className="cyber-btn success" onClick={handleSave} disabled={loading}>
-                  {loading ? 'Saving...' : 'Save Changes'}
-                </button>
-                <button className="cyber-btn cancel" onClick={() => setIsEditing(false)}>
-                  Cancel
-                </button>
-              </div>
-            )}
             <button className="cyber-btn primary" onClick={() => navigate('/admin')}>
               Back to Dashboard
             </button>
