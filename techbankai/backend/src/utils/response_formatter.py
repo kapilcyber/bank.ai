@@ -110,34 +110,26 @@ def format_resume_response(resume: Resume) -> Dict[str, Any]:
         linked_in = resume.source_metadata['form_data'].get('linkedIn')
         portfolio_url = resume.source_metadata['form_data'].get('portfolio')
     
-    # Construct absolute URL for file
-    # Priority: If file_content exists in database, use API endpoint
-    # Otherwise, fallback to file_url (for backward compatibility)
+    # Construct file URL - always use relative API endpoint path
+    # Frontend will construct full URL using its API_BASE_URL
+    # This ensures it works across different environments (localhost, network IP, production)
     if resume.file_content:
         # File is stored in database, use API endpoint
-        try:
-            from src.config.settings import settings
-            host = settings.host if settings.host != "0.0.0.0" else "localhost"
-            port = settings.port
-            file_url = f"http://{host}:{port}/api/resumes/{resume.id}/file"
-        except ImportError:
-            file_url = f"http://localhost:8000/api/resumes/{resume.id}/file"
+        file_url = f"/api/resumes/{resume.id}/file"
     else:
         # Fallback to old file_url (for backward compatibility with old records)
         file_url = resume.file_url
         if file_url and file_url.startswith('/'):
-            # For local development, construct the full URL
-            # Accessing 0.0.0.0 from browser might vary, so prefer localhost for display
-            host = "localhost"
-            port = 8000 # Default fallback
-            try:
-                 from src.config.settings import settings
-                 host = settings.host if settings.host != "0.0.0.0" else "localhost"
-                 port = settings.port
-            except ImportError:
-                pass
-            
-            file_url = f"http://{host}:{port}{file_url}"
+            # Already a relative path, keep it as is
+            pass
+        elif file_url and (file_url.startswith('http://') or file_url.startswith('https://')):
+            # Full URL - extract just the path for frontend to reconstruct
+            from urllib.parse import urlparse
+            parsed_url = urlparse(file_url)
+            file_url = parsed_url.path
+        else:
+            # If no file_url, use API endpoint
+            file_url = f"/api/resumes/{resume.id}/file"
 
     return {
         'id': resume.id,
