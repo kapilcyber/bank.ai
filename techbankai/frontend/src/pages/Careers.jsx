@@ -1,6 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
 import { getJobOpenings } from '../config/api'
 import CareersHeader from '../components/CareersHeader'
 import './Careers.css'
@@ -43,7 +42,6 @@ const categories = [
 ]
 
 const Careers = () => {
-  const navigate = useNavigate()
   const [jobOpenings, setJobOpenings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -74,14 +72,8 @@ const Careers = () => {
   }, [])
 
   const handleApply = (jobId) => {
-    // Navigate to application page with job ID
-    if (isStandalone) {
-      // For standalone mode, navigate to the main app's application page
-      const baseUrl = window.location.origin.replace(':3005', ':3003')
-      window.location.href = `${baseUrl}/application?jobId=${jobId}`
-    } else {
-      navigate(`/application?jobId=${jobId}`)
-    }
+    // Redirect to guest page on port 3005
+    window.location.href = `http://192.168.0.107:3005/guest?jobId=${jobId}`
   }
 
   useEffect(() => {

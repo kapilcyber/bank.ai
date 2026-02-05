@@ -157,23 +157,48 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
       setLoading(true)
       setError(null)
       const token = localStorage.getItem('authToken')
+      
+      // Debug: Check if token exists
+      console.log('🔑 AdminDashboard: Token exists:', !!token)
+      console.log('🔑 AdminDashboard: Token length:', token?.length)
+      console.log('🔑 AdminDashboard: Token preview:', token ? `${token.substring(0, 20)}...` : 'No token')
+      
+      if (!token) {
+        const errorMsg = 'No authentication token found. Please log in as an admin.'
+        console.error('❌ AdminDashboard:', errorMsg)
+        setError(errorMsg)
+        setLoading(false)
+        return
+      }
 
       const response = await fetch(`${API_BASE_URL}/admin/stats`, {
         headers: {
-          ...(token && { Authorization: `Bearer ${token}` })
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       })
 
+      console.log('📡 AdminDashboard: API Response status:', response.status)
+      console.log('📡 AdminDashboard: API Response ok:', response.ok)
+
       if (response.status === 401) {
-        throw new Error('Unauthorized. Please log in as an admin.')
+        // Clear invalid token
+        console.warn('⚠️ AdminDashboard: 401 Unauthorized - Clearing invalid token')
+        localStorage.removeItem('authToken')
+        const errorMsg = 'Session expired or invalid. Please log in again as an admin.'
+        throw new Error(errorMsg)
       }
 
       if (response.status === 403) {
-        throw new Error('Access Denied. Your account permissions have changed. Please LOGOUT and LOGIN again to refresh your access.')
+        const errorMsg = 'Access Denied. Your account does not have admin permissions. Please log out and log in with an admin account.'
+        console.error('❌ AdminDashboard:', errorMsg)
+        throw new Error(errorMsg)
       }
 
       if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data')
+        const errorText = await response.text().catch(() => 'Unknown error')
+        console.error('❌ AdminDashboard: API Error:', response.status, errorText)
+        throw new Error(`Failed to fetch dashboard data (${response.status}): ${errorText}`)
       }
 
       const data = await response.json()
@@ -207,9 +232,24 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
       
       setDashboardData(transformedData)
       setError(null)
+      console.log('✅ AdminDashboard: Dashboard data loaded successfully')
     } catch (err) {
-      console.error('Error fetching dashboard data:', err)
-      setError(err.message || 'Failed to load dashboard data. Please check if you are logged in as admin.')
+      console.error('❌ AdminDashboard: Error fetching dashboard data:', err)
+      console.error('❌ AdminDashboard: Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      })
+      
+      // Provide user-friendly error message
+      let errorMessage = err.message || 'Failed to load dashboard data. Please check if you are logged in as admin.'
+      
+      // Handle network errors
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        errorMessage = 'Network error: Could not connect to server. Please check if the backend is running.'
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

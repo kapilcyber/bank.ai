@@ -23,3 +23,4 @@ class JobOpening(Base):
     def __repr__(self):
         return f"<JobOpening(job_id='{self.job_id}', title='{self.title}')>"
 
+
