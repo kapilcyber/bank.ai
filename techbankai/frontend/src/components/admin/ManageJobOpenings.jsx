@@ -320,12 +320,12 @@ const ManageJobOpenings = () => {
                   )}
                 </div>
               ) : (
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={5}
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={5}
                   placeholder="Enter job description here..."
-                />
+              />
               )}
             </div>
             <div className="form-group">
@@ -438,10 +438,10 @@ const ManageJobOpenings = () => {
                 <div className="job-info">
                   <h3>{job.title || 'Untitled Job Opening'}</h3>
                   {job.location && (
-                    <p><strong>Location:</strong> {job.location}</p>
+                  <p><strong>Location:</strong> {job.location}</p>
                   )}
                   {job.business_area && (
-                    <p><strong>Business Area:</strong> {job.business_area}</p>
+                  <p><strong>Business Area:</strong> {job.business_area}</p>
                   )}
                   <div style={{ 
                     display: 'flex', 

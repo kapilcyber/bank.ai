@@ -178,8 +178,8 @@ const Careers = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  {filteredJobs.length === 0 ? (
-                    <div className="no-jobs-message">
+              {filteredJobs.length === 0 ? (
+                <div className="no-jobs-message">
                       <p>
                         No job openings found for "{categories.find(c => c.id === selectedCategory)?.name}".
                       </p>
@@ -189,18 +189,18 @@ const Careers = () => {
                       >
                         Back to Categories
                       </button>
-                    </div>
-                  ) : (
-                    filteredJobs.map((job) => (
-                      <motion.div
-                        key={job.job_id || job.id}
-                        className="job-card"
-                        whileHover={{ scale: 1.02, boxShadow: '0 8px 16px rgba(0,0,0,0.15)' }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <div className="job-icon">{getJobIcon(job.title)}</div>
-                        <div className="job-content">
-                          <h3 className="job-title">{job.title}</h3>
+                </div>
+              ) : (
+                filteredJobs.map((job) => (
+                  <motion.div
+                    key={job.job_id || job.id}
+                    className="job-card"
+                    whileHover={{ scale: 1.02, boxShadow: '0 8px 16px rgba(0,0,0,0.15)' }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="job-icon">{getJobIcon(job.title)}</div>
+                    <div className="job-content">
+                      <h3 className="job-title">{job.title}</h3>
                           <p className="job-location">
                             {job.location 
                               ? job.location.includes('|') 
@@ -208,9 +208,9 @@ const Careers = () => {
                                 : `India | ${job.location}`
                               : 'India | Location not specified'}
                           </p>
-                          <p className="job-business-area">
-                            Business Area: <span>{job.business_area || 'Not specified'}</span>
-                          </p>
+                      <p className="job-business-area">
+                        Business Area: <span>{job.business_area || 'Not specified'}</span>
+                      </p>
                           <button
                             className="apply-button"
                             onClick={(e) => {
@@ -220,10 +220,10 @@ const Careers = () => {
                           >
                             Apply Now
                           </button>
-                        </div>
-                      </motion.div>
-                    ))
-                  )}
+                    </div>
+                  </motion.div>
+                ))
+              )}
                 </motion.div>
               )}
               
@@ -231,7 +231,7 @@ const Careers = () => {
               {!selectedCategory && !loading && !error && (
                 <div className="select-category-message">
                   <p>Select a category above to view job openings</p>
-                </div>
+            </div>
               )}
             </>
           )}

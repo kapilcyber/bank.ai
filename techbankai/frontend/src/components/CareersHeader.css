@@ -14,23 +14,32 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 60px;
 }
 
 .careers-logo {
   display: flex;
   align-items: center;
   gap: 12px;
+  height: 100%;
 }
 
 .careers-logo img {
   height: 40px;
   width: auto;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .careers-logo-text {
   font-size: 1.1rem;
   font-weight: 600;
   color: #2c3e50;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  margin: 0;
 }
 
 
