@@ -1,8 +1,6 @@
 .careers-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #ffdac6 0%, #ffe8d9 25%, #e8d5ff 50%, #d8e2dc 75%, #b8d8ff 100%);
-  background-attachment: fixed;
-  background-size: 400% 400%;
+  background: var(--color-bg-base);
   padding-bottom: 60px;
   position: relative;
 }
@@ -26,16 +24,15 @@
 
 .latest-jobs-title {
   font-size: 2.5rem;
-  font-weight: 700;
-  color: #1a1a1a;
+  font-weight: 600;
+  color: var(--color-text-dark);
   margin: 0 0 20px 0;
   text-align: center;
-  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);
 }
 
 .latest-jobs-description {
   font-size: 1.1rem;
-  color: #333;
+  color: var(--color-text-muted);
   line-height: 1.6;
   margin: 0 auto 50px auto;
   text-align: center;
@@ -54,10 +51,11 @@
 }
 
 .category-filter {
-  background: #ffe4e1;
-  border: 1px solid #dc143c;
-  border-radius: 16px;
+  background: var(--color-card-surface);
+  border: 1px solid rgba(127, 183, 176, 0.3);
+  border-radius: var(--radius-card);
   padding: 40px 30px;
+  box-shadow: var(--shadow-soft);
   text-align: center;
   font-size: 1.4rem;
   font-weight: 700;

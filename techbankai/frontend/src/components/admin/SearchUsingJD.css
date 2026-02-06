@@ -8,76 +8,62 @@
 /* Page Header */
 .search-using-jd h2 {
   font-size: 2.5rem;
-  font-weight: 800;
-  color: #1a1a1a;
+  font-weight: 600;
+  color: var(--color-text-dark);
   margin-bottom: 0.5rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   letter-spacing: -1px;
 }
 
 .search-using-jd p {
-  color: rgba(26, 26, 26, 0.8);
+  color: var(--color-text-muted);
   margin-bottom: 2rem;
   font-size: 1.1rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-/* Upload JD Section - Glassmorphism */
 .upload-jd-section {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 24px;
-  padding: 2.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37),
-              inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+  background: var(--color-card-surface);
+  border-radius: var(--radius-card);
+  padding: 28px 32px;
+  border: 1px solid rgba(127, 183, 176, 0.25);
+  box-shadow: var(--shadow-soft);
   margin-bottom: 3rem;
 }
 
-/* JD Method Tabs */
 .jd-method-tabs {
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
   padding: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 16px;
+  background: rgba(127, 183, 176, 0.08);
+  border-radius: var(--radius-input);
   width: fit-content;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(127, 183, 176, 0.2);
 }
 
 .jd-tab {
   padding: 0.75rem 1.75rem;
-  border-radius: 12px;
+  border-radius: var(--radius-input);
   border: none;
   background: transparent;
-  color: rgba(26, 26, 26, 0.8);
-  font-weight: 700;
+  color: var(--color-text-muted);
+  font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .jd-tab.active {
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #1a1a1a;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
-              inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  background: rgba(127, 183, 176, 0.2);
+  color: var(--color-text-dark);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5);
 }
 
 .jd-tab:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(26, 26, 26, 1);
+  background: rgba(127, 183, 176, 0.12);
+  color: var(--color-text-dark);
 }
 
 /* Drop Zone & Textarea */

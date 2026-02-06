@@ -17,6 +17,8 @@ Write-Host ''
 Write-Host 'For network access (other devices), run: .\start-portals.ps1' -ForegroundColor Gray
 Write-Host 'Press Ctrl+C to stop all three.' -ForegroundColor Yellow
 Write-Host ''
+Write-Host 'If links show "closed" or "can''t connect": run this script first so the servers are running.' -ForegroundColor Gray
+Write-Host ''
 
 $frontendDir = Join-Path $root "frontend"
 if (-not (Test-Path $frontendDir)) {

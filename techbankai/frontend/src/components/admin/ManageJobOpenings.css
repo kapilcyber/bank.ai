@@ -13,7 +13,7 @@
 }
 
 .header-section h1 {
-  color: #1a1a1a;
+  color: var(--color-text-dark);
   margin: 0;
   font-size: 32px;
   font-weight: 700;
@@ -71,7 +71,7 @@
 }
 
 .job-form h2 {
-  color: #1a1a1a;
+  color: var(--color-text-dark);
   margin-bottom: 24px;
   font-size: 24px;
   font-weight: 600;
@@ -218,7 +218,7 @@
 }
 
 .job-info h3 {
-  color: #1a1a1a;
+  color: var(--color-text-dark);
   margin: 0 0 8px 0;
   font-size: 17px;
   font-weight: 700;
@@ -403,7 +403,7 @@
   background: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  color: #1a1a1a;
+  color: var(--color-text-dark);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15),
               inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
@@ -448,7 +448,7 @@
 .jd-drop-zone h3 {
   margin: 0.5rem 0;
   font-size: 1.2rem;
-  color: #1a1a1a;
+  color: var(--color-text-dark);
   font-weight: 600;
 }
 
@@ -508,7 +508,7 @@
 .file-info-jd h3 {
   margin: 0;
   font-size: 1rem;
-  color: #1a1a1a;
+  color: var(--color-text-dark);
   font-weight: 600;
   word-break: break-word;
 }

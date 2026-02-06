@@ -39,7 +39,7 @@ const networkIPPlugin = () => {
       // Get actual port after server starts
       server.httpServer?.once('listening', () => {
         const address = server.httpServer?.address()
-        const actualPort = typeof address === 'object' && address?.port ? address.port : 3005
+        const actualPort = typeof address === 'object' && address?.port ? address.port : 3010
         const networkURL = `http://${networkIP}:${actualPort}`
         
         // Show network IP prominently
@@ -55,10 +55,10 @@ const networkIPPlugin = () => {
 export default defineConfig({
   plugins: [react(), networkIPPlugin()],
   server: {
-    port: 3005,
-    host: '0.0.0.0', // Allow external connections
+    port: 3010,
+    host: '0.0.0.0', // Allow external connections (3005 reserved for Guest portal)
     open: false, // Don't auto-open, user can navigate manually
-    strictPort: false, // Allow Vite to use next available port if 3005 is busy
+    strictPort: false,
   },
   build: {
     rollupOptions: {

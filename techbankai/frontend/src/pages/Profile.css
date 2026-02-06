@@ -4,15 +4,12 @@
   min-height: 100vh;
   position: relative;
   font-family: 'Inter', sans-serif;
-  background: linear-gradient(135deg, #ffdac6 0%, #ffe8d9 25%, #e8d5ff 50%, #d8e2dc 75%, #b8d8ff 100%);
-  background-attachment: fixed;
-  background-size: 400% 400%;
+  background: var(--color-bg-base);
   padding-bottom: 3rem;
   overflow-x: hidden;
-  color: #1a1a1a;
+  color: var(--color-text-dark);
 }
 
-/* Soft ambient overlay */
 .profile-page::before {
   content: "";
   position: fixed;
@@ -20,8 +17,8 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(ellipse at 20% 30%, rgba(255, 218, 198, 0.3) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 70%, rgba(184, 216, 255, 0.25) 0%, transparent 60%);
+  background: radial-gradient(ellipse at 20% 30%, rgba(127, 183, 176, 0.12) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 70%, rgba(216, 184, 146, 0.12) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
@@ -36,15 +33,12 @@
 }
 
 .profile-card-cyber {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(30px) saturate(180%);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  border-radius: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--color-card-surface);
+  border-radius: var(--radius-card);
+  border: 1px solid rgba(127, 183, 176, 0.25);
   width: 100%;
-  padding: 3rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
-              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  padding: 28px 32px;
+  box-shadow: var(--shadow-soft);
   position: relative;
 }
 
