@@ -28,3 +28,5 @@ redis>=4.5.2,<5.0.0
 msal>=1.24.0
 alembic>=1.13.0  # Database migrations
 pywin32==306; platform_system=="Windows"  # Optional: enables .doc -> .docx conversion via MS Word COM automation
+openpyxl>=3.1.0  # Excel .xlsx for employee list upload
+xlrd>=2.0.0      # Excel .xls for employee list upload

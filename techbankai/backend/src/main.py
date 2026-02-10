@@ -139,6 +139,17 @@ app.include_router(gmail.router)  # Gmail webhook
 app.include_router(outlook.router)  # Outlook trigger
 app.include_router(jd_analysis.router)
 app.include_router(admin.router)
+# Employee list: register routes explicitly on app so path is guaranteed
+from src.routes.employee_list import (
+    get_config as employee_list_get_config,
+    update_config as employee_list_update_config,
+    upload_csv as employee_list_upload_csv,
+    list_employees as employee_list_list_employees,
+)
+app.add_api_route("/api/admin/employee-list/config", employee_list_get_config, methods=["GET"], tags=["Admin - Employee List"])
+app.add_api_route("/api/admin/employee-list/config", employee_list_update_config, methods=["PUT"], tags=["Admin - Employee List"])
+app.add_api_route("/api/admin/employee-list/upload", employee_list_upload_csv, methods=["POST"], tags=["Admin - Employee List"])
+app.add_api_route("/api/admin/employee-list", employee_list_list_employees, methods=["GET"], tags=["Admin - Employee List"])
 app.include_router(user_profile_api.router)
 app.include_router(job_openings.router)
 
