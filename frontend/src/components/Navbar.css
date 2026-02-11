@@ -1,0 +1,316 @@
+.navbar {
+  background: var(--color-card-surface);
+  box-shadow: var(--shadow-soft);
+  padding: 0.8rem 2rem;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  z-index: 1000 !important;
+  border-bottom: 1px solid rgba(127, 183, 176, 0.2);
+}
+
+.navbar-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  position: relative;
+  width: 100%;
+}
+
+.navbar-heading {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  cursor: pointer;
+  user-select: none;
+  letter-spacing: -1px;
+  white-space: nowrap;
+}
+
+/* Center heading (role title on application page) */
+.navbar-center-heading {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.navbar-center-heading-text {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin: 0;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+}
+
+/* Central Tabs Container - Soft elevated pill */
+.navbar-center-tabs {
+  position: absolute;
+  top: calc(100% + 1.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-card-surface);
+  border: 1px solid rgba(127, 183, 176, 0.25);
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-button);
+  box-shadow: var(--shadow-soft);
+  z-index: 10;
+}
+
+/* Tab buttons */
+.nav-glass-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-input);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text-dark);
+  opacity: 0.85;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+  white-space: nowrap;
+}
+
+.nav-glass-tab:hover {
+  background: rgba(127, 183, 176, 0.12);
+  color: var(--color-text-dark);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.nav-glass-tab.active {
+  background: rgba(127, 183, 176, 0.2);
+  color: var(--color-text-dark);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  border-color: rgba(127, 183, 176, 0.3);
+  font-weight: 600;
+  opacity: 1;
+  transform: none;
+  z-index: 1;
+  margin-bottom: 0;
+}
+
+/* Clear pseudo-elements */
+.nav-glass-tab.active::after,
+.nav-glass-tab.active::before {
+  content: none;
+  display: none;
+}
+
+/* Highlight text */
+.nav-glass-tab.active .tab-icon,
+.nav-glass-tab.active .tab-label {
+  background: none;
+  -webkit-text-fill-color: initial;
+  color: inherit;
+}
+
+.nav-glass-tab.tab-dashboard.active,
+.nav-glass-tab.tab-links.active,
+.nav-glass-tab.tab-search-talent.active,
+.nav-glass-tab.tab-search-jd.active,
+.nav-glass-tab.tab-add-resume.active,
+.nav-glass-tab.tab-manage-jobs.active,
+.nav-glass-tab.tab-employee-list.active {
+  color: var(--color-text-dark);
+}
+
+.tab-icon {
+  font-size: 1.1rem;
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.admin-toggle {
+  padding: 0.6rem 1.75rem;
+  background: var(--color-card-surface);
+  color: var(--color-text-dark);
+  border: 1px solid rgba(127, 183, 176, 0.3);
+  border-radius: var(--radius-button);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.3s ease;
+}
+
+.admin-toggle:hover {
+  background: rgba(127, 183, 176, 0.15);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-floating);
+}
+
+.profile-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s ease;
+}
+
+.profile-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-input);
+  background: rgba(127, 183, 176, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-dark);
+  font-weight: 600;
+  font-size: 1.1rem;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(127, 183, 176, 0.3);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.navbar-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-button:hover .profile-avatar {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-floating);
+  border-color: rgba(127, 183, 176, 0.45);
+}
+
+.logout-button-nav {
+  padding: 0.5rem 1.25rem;
+  background: rgba(220, 53, 69, 0.08);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.25);
+  border-radius: var(--radius-button);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+.logout-button-nav:hover {
+  background: rgba(220, 53, 69, 0.12);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.navbar-women-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  display: block;
+}
+
+.navbar-women-logo:hover {
+  transform: scale(1.05);
+}
+
+.navbar-cache-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  display: block;
+}
+
+.navbar-cache-logo:hover {
+  transform: scale(1.05);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .navbar {
+    padding: 0.8rem 1rem;
+  }
+
+  .navbar-container {
+    gap: 1rem;
+  }
+
+  .navbar-left {
+    gap: 0.75rem;
+  }
+
+  .navbar-heading {
+    font-size: 1.5rem;
+  }
+
+  .navbar-women-logo,
+  .navbar-cache-logo {
+    height: 35px;
+  }
+
+  .navbar-actions {
+    gap: 0.75rem;
+  }
+
+  .navbar-center-tabs {
+    display: none;
+    /* Hide standard tabs on smaller screens */
+    /* You might want a mobile menu or horizontal scroll here for a real app */
+  }
+
+  /* Simple mobile handling: show scrollable container if needed, or hide */
+}
+
+@media (max-width: 768px) {
+  .navbar-left {
+    gap: 0.5rem;
+  }
+
+  .navbar-heading {
+    font-size: 1.3rem;
+  }
+
+  .navbar-women-logo,
+  .navbar-cache-logo {
+    height: 30px;
+  }
+
+  .logout-button-nav {
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  .profile-avatar {
+    width: 36px;
+    height: 36px;
+  }
+}

@@ -1,0 +1,153 @@
+:root {
+  /* Soft 3D / Claymorphism theme */
+  --color-bg-base: #EDE6DB;
+  --color-card-surface: #F4EFE8;
+  --color-accent-teal: #7FB7B0;
+  --color-accent-sand: #D8B892;
+  --color-text-dark: #2F2F2F;
+  --color-text-muted: #7A7A7A;
+  /* Legacy aliases for existing usage */
+  --color-primary: #2F2F2F;
+  --color-secondary: #7FB7B0;
+  --color-accent: #7FB7B0;
+  --color-highlight: #D8B892;
+  --color-soft: #F4EFE8;
+  --glass-bg: #F4EFE8;
+  --glass-bg-hover: rgba(244, 239, 232, 0.95);
+  --glass-border: rgba(127, 183, 176, 0.25);
+  --glass-blur: blur(20px);
+  --glass-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  --shadow-soft: 0 20px 40px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  --shadow-floating: 0 30px 60px rgba(0, 0, 0, 0.12);
+  --radius-card: 24px;
+  --radius-button: 18px;
+  --radius-input: 16px;
+  --space-section: 64px;
+  --space-card: 24px;
+  --gap-cards: 24px;
+  --gradient-primary: linear-gradient(135deg, #7FB7B0 0%, #6ba39d 100%);
+  --gradient-secondary: linear-gradient(135deg, #D8B892 0%, #c9a87a 100%);
+  --gradient-soft: linear-gradient(135deg, #F4EFE8 0%, #EDE6DB 100%);
+  /* Claymorphism chart theme */
+  --chart-grid: rgba(0, 0, 0, 0.05);
+  --chart-axis: #9CA3AF;
+  --chart-teal: #7FB7B0;
+  --chart-purple: #A78BFA;
+  --chart-pink: #EC4899;
+  --chart-text: #1F2937;
+  --chart-muted: #6B7280;
+  --radius-card-clay: 28px;
+  --shadow-clay: 0 20px 40px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+.clay-card {
+  background: var(--color-card-surface);
+  border-radius: var(--radius-card-clay);
+  box-shadow: var(--shadow-clay);
+  border: 1px solid rgba(127, 183, 176, 0.2);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Animated Gradient Mesh Background */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--color-bg-base);
+  color: var(--color-text-dark);
+  min-height: 100vh;
+  margin: 0;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Animated Background Orbs - pastel teal & sand */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.25;
+  z-index: 0;
+  pointer-events: none;
+}
+
+body::before {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(127, 183, 176, 0.35) 0%, transparent 70%);
+  top: -200px;
+  right: -200px;
+  animation: float 20s ease-in-out infinite;
+}
+
+body::after {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(216, 184, 146, 0.35) 0%, transparent 70%);
+  bottom: -150px;
+  left: -150px;
+  animation: float 25s ease-in-out infinite reverse;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+#root {
+  min-height: 100vh;
+  perspective: 1200px;
+}
+
+.auth-page-wrapper {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+

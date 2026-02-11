@@ -1,0 +1,196 @@
+services:
+  # PostgreSQL Database
+  - type: pspg
+    name: techbank-database
+    plan: free  # Change to standard or pro for production
+    databaseName: techbank
+    user: techbank_user
+
+  # Redis for Celery
+  - type: redis
+    name: techbank-redis
+    plan: free  # Change to standard or pro for production
+    maxmemoryPolicy: allkeys-lru
+
+  # Backend API Service
+  - type: web
+    name: techbank-backend
+    env: python
+    region: oregon  # Change to your preferred region (oregon, frankfurt, singapore, etc.)
+    plan: free  # Change to standard or pro for production
+    buildCommand: |
+      cd backend &&
+      pip install --upgrade pip &&
+      pip install -r requirements.txt
+    startCommand: |
+      cd backend &&
+      uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      # Database Configuration (auto-populated from database service)
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: techbank-database
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: techbank-database
+          property: port
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: techbank-database
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: techbank-database
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: techbank-database
+          property: password
+      # Alternative: Use DATABASE_URL if your app supports it
+      - key: DATABASE_URL
+        fromDatabase:
+          name: techbank-database
+          property: connectionString
+      # Server Configuration
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        fromService:
+          name: techbank-backend
+          type: web
+          property: port
+      # JWT Configuration (IMPORTANT: Change JWT_SECRET_KEY in production!)
+      - key: JWT_SECRET_KEY
+        generateValue: true  # Auto-generate secure key
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_EXPIRATION_HOURS
+        value: 24
+      # OpenAI Configuration (Set this in Render dashboard)
+      - key: OPENAI_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: OPENAI_MAX_TOKENS
+        value: 4096
+      # Redis Configuration (auto-populated from redis service)
+      - key: REDIS_URL
+        fromService:
+          name: techbank-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: techbank-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          name: techbank-redis
+          type: redis
+          property: connectionString
+      # CORS Configuration (Update with your frontend URL after deployment)
+      - key: CORS_ORIGINS
+        value: https://techbank-frontend.onrender.com  # Update with your actual frontend URL
+      # File Upload Configuration
+      - key: UPLOAD_DIR
+        value: uploads
+      - key: MAX_FILE_SIZE_MB
+        value: 10
+      # Google OAuth (Optional - set if using Google integrations)
+      - key: GOOGLE_CLIENT_ID
+        sync: false  # Set manually if needed
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false  # Set manually if needed
+      # Microsoft Graph API (Optional - set if using Outlook integration)
+      - key: AZURE_TENANT_ID
+        sync: false  # Set manually if needed
+      - key: AZURE_CLIENT_ID
+        sync: false  # Set manually if needed
+      - key: AZURE_CLIENT_SECRET
+        sync: false  # Set manually if needed
+      - key: MAILBOX_EMAIL
+        value: hr@techbank.ai  # Update with your email
+
+  # Frontend Static Site
+  - type: web
+    name: techbank-frontend
+    env: static
+    region: oregon  # Change to your preferred region
+    plan: starter  # Change to standard or pro for production
+    buildCommand: |
+      cd frontend &&
+      npm install &&
+      npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      # API URL (Update with your backend URL after deployment)
+      - key: VITE_API_URL
+        value: https://techbank-backend.onrender.com  # Update with your actual backend URL
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false  # Set manually if using Google OAuth
+
+  # Celery Worker (Optional - for background tasks)
+  - type: worker
+    name: techbank-celery-worker
+    env: python
+    region: oregon  # Change to your preferred region
+    plan: free  # Change to standard or pro for production
+    buildCommand: |
+      cd backend &&
+      pip install --upgrade pip &&
+      pip install -r requirements.txt
+    startCommand: |
+      cd backend &&
+      celery -A src.workers.celery_app worker --loglevel=info
+    envVars:
+      # Database Configuration (same as backend)
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: techbank-database
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: techbank-database
+          property: port
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: techbank-database
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: techbank-database
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: techbank-database
+          property: password
+      - key: DATABASE_URL
+        fromDatabase:
+          name: techbank-database
+          property: connectionString
+      # Redis Configuration
+      - key: REDIS_URL
+        fromService:
+          name: techbank-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: techbank-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          name: techbank-redis
+          type: redis
+          property: connectionString
+      # OpenAI Configuration
+      - key: OPENAI_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: OPENAI_MAX_TOKENS
+        value: 4096
+

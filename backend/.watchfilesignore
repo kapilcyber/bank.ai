@@ -1,0 +1,39 @@
+# Watchfiles ignore patterns
+# Files and directories to ignore when watching for changes
+
+# Log files
+*.log
+app_*.log
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Database files
+*.sql
+*.backup
+*.db
+
+# Upload directories
+uploads/
+temp_parse/
+
+# CSV files
+*.csv
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# Build artifacts
+dist/
+build/
+*.egg-info/

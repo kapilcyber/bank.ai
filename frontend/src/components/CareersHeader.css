@@ -1,0 +1,35 @@
+.careers-header {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.careers-header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.careers-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.careers-logo img {
+  height: 40px;
+  width: auto;
+}
+
+.careers-logo-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+

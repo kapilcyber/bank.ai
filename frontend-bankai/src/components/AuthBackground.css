@@ -1,0 +1,147 @@
+.auth-background-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  overflow: hidden;
+  background-color: transparent; /* Allow body gradient to show through */
+}
+
+.auth-background-container::before {
+  content: '';
+  position: absolute;
+  width: 900px;
+  height: 900px;
+  background: radial-gradient(circle, rgba(229, 56, 59, 0.12) 0%, rgba(255, 218, 198, 0.08) 40%, transparent 75%);
+  border-radius: 50%;
+  top: -450px;
+  right: -250px;
+  animation: floatDiagonal 28s ease-in-out infinite;
+  z-index: 0;
+  filter: blur(40px);
+}
+
+.auth-background-container::after {
+  content: '';
+  position: absolute;
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle, rgba(51, 92, 103, 0.15) 0%, rgba(206, 66, 87, 0.05) 50%, transparent 80%);
+  border-radius: 50%;
+  bottom: -350px;
+  left: -150px;
+  animation: floatDiagonal 22s ease-in-out infinite reverse;
+  z-index: 0;
+  filter: blur(50px);
+}
+
+/* Floating Geometric Shapes */
+@keyframes floatDiagonal {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(50px, -50px) rotate(90deg);
+  }
+  50% {
+    transform: translate(100px, 0) rotate(180deg);
+  }
+  75% {
+    transform: translate(50px, 50px) rotate(270deg);
+  }
+}
+
+@keyframes floatVertical {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-100px) scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: translateX(0) translateY(0);
+  }
+  25% {
+    transform: translateX(50px) translateY(-30px);
+  }
+  50% {
+    transform: translateX(0) translateY(-60px);
+  }
+  75% {
+    transform: translateX(-50px) translateY(-30px);
+  }
+}
+
+/* Particle Elements */
+.auth-background-container .particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.auth-background-container .particle-1 {
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, rgba(255, 218, 198, 0.5), rgba(229, 56, 59, 0.3), rgba(51, 92, 103, 0.1));
+  top: 15%;
+  left: 10%;
+  animation: floatVertical 16s ease-in-out infinite;
+  filter: blur(5px);
+}
+
+.auth-background-container .particle-2 {
+  width: 150px;
+  height: 150px;
+  background: linear-gradient(135deg, rgba(51, 92, 103, 0.35), rgba(206, 66, 87, 0.25), rgba(255, 218, 198, 0.2));
+  top: 60%;
+  right: 8%;
+  animation: floatVertical 20s ease-in-out infinite 2s;
+  filter: blur(8px);
+}
+
+.auth-background-container .particle-3 {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, rgba(229, 56, 59, 0.35), rgba(255, 218, 198, 0.45));
+  bottom: 25%;
+  left: 18%;
+  animation: wave 14s ease-in-out infinite;
+  filter: blur(4px);
+}
+
+.auth-background-container .particle-4 {
+  width: 130px;
+  height: 130px;
+  background: linear-gradient(135deg, rgba(206, 66, 87, 0.3), rgba(51, 92, 103, 0.2), rgba(255, 218, 198, 0.2));
+  top: 35%;
+  right: 20%;
+  animation: rotate 35s linear infinite;
+  filter: blur(10px);
+}
+
+.auth-background-container .particle-5 {
+  width: 90px;
+  height: 90px;
+  background: radial-gradient(circle, rgba(255, 218, 198, 0.6), rgba(51, 92, 103, 0.2), transparent);
+  bottom: 35%;
+  right: 12%;
+  animation: floatVertical 22s ease-in-out infinite 4s;
+  filter: blur(6px);
+}

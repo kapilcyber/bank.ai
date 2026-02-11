@@ -1,0 +1,37 @@
+{
+  "name": "techbank-ai-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:careers": "vite --config vite.config.careers.js --open /careers.html",
+    "dev:guest": "vite --port 3005 --host 0.0.0.0 --strictPort",
+    "dev:freelancer": "vite --port 3006 --host 0.0.0.0",
+    "dev:employee": "vite --port 3007 --host 0.0.0.0",
+    "dev:portals": "concurrently -n guest,freelancer,employee -c cyan,magenta,green \"npm run dev:guest\" \"npm run dev:freelancer\" \"npm run dev:employee\"",
+    "dev:guest:local": "vite --port 3005 --strictPort",
+    "dev:freelancer:local": "vite --port 3006",
+    "dev:employee:local": "vite --port 3007",
+    "dev:portals:local": "concurrently -n guest,freelancer,employee -c cyan,magenta,green \"npm run dev:guest:local\" \"npm run dev:freelancer:local\" \"npm run dev:employee:local\"",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@react-oauth/google": "^0.13.4",
+    "apexcharts": "^5.3.6",
+    "chart.js": "^4.5.1",
+    "framer-motion": "^10.16.16",
+    "jwt-decode": "^4.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "recharts": "^3.6.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^9.2.1",
+    "vite": "^5.0.8"
+  }
+}

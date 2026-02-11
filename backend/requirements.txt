@@ -1,0 +1,32 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+asyncpg==0.29.0
+async-timeout>=4.0.3,<5.0.0  # Compatible with asyncpg and langchain
+pydantic>=2.5.0,<3.0.0  # Flexible version for compatibility
+pydantic-settings>=2.0.0  # For centralized settings management
+email-validator>=2.0.0  # Required for EmailStr validation
+python-multipart==0.0.6
+passlib==1.7.4
+# passlib 1.7.4 expects bcrypt to expose legacy version metadata; bcrypt 4.x removed it.
+# Pin bcrypt to a compatible version to avoid runtime warnings and potential edge-case failures.
+bcrypt==3.2.2
+python-jose[cryptography]==3.3.0
+PyPDF2==3.0.1
+pdfplumber==0.10.3
+python-docx==1.1.0
+openai>=1.12.0
+httpx>=0.27.0
+python-dotenv==1.0.0
+aiofiles>=23.2.1  # Allow newer versions for compatibility
+google-api-python-client==2.108.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib>=0.5,<1.1  # Compatible with tensorboard
+celery[redis]==5.3.4
+redis>=4.5.2,<5.0.0
+msal>=1.24.0
+alembic>=1.13.0  # Database migrations
+pywin32==306; platform_system=="Windows"  # Optional: enables .doc -> .docx conversion via MS Word COM automation
+openpyxl>=3.1.0  # Excel .xlsx for employee list upload
+xlrd>=2.0.0      # Excel .xls for employee list upload
