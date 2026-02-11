@@ -667,6 +667,7 @@ const CandidateDetailModal = ({ candidate, onClose, onTypeUpdated, onRecordsRefr
                                             </div>
                                             <div className="record-field">
                                                 <span className="record-field-label">Company</span>
+<<<<<<< HEAD
                                                 <div className={`record-field-value${isFilled(exp.company) ? ' record-field-value-filled' : ''}`}>
                                                     {exp.company || '—'}
                                                     {exp.sector && exp.sector !== 'Unknown' && (
@@ -686,6 +687,9 @@ const CandidateDetailModal = ({ candidate, onClose, onTypeUpdated, onRecordsRefr
                                                         </div>
                                                     )}
                                                 </div>
+=======
+                                                <div className={`record-field-value${isFilled(exp.company) ? ' record-field-value-filled' : ''}`}>{exp.company || '—'}</div>
+>>>>>>> 1694499036d3b779ff98382438df32e179aaa6fd
                                             </div>
                                             <div className="record-field">
                                                 <span className="record-field-label">Location</span>

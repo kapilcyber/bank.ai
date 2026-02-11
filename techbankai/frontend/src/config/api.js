@@ -51,6 +51,12 @@ export const API_ENDPOINTS = {
   ADMIN_USERS: '/admin/users',
   ADMIN_UPLOAD_RESUMES: '/resumes/upload',
   ADMIN_UPDATE_RESUME_TYPE: '/admin/resumes',
+<<<<<<< HEAD
+=======
+  EMPLOYEE_LIST_CONFIG: '/admin/employee-list/config',
+  EMPLOYEE_LIST_UPLOAD: '/admin/employee-list/upload',
+  EMPLOYEE_LIST: '/admin/employee-list',
+>>>>>>> 1694499036d3b779ff98382438df32e179aaa6fd
 
   // Job Openings Endpoints
   GET_JOB_OPENINGS: '/job-openings',
@@ -623,3 +629,52 @@ export const deleteJobOpening = async (jobId) => {
   })
 }
 
+<<<<<<< HEAD
+=======
+// Employee List (Admin) - Company Employee verification toggle and CSV upload
+// =============================================================================
+
+/**
+ * Get employee list config (enabled, count from uploaded list in DB)
+ * @returns {Promise<{enabled: boolean, count: number}>}
+ */
+export const getEmployeeListConfig = async () => {
+  return await apiRequest(API_ENDPOINTS.EMPLOYEE_LIST_CONFIG)
+}
+
+/**
+ * Update employee list config (verification on/off)
+ * @param {object} params - { enabled?: boolean }
+ * @returns {Promise<{enabled: boolean, count: number}>}
+ */
+export const updateEmployeeListConfig = async (params = {}) => {
+  return await apiRequest(API_ENDPOINTS.EMPLOYEE_LIST_CONFIG, {
+    method: 'PUT',
+    body: JSON.stringify(params),
+  })
+}
+
+/**
+ * Upload CSV to replace company employee list (admin only)
+ * @param {File} file - CSV file with columns employee_id, full_name, email
+ * @returns {Promise<{count: number, message: string}>}
+ */
+/** Upload CSV or Excel (.xlsx, .xls) to replace employee list. Columns: employee_id, full_name, email */
+export const uploadEmployeeListCsv = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return await uploadFile(API_ENDPOINTS.EMPLOYEE_LIST_UPLOAD, formData)
+}
+
+/**
+ * Get list of uploaded employees (admin only)
+ * @param {object} params - { limit?, offset? }
+ * @returns {Promise<{items: Array<{employee_id, full_name, email}>, total: number}>}
+ */
+export const getEmployeeList = async (params = {}) => {
+  const q = new URLSearchParams(params).toString()
+  const endpoint = q ? `${API_ENDPOINTS.EMPLOYEE_LIST}?${q}` : API_ENDPOINTS.EMPLOYEE_LIST
+  return await apiRequest(endpoint)
+}
+
+>>>>>>> 1694499036d3b779ff98382438df32e179aaa6fd

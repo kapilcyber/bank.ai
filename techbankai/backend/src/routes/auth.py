@@ -13,6 +13,11 @@ from src.models.user_db import User
 from src.config.database import get_postgres_db
 from src.middleware.auth_middleware import create_access_token, get_current_user, blacklist_token, decode_access_token
 from src.utils.logger import get_logger
+from src.services.employee_list_config import (
+    verify_employee_against_list,
+    get_employee_list_config,
+    is_employee_list_available,
+)
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -66,23 +71,6 @@ _reset_tokens: Dict[str, Dict[str, datetime]] = {}
 ADMIN_ROLES = {'admin', 'talent_acquisition', 'talent acquisition', 'hr'}
 
 
-def _company_employee_csv_paths():
-    """Return candidate paths for comapny_employee.csv (project root, backend dir, cwd, env)."""
-    import os
-    _auth_dir = os.path.dirname(os.path.abspath(__file__))
-    _backend_dir = os.path.dirname(os.path.dirname(_auth_dir))
-    _project_root = os.path.dirname(_backend_dir)
-    _csv_name = "comapny_employee.csv"
-    paths = [
-        os.path.join(_project_root, _csv_name),
-        os.path.join(_backend_dir, _csv_name),
-        os.path.join(os.getcwd(), _csv_name),
-    ]
-    if os.environ.get("COMPANY_EMPLOYEE_CSV_PATH"):
-        paths.insert(0, os.environ.get("COMPANY_EMPLOYEE_CSV_PATH"))
-    return paths
-
-
 def is_admin_role(mode: str) -> bool:
     """Check if user mode grants admin dashboard access."""
     if not mode:
@@ -113,49 +101,22 @@ async def signup(user: UserCreate, db: AsyncSession = Depends(get_postgres_db)):
         freelancer_id = None
         employee_id = None
         
-        # 1. Company Employee Verification
+        # 1. Company Employee Verification (uses admin toggle and uploaded/static list)
         if user.employment_type == "Company Employee":
             if not user.employee_id:
                 raise HTTPException(status_code=400, detail="Employee ID is required for Company Employees")
-                
-            # Go up 4 levels: src/routes/auth.py -> src/routes -> src -> backend -> Project Root (techbankai/)
-            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-            csv_path = os.path.join(root_dir, "comapny_employee.csv")  # Note: filename has typo but matches actual file
-            
-            verified = False
-            try:
-                with open(csv_path, 'r', encoding='utf-8') as f:
-                    reader = csv.DictReader(f)
-                    for row in reader:
-                        # Check matches (case-insensitive)
-                        csv_id = row.get('employee_id', '').strip().upper()
-                        csv_email = row.get('email', '').strip().lower()
-                        
-                        if csv_id == user.employee_id.strip().upper() and csv_email == user.email.lower():
-                            verified = True
-                            break
-            except FileNotFoundError:
-                # Try backend directory as fallback
-                fallback_path = os.path.join(os.path.dirname(root_dir), "backend", "comapny_employee.csv")
-                if os.path.exists(fallback_path):
-                     try:
-                        with open(fallback_path, 'r', encoding='utf-8') as f:
-                            reader = csv.DictReader(f)
-                            for row in reader:
-                                if row.get('employee_id', '').strip().upper() == user.employee_id.strip().upper() and \
-                                   row.get('email', '').strip().lower() == user.email.lower():
-                                    verified = True
-                                    break
-                     except:
-                        pass
-                
-                if not verified and not os.path.exists(fallback_path):
-                    logger.error(f"Verification file not found at {csv_path} or {fallback_path}")
-                    raise HTTPException(status_code=500, detail="Verification system configuration error: CSV file missing")
-                
-            if not verified:
-                raise HTTPException(status_code=403, detail="Verification failed: Employee ID and Email do not match company records")
-            
+            config = await get_employee_list_config(db)
+            if config.get("enabled", True) and not await is_employee_list_available(db):
+                raise HTTPException(
+                    status_code=503,
+                    detail="Company employee list is not available. Please contact your administrator."
+                )
+            result = await verify_employee_against_list(user.employee_id, user.email, db)
+            if config.get("enabled", True) and result is None:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Verification failed: Employee ID and Email do not match company records"
+                )
             employee_id = user.employee_id.strip().upper()
 
         # 2. Freelancer ID Generation
@@ -270,40 +231,15 @@ async def admin_signup(payload: AdminSignupRequest, db: AsyncSession = Depends(g
         if not payload.employee_id or not payload.employee_id.strip():
             raise HTTPException(status_code=400, detail="Employee ID is required for admin signup")
 
-        import csv
-        import os
-
-        candidate_paths = _company_employee_csv_paths()
-        verified = False
-        csv_found = False
-        for path in candidate_paths:
-            if not path or not os.path.isfile(path):
-                continue
-            csv_found = True
-            try:
-                with open(path, 'r', encoding='utf-8-sig') as f:
-                    reader = csv.DictReader(f)
-                    for row in reader:
-                        # Normalize keys (strip BOM/whitespace from header names)
-                        row = {k.strip().lstrip('\ufeff'): v for k, v in row.items()}
-                        csv_id = (row.get('employee_id') or '').strip().upper()
-                        csv_email = (row.get('email') or '').strip().lower()
-                        if csv_id == payload.employee_id.strip().upper() and csv_email == payload.email.strip().lower():
-                            verified = True
-                            break
-                if verified:
-                    break
-            except Exception as e:
-                logger.warning(f"Admin signup verification read error {path}: {e}")
-                continue
-
-        if not csv_found:
-            logger.error("Admin signup: company employee CSV not found at any path")
+        config = await get_employee_list_config(db)
+        if config.get("enabled", True) and not await is_employee_list_available(db):
+            logger.error("Admin signup: company employee list not available")
             raise HTTPException(
                 status_code=503,
                 detail="Company employee list is not available. Please contact your administrator."
             )
-        if not verified:
+        result = await verify_employee_against_list(payload.employee_id, payload.email, db)
+        if config.get("enabled", True) and result is None:
             raise HTTPException(
                 status_code=403,
                 detail="Verification failed: this Employee ID and Email do not match any company record. Use the exact ID and email from your company list."
@@ -343,31 +279,17 @@ async def admin_signup(payload: AdminSignupRequest, db: AsyncSession = Depends(g
 
 
 @router.post("/verify-employee")
-async def verify_employee(payload: VerifyEmployeeRequest):
+async def verify_employee(
+    payload: VerifyEmployeeRequest,
+    db: AsyncSession = Depends(get_postgres_db),
+):
     """
-    Verify employee ID and email against company CSV.
+    Verify employee ID and email against company list (uploaded or static CSV).
     No authentication required - used before upload in employee portal.
     """
-    import csv
-    import os
-
-    for path in _company_employee_csv_paths():
-        if not path or not os.path.isfile(path):
-            continue
-        try:
-            with open(path, 'r', encoding='utf-8-sig') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    row = {k.strip().lstrip('\ufeff'): v for k, v in row.items()}
-                    csv_id = (row.get('employee_id') or '').strip().upper()
-                    csv_email = (row.get('email') or '').strip().lower()
-                    if csv_id == payload.employee_id.strip().upper() and csv_email == payload.email.strip().lower():
-                        full_name = (row.get('full_name') or '').strip()
-                        return {"valid": True, "full_name": full_name}
-        except Exception as e:
-            logger.warning(f"verify-employee read {path}: {e}")
-            continue
-
+    result = await verify_employee_against_list(payload.employee_id, payload.email, db)
+    if result is not None:
+        return {"valid": True, "full_name": result.get("full_name", "")}
     return {"valid": False, "message": "Employee ID and Email do not match company records"}
 
 

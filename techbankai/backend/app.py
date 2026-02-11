@@ -69,6 +69,12 @@ app.include_router(user_profile.router)  # User profile uploads
 app.include_router(gmail.router)  # Gmail webhook
 app.include_router(jd_analysis.router)
 app.include_router(admin.router)
+# Employee list config and CSV upload (admin) - from src so both app.py and src.main have it
+try:
+    from src.routes import employee_list
+    app.include_router(employee_list.router)
+except ImportError:
+    pass
 
 # Simple request logging middleware
 @app.middleware("http")
