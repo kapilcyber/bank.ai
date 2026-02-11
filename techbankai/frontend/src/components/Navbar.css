@@ -127,13 +127,7 @@
 .nav-glass-tab.tab-links.active,
 .nav-glass-tab.tab-search-talent.active,
 .nav-glass-tab.tab-search-jd.active,
-<<<<<<< HEAD
 .nav-glass-tab.tab-add-resume.active {
-=======
-.nav-glass-tab.tab-add-resume.active,
-.nav-glass-tab.tab-manage-jobs.active,
-.nav-glass-tab.tab-employee-list.active {
->>>>>>> 1694499036d3b779ff98382438df32e179aaa6fd
   color: var(--color-text-dark);
 }
 
