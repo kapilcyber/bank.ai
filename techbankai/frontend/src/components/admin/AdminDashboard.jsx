@@ -71,12 +71,11 @@ const NightingaleRoseWedge = (props) => {
         innerRadius={innerRadius}
         outerRadius={customOuterRadius}
         fill={fill}
-        stroke="#00f2ff"
+        stroke="#7FB7B0"
         strokeWidth={1}
-        fillOpacity={0.4}
+        fillOpacity={0.35}
         className="wedge-sector"
       />
-      {/* Add a glowing edge */}
       <Sector
         cx={cx}
         cy={cy}
@@ -84,8 +83,8 @@ const NightingaleRoseWedge = (props) => {
         endAngle={endAngle}
         innerRadius={customOuterRadius - 2}
         outerRadius={customOuterRadius}
-        fill="#00f2ff"
-        fillOpacity={0.8}
+        fill="#7FB7B0"
+        fillOpacity={0.6}
       />
     </g>
   );
@@ -114,42 +113,18 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
 
   useEffect(() => {
     fetchDashboardData()
-    
-    // Listen for resume upload events for immediate refresh
+
+    // Refresh only when new data arrives (e.g. after resume upload), not on tab/focus
     const handleResumeUploaded = (event) => {
       console.log('📥 AdminDashboard: Received resumeUploaded event', event.detail)
-      // Add a small delay to ensure backend has committed the transaction
       setTimeout(() => {
         console.log('🔄 AdminDashboard: Refreshing dashboard data after upload...')
         fetchDashboardData()
-      }, 1000) // 1 second delay to ensure DB commit
+      }, 1000)
     }
 
-    // Refresh when component becomes visible (only when tab becomes active)
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('🔄 AdminDashboard: Tab visible, refreshing from database...')
-        fetchDashboardData()
-      }
-    }
-
-    // Refresh when window regains focus (only when user returns to the tab)
-    const handleFocus = () => {
-      console.log('🔄 AdminDashboard: Window focused, refreshing from database...')
-      fetchDashboardData()
-    }
-    
-    // Set up event listeners
     window.addEventListener('resumeUploaded', handleResumeUploaded)
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
-    
-    // Cleanup
-    return () => {
-      window.removeEventListener('resumeUploaded', handleResumeUploaded)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-    }
+    return () => window.removeEventListener('resumeUploaded', handleResumeUploaded)
   }, [])
 
   const fetchDashboardData = async () => {
@@ -380,7 +355,7 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
 
       <div className="dashboard-grid-new">
         <motion.div
-          className="dashboard-section acquisition-trends"
+          className="dashboard-section clay-card acquisition-trends"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
@@ -412,10 +387,10 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                     <feComposite in="SourceGraphic" in2="blur" operator="over" />
                   </filter>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
                 <XAxis
                   dataKey="name"
-                  stroke="#94a3b8"
+                  stroke="#9CA3AF"
                   fontSize={11}
                   fontWeight={600}
                   axisLine={false}
@@ -423,7 +398,7 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                   dy={10}
                 />
                 <YAxis
-                  stroke="#94a3b8"
+                  stroke="#9CA3AF"
                   fontSize={11}
                   fontWeight={600}
                   axisLine={false}
@@ -434,12 +409,12 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                     if (active && payload && payload.length) {
                       return (
                         <div className="custom-recharts-tooltip">
-                          <p style={{ color: '#fff', fontSize: '12px', fontWeight: 800, margin: 0 }}>{label}</p>
-                          <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '8px 0' }} />
+                          <p style={{ color: '#1F2937', fontSize: '12px', fontWeight: 600, margin: 0 }}>{label}</p>
+                          <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '8px 0' }} />
                           {payload.map((entry, index) => (
-                            <p key={index} style={{ color: entry.color, fontSize: '0.85rem', margin: '4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <p key={index} style={{ color: '#6B7280', fontSize: '0.85rem', margin: '4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <span style={{ backgroundColor: entry.color, width: '8px', height: '8px', borderRadius: '50%' }} />
-                              {entry.name}: <span style={{ fontWeight: 800 }}>{entry.value}</span>
+                              {entry.name}: <span style={{ fontWeight: 600, color: '#1F2937' }}>{entry.value}</span>
                             </p>
                           ))}
                         </div>
@@ -453,23 +428,23 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                   align="right"
                   height={36}
                   iconType="circle"
-                  wrapperStyle={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}
+                  wrapperStyle={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6B7280' }}
                 />
                 <Line
                   type="monotone"
                   dataKey="Company Employee"
-                  stroke="#00f2ff"
+                  stroke="#7FB7B0"
                   strokeWidth={3}
-                  dot={{ r: 4, fill: '#00f2ff', strokeWidth: 2, stroke: '#0a192f' }}
+                  dot={{ r: 4, fill: '#7FB7B0', strokeWidth: 2, stroke: '#F4EFE8' }}
                   activeDot={{ r: 6, strokeWidth: 0, style: { filter: 'url(#line-glow)' } }}
                   animationDuration={1500}
                 />
                 <Line
                   type="monotone"
                   dataKey="Freelancer"
-                  stroke="#7000ff"
+                  stroke="#A78BFA"
                   strokeWidth={3}
-                  dot={{ r: 4, fill: '#7000ff', strokeWidth: 2, stroke: '#0a192f' }}
+                  dot={{ r: 4, fill: '#A78BFA', strokeWidth: 2, stroke: '#F4EFE8' }}
                   activeDot={{ r: 6, strokeWidth: 0, style: { filter: 'url(#line-glow)' } }}
                   animationDuration={1500}
                   delay={200}
@@ -477,9 +452,9 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                 <Line
                   type="monotone"
                   dataKey="Guest User"
-                  stroke="#ff00ff"
+                  stroke="#EC4899"
                   strokeWidth={3}
-                  dot={{ r: 4, fill: '#ff00ff', strokeWidth: 2, stroke: '#0a192f' }}
+                  dot={{ r: 4, fill: '#EC4899', strokeWidth: 2, stroke: '#F4EFE8' }}
                   activeDot={{ r: 6, strokeWidth: 0, style: { filter: 'url(#line-glow)' } }}
                   animationDuration={1500}
                   delay={400}
@@ -497,7 +472,7 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
 
 
         <motion.div
-          className="dashboard-section exp-distribution-section"
+          className="dashboard-section clay-card exp-distribution-section"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -511,24 +486,24 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
               <AreaChart data={dashboardData.experienceDistribution} margin={{ top: 10, right: 30, left: 10, bottom: 35 }}>
                 <defs>
                   <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00f2ff" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#00f2ff" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#7FB7B0" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#7FB7B0" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis
                   dataKey="exp"
-                  stroke="#94a3b8"
+                  stroke="#9CA3AF"
                   fontSize={10}
-                  fontWeight={700}
+                  fontWeight={600}
                   axisLine={false}
                   tickLine={false}
                   interval={0}
                   height={50}
                   padding={{ left: 10, right: 10 }}
-                  label={{ value: 'Years of Experience', position: 'insideBottom', offset: 0, fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                  label={{ value: 'Years of Experience', position: 'insideBottom', offset: 0, fill: '#9CA3AF', fontSize: 10, fontWeight: 600 }}
                 />
                 <YAxis
-                  stroke="#94a3b8"
+                  stroke="#9CA3AF"
                   fontSize={12}
                   fontWeight={600}
                   axisLine={false}
@@ -540,8 +515,8 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                     if (active && payload && payload.length) {
                       return (
                         <div className="custom-recharts-tooltip">
-                          <p style={{ color: '#fff', fontSize: '12px', fontWeight: 800, margin: 0 }}>{payload[0].payload.exp} Years Exp</p>
-                          <p style={{ color: '#00f2ff', fontSize: '14px', fontWeight: 900, margin: '4px 0 0' }}>Count: {payload[0].value}</p>
+                          <p style={{ color: '#1F2937', fontSize: '12px', fontWeight: 600, margin: 0 }}>{payload[0].payload.exp} Years Exp</p>
+                          <p style={{ color: '#7FB7B0', fontSize: '14px', fontWeight: 600, margin: '4px 0 0' }}>Count: {payload[0].value}</p>
                         </div>
                       );
                     }
@@ -551,7 +526,7 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                 <Area
                   type="monotone"
                   dataKey="count"
-                  stroke="#00f2ff"
+                  stroke="#7FB7B0"
                   strokeWidth={3}
                   fillOpacity={1}
                   fill="url(#colorExp)"
@@ -564,7 +539,7 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
 
 
         <motion.div
-          className="dashboard-section skills-radar-section"
+          className="dashboard-section clay-card skills-radar-section"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
@@ -582,10 +557,10 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={filteredTopSkills.slice(0, 8)}>
-                  <PolarGrid stroke="rgba(16, 185, 129, 0.1)" />
+                  <PolarGrid stroke="rgba(0,0,0,0.05)" />
                   <PolarAngleAxis
                     dataKey="skill"
-                    tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }}
+                    tick={{ fill: '#9CA3AF', fontSize: 11, fontWeight: 600 }}
                   />
                   <PolarRadiusAxis
                     angle={30}
@@ -596,19 +571,19 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                   <Radar
                     name="Skills"
                     dataKey="count"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    fill="#10b981"
-                    fillOpacity={0.3}
-                    dot={{ r: 4, fill: '#10b981', fillOpacity: 1 }}
+                    stroke="#7FB7B0"
+                    strokeWidth={3}
+                    fill="#7FB7B0"
+                    fillOpacity={0.25}
+                    dot={{ r: 4, fill: '#7FB7B0', fillOpacity: 1 }}
                   />
                   <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         return (
                           <div className="custom-recharts-tooltip">
-                            <p style={{ color: '#fff', fontSize: '12px', fontWeight: 800, margin: 0 }}>{payload[0].payload.skill}</p>
-                            <p style={{ color: '#10b981', fontSize: '14px', fontWeight: 900, margin: '4px 0 0' }}>Count: {payload[0].value}</p>
+                            <p style={{ color: '#1F2937', fontSize: '12px', fontWeight: 600, margin: 0 }}>{payload[0].payload.skill}</p>
+                            <p style={{ color: '#7FB7B0', fontSize: '14px', fontWeight: 600, margin: '4px 0 0' }}>Count: {payload[0].value}</p>
                           </div>
                         );
                       }
@@ -622,7 +597,7 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
         </motion.div>
 
         <motion.div
-          className="dashboard-section location-histogram-section"
+          className="dashboard-section clay-card location-histogram-section"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
@@ -674,36 +649,36 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
                 >
                   <defs>
                     <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.1} />
-                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.8} />
+                      <stop offset="0%" stopColor="#A78BFA" stopOpacity={0.2} />
+                      <stop offset="100%" stopColor="#A78BFA" stopOpacity={0.7} />
                     </linearGradient>
                     <linearGradient id="highlightGradient" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#ec4899" stopOpacity={0.2} />
-                      <stop offset="100%" stopColor="#ec4899" stopOpacity={1} />
+                      <stop offset="0%" stopColor="#EC4899" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="#EC4899" stopOpacity={0.9} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" horizontal={false} />
                   <XAxis type="number" hide />
                   <YAxis
                     dataKey="state"
                     type="category"
-                    tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }}
+                    tick={{ fill: '#9CA3AF', fontSize: 11, fontWeight: 600 }}
                     width={80}
                     axisLine={false}
                     tickLine={false}
                   />
                   <Tooltip
-                    cursor={{ fill: 'rgba(139, 92, 246, 0.05)' }}
+                    cursor={{ fill: 'rgba(167, 139, 250, 0.06)' }}
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const isHighlighted = payload[0].payload.state === selectedState;
                         return (
-                          <div className="custom-recharts-tooltip" style={{ borderColor: isHighlighted ? '#ec4899' : 'rgba(255,255,255,0.1)' }}>
-                            <p style={{ color: '#fff', fontSize: '12px', fontWeight: 800, margin: 0 }}>
+                          <div className="custom-recharts-tooltip" style={{ borderColor: isHighlighted ? '#EC4899' : 'rgba(127, 183, 176, 0.3)' }}>
+                            <p style={{ color: '#1F2937', fontSize: '12px', fontWeight: 600, margin: 0 }}>
                               {payload[0].payload.state}
-                              {isHighlighted && <span style={{ marginLeft: '8px', color: '#ec4899', fontSize: '10px' }}>● Selected Focus</span>}
+                              {isHighlighted && <span style={{ marginLeft: '8px', color: '#EC4899', fontSize: '10px' }}>● Selected Focus</span>}
                             </p>
-                            <p style={{ color: isHighlighted ? '#ec4899' : '#8b5cf6', fontSize: '14px', fontWeight: 900, margin: '4px 0 0' }}>{payload[0].value} Professionals</p>
+                            <p style={{ color: isHighlighted ? '#EC4899' : '#A78BFA', fontSize: '14px', fontWeight: 600, margin: '4px 0 0' }}>{payload[0].value} Professionals</p>
                           </div>
                         );
                       }

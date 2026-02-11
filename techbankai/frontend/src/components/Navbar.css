@@ -1,8 +1,6 @@
 .navbar {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  background: var(--color-card-surface);
+  box-shadow: var(--shadow-soft);
   padding: 0.8rem 2rem;
   position: fixed !important;
   top: 0 !important;
@@ -10,7 +8,7 @@
   right: 0 !important;
   width: 100% !important;
   z-index: 1000 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(127, 183, 176, 0.2);
 }
 
 .navbar-container {
@@ -26,11 +24,8 @@
 
 .navbar-heading {
   font-size: 1.8rem;
-  font-weight: 800;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 600;
+  color: var(--color-text-dark);
   cursor: pointer;
   user-select: none;
   letter-spacing: -1px;
@@ -50,14 +45,14 @@
 
 .navbar-center-heading-text {
   font-size: 1.35rem;
-  font-weight: 800;
-  color: var(--color-primary);
+  font-weight: 600;
+  color: var(--color-text-dark);
   margin: 0;
   letter-spacing: -0.5px;
   white-space: nowrap;
 }
 
-/* Central Tabs Container - Floating Glass Pill */
+/* Central Tabs Container - Soft elevated pill */
 .navbar-center-tabs {
   position: absolute;
   top: calc(100% + 1.5rem);
@@ -67,17 +62,15 @@
   gap: 0.5rem;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--color-card-surface);
+  border: 1px solid rgba(127, 183, 176, 0.25);
   padding: 0.5rem 0.6rem;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-button);
+  box-shadow: var(--shadow-soft);
   z-index: 10;
 }
 
-/* Glass Tabs (Button Style) */
+/* Tab buttons */
 .nav-glass-tab {
   display: flex;
   align-items: center;
@@ -85,11 +78,11 @@
   padding: 0.6rem 1.25rem;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-input);
   font-weight: 600;
   font-size: 0.9rem;
-  color: var(--color-primary);
-  opacity: 0.8;
+  color: var(--color-text-dark);
+  opacity: 0.85;
   cursor: pointer;
   transition: all 0.3s ease;
   outline: none;
@@ -97,23 +90,18 @@
 }
 
 .nav-glass-tab:hover {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: var(--color-primary);
+  background: rgba(127, 183, 176, 0.12);
+  color: var(--color-text-dark);
   opacity: 1;
   transform: translateY(-1px);
 }
 
-/* Active Tab - Simple Glass Highlight */
 .nav-glass-tab.active {
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: var(--color-primary);
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
-  font-weight: 700;
+  background: rgba(127, 183, 176, 0.2);
+  color: var(--color-text-dark);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  border-color: rgba(127, 183, 176, 0.3);
+  font-weight: 600;
   opacity: 1;
   transform: none;
   z-index: 1;
@@ -135,25 +123,12 @@
   color: inherit;
 }
 
-/* Active Tab Colors (Optional Specific Highlights) */
-.nav-glass-tab.tab-dashboard.active {
-  color: #1a1a1a;
-}
-
-.nav-glass-tab.tab-links.active {
-  color: #1a1a1a;
-}
-
-.nav-glass-tab.tab-search-talent.active {
-  color: #1a1a1a;
-}
-
-.nav-glass-tab.tab-search-jd.active {
-  color: #1a1a1a;
-}
-
+.nav-glass-tab.tab-dashboard.active,
+.nav-glass-tab.tab-links.active,
+.nav-glass-tab.tab-search-talent.active,
+.nav-glass-tab.tab-search-jd.active,
 .nav-glass-tab.tab-add-resume.active {
-  color: #1a1a1a;
+  color: var(--color-text-dark);
 }
 
 .tab-icon {
@@ -170,25 +145,21 @@
 
 .admin-toggle {
   padding: 0.6rem 1.75rem;
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #1b262c;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 25px;
-  font-weight: 700;
+  background: var(--color-card-surface);
+  color: var(--color-text-dark);
+  border: 1px solid rgba(127, 183, 176, 0.3);
+  border-radius: var(--radius-button);
+  font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: var(--shadow-soft);
+  transition: all 0.3s ease;
 }
 
 .admin-toggle:hover {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(127, 183, 176, 0.15);
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-floating);
 }
 
 .profile-button {
@@ -202,22 +173,18 @@
 .profile-avatar {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  border-radius: var(--radius-input);
+  background: rgba(127, 183, 176, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  font-weight: 800;
+  color: var(--color-text-dark);
+  font-weight: 600;
   font-size: 1.1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
-              inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(127, 183, 176, 0.3);
+  transition: all 0.3s ease;
   overflow: hidden;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .navbar-avatar-img {
@@ -227,31 +194,28 @@
 }
 
 .profile-button:hover .profile-avatar {
-  transform: scale(1.1);
-  box-shadow: 0 6px 25px rgba(50, 130, 184, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-floating);
+  border-color: rgba(127, 183, 176, 0.45);
 }
 
 .logout-button-nav {
   padding: 0.5rem 1.25rem;
-  background: rgba(255, 95, 95, 0.15);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #ff4d4d;
-  border: 1px solid rgba(255, 95, 95, 0.3);
-  border-radius: 12px;
-  font-weight: 700;
+  background: rgba(220, 53, 69, 0.08);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.25);
+  border-radius: var(--radius-button);
+  font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4);
 }
 
 .logout-button-nav:hover {
-  background: rgba(255, 95, 95, 0.25);
-  color: #ff3333;
+  background: rgba(220, 53, 69, 0.12);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 77, 77, 0.2);
+  box-shadow: var(--shadow-soft);
 }
 
 .navbar-left {

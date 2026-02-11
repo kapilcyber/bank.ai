@@ -42,6 +42,16 @@ const renderSafe = (value, fallback = 'N/A') => {
     return value;
 }
 
+const EMPTY_PLACEHOLDERS = ['', 'n/a', '—', 'no work experience records found', 'no education records found', 'no skills detected', 'no certifications found']
+const isFilled = (value) => {
+    if (value === null || value === undefined) return false
+    if (typeof value === 'number' && !Number.isNaN(value)) return true
+    if (typeof value === 'boolean') return true
+    const s = String(value).trim()
+    if (!s) return false
+    return !EMPTY_PLACEHOLDERS.includes(s.toLowerCase())
+}
+
 const TYPE_FILTER_OPTIONS = [
     { value: '', label: 'All' },
     { value: 'company_employee', label: 'Company Employee' },
@@ -95,45 +105,20 @@ const Records = ({ initialFilter, setInitialFilter }) => {
         }
     }
 
-    // Initial fetch and setup real-time updates
+    // Initial fetch; refresh only when new data arrives (e.g. resume upload), not on tab/focus
     useEffect(() => {
         fetchRecords()
 
-        // Listen for resume upload events for immediate refresh
         const handleResumeUploaded = (event) => {
             console.log('📥 Records: Received resumeUploaded event', event.detail)
-            // Add a small delay to ensure backend has committed the transaction
             setTimeout(() => {
                 console.log('🔄 Records: Refreshing records after upload...')
                 fetchRecords()
-            }, 1000) // 1 second delay to ensure DB commit
+            }, 1000)
         }
-        
-        // Refresh when component becomes visible (only when tab becomes active)
-        const handleVisibilityChange = () => {
-            if (!document.hidden) {
-                console.log('🔄 Records: Tab visible, refreshing from database...')
-                fetchRecords()
-            }
-        }
-        
-        // Refresh when window regains focus (only when user returns to the tab)
-        const handleFocus = () => {
-            console.log('🔄 Records: Window focused, refreshing from database...')
-            fetchRecords()
-        }
-        
-        // Set up event listeners
+
         window.addEventListener('resumeUploaded', handleResumeUploaded)
-        document.addEventListener('visibilitychange', handleVisibilityChange)
-        window.addEventListener('focus', handleFocus)
-        
-        // Cleanup
-        return () => {
-            window.removeEventListener('resumeUploaded', handleResumeUploaded)
-            document.removeEventListener('visibilitychange', handleVisibilityChange)
-            window.removeEventListener('focus', handleFocus)
-        }
+        return () => window.removeEventListener('resumeUploaded', handleResumeUploaded)
     }, [])
 
     if (loading) {
@@ -545,23 +530,23 @@ const CandidateDetailModal = ({ candidate, onClose, onTypeUpdated, onRecordsRefr
                             <div className="record-fields-list">
                                 <div className="record-field">
                                     <span className="record-field-label">Email Address</span>
-                                    <div className="record-field-value">{renderSafe(candidate.email)}</div>
+                                    <div className={`record-field-value${isFilled(candidate.email) ? ' record-field-value-filled' : ''}`}>{renderSafe(candidate.email)}</div>
                                 </div>
                                 <div className="record-field">
                                     <span className="record-field-label">Phone</span>
-                                    <div className="record-field-value">{renderSafe(candidate.phone)}</div>
+                                    <div className={`record-field-value${isFilled(candidate.phone) ? ' record-field-value-filled' : ''}`}>{renderSafe(candidate.phone)}</div>
                                 </div>
                                 <div className="record-field">
                                     <span className="record-field-label">Current Location</span>
-                                    <div className="record-field-value">{renderSafe(candidate.location)}</div>
+                                    <div className={`record-field-value${isFilled(candidate.location) ? ' record-field-value-filled' : ''}`}>{renderSafe(candidate.location)}</div>
                                 </div>
                                 <div className="record-field">
                                     <span className="record-field-label">Total Experience</span>
-                                    <div className="record-field-value">{candidate.experience_years ? `${parseFloat(candidate.experience_years).toFixed(1)} Years` : 'N/A'}</div>
+                                    <div className={`record-field-value${candidate.experience_years != null && candidate.experience_years !== '' ? ' record-field-value-filled' : ''}`}>{candidate.experience_years ? `${parseFloat(candidate.experience_years).toFixed(1)} Years` : 'N/A'}</div>
                                 </div>
                                 <div className="record-field">
                                     <span className="record-field-label">Notice Period</span>
-                                    <div className="record-field-value">{candidate.notice_period !== undefined ? `${candidate.notice_period} Days` : 'N/A'}</div>
+                                    <div className={`record-field-value${candidate.notice_period !== undefined && candidate.notice_period !== null ? ' record-field-value-filled' : ''}`}>{candidate.notice_period !== undefined ? `${candidate.notice_period} Days` : 'N/A'}</div>
                                 </div>
                                 {(candidate.linked_in || candidate.meta_data?.form_data?.linkedIn) && (() => {
                                     const linkedInUrl = candidate.linked_in || candidate.meta_data?.form_data?.linkedIn
@@ -569,7 +554,7 @@ const CandidateDetailModal = ({ candidate, onClose, onTypeUpdated, onRecordsRefr
                                     return (
                                         <div className="record-field">
                                             <span className="record-field-label">LinkedIn</span>
-                                            <div className="record-field-value">
+                                            <div className="record-field-value record-field-value-filled">
                                                 <a href={href} target="_blank" rel="noreferrer">{linkedInUrl.length > 60 ? linkedInUrl.slice(0, 57) + '...' : linkedInUrl}</a>
                                             </div>
                                         </div>
@@ -581,7 +566,7 @@ const CandidateDetailModal = ({ candidate, onClose, onTypeUpdated, onRecordsRefr
                                     return (
                                         <div className="record-field">
                                             <span className="record-field-label">Portfolio / Website</span>
-                                            <div className="record-field-value">
+                                            <div className="record-field-value record-field-value-filled">
                                                 <a href={href} target="_blank" rel="noreferrer">{portfolioUrl.length > 60 ? portfolioUrl.slice(0, 57) + '...' : portfolioUrl}</a>
                                             </div>
                                         </div>
@@ -589,10 +574,50 @@ const CandidateDetailModal = ({ candidate, onClose, onTypeUpdated, onRecordsRefr
                                 })()}
                                 <div className="record-field">
                                     <span className="record-field-label">Relocation Status & Preference</span>
-                                    <div className="record-field-value">
+                                    <div className="record-field-value record-field-value-filled">
                                         {candidate.ready_to_relocate ? `Ready to Relocate${candidate.preferred_location ? ` — Preferred: ${candidate.preferred_location}` : ''}` : 'Not open to relocation'}
                                     </div>
                                 </div>
+                            </div>
+                        </section>
+
+                        <section className="modal-section">
+                            <h3 className="section-title-sm">Industry Sector Analysis</h3>
+                            <div className="record-fields-list">
+                                <div className="record-field">
+                                    <span className="record-field-label">Primary Sector</span>
+                                    <div className="record-field-value record-field-value-filled">
+                                        {parsed.primary_sector && parsed.primary_sector !== 'Unknown' ? (
+                                            <span className="sector-badge" data-sector={parsed.primary_sector}>
+                                                🏢 {parsed.primary_sector}
+                                            </span>
+                                        ) : (
+                                            'Unknown'
+                                        )}
+                                    </div>
+                                </div>
+                                {parsed.sector_experience && Object.keys(parsed.sector_experience).length > 0 && (
+                                    <div className="record-field">
+                                        <span className="record-field-label">Sector Experience</span>
+                                        <div className="record-tags-wrap">
+                                            {Object.entries(parsed.sector_experience)
+                                                .sort((a, b) => b[1] - a[1]) // Sort by years descending
+                                                .map(([sector, years]) => (
+                                                    <span key={sector} className="sector-exp-tag">
+                                                        {sector}: {years} yrs
+                                                    </span>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {parsed.sector_transitions && parsed.sector_transitions.length > 0 && (
+                                    <div className="record-field">
+                                        <span className="record-field-label">Career Path</span>
+                                        <div className="record-field-value record-field-value-filled">
+                                            {parsed.sector_transitions.join(" ➔ ")}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </section>
 
@@ -638,19 +663,37 @@ const CandidateDetailModal = ({ candidate, onClose, onTypeUpdated, onRecordsRefr
                                         <div key={idx} className="experience-item record-field-block">
                                             <div className="record-field">
                                                 <span className="record-field-label">Role</span>
-                                                <div className="record-field-value">{exp.role || '—'}</div>
+                                                <div className={`record-field-value${isFilled(exp.role) ? ' record-field-value-filled' : ''}`}>{exp.role || '—'}</div>
                                             </div>
                                             <div className="record-field">
                                                 <span className="record-field-label">Company</span>
-                                                <div className="record-field-value">{exp.company || '—'}</div>
+                                                <div className={`record-field-value${isFilled(exp.company) ? ' record-field-value-filled' : ''}`}>
+                                                    {exp.company || '—'}
+                                                    {exp.sector && exp.sector !== 'Unknown' && (
+                                                        <div style={{ marginTop: '4px' }}>
+                                                            <span className="sector-badge" data-sector={exp.sector} style={{
+                                                                padding: '2px 8px',
+                                                                borderRadius: '6px',
+                                                                fontSize: '0.7rem'
+                                                            }}>
+                                                                🏢 {exp.sector}
+                                                            </span>
+                                                            {exp.domain && exp.domain !== 'Unknown' && (
+                                                                <span style={{ fontSize: '0.75rem', color: '#666' }}>
+                                                                    — {exp.domain}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="record-field">
                                                 <span className="record-field-label">Location</span>
-                                                <div className="record-field-value">{exp.location || '—'}</div>
+                                                <div className={`record-field-value${isFilled(exp.location) ? ' record-field-value-filled' : ''}`}>{exp.location || '—'}</div>
                                             </div>
                                             <div className="record-field">
                                                 <span className="record-field-label">Period</span>
-                                                <div className="record-field-value">
+                                                <div className={`record-field-value${(exp.start_date || exp.end_date) ? ' record-field-value-filled' : ''}`}>
                                                     {exp.start_date || ''} {exp.start_date && exp.end_date ? '–' : ''} {exp.end_date || ''}
                                                     {exp.is_current ? ' (Current)' : ''}
                                                 </div>
@@ -658,7 +701,7 @@ const CandidateDetailModal = ({ candidate, onClose, onTypeUpdated, onRecordsRefr
                                             {exp.description && (
                                                 <div className="record-field">
                                                     <span className="record-field-label">Description</span>
-                                                    <div className="record-field-value">{exp.description}</div>
+                                                    <div className="record-field-value record-field-value-filled">{exp.description}</div>
                                                 </div>
                                             )}
                                         </div>
@@ -680,32 +723,32 @@ const CandidateDetailModal = ({ candidate, onClose, onTypeUpdated, onRecordsRefr
                                         <div key={idx} className="education-item record-field-block">
                                             <div className="record-field">
                                                 <span className="record-field-label">Degree</span>
-                                                <div className="record-field-value">{edu.degree || '—'}</div>
+                                                <div className={`record-field-value${isFilled(edu.degree) ? ' record-field-value-filled' : ''}`}>{edu.degree || '—'}</div>
                                             </div>
                                             <div className="record-field">
                                                 <span className="record-field-label">Institution</span>
-                                                <div className="record-field-value">{edu.institution || '—'}</div>
+                                                <div className={`record-field-value${isFilled(edu.institution) ? ' record-field-value-filled' : ''}`}>{edu.institution || '—'}</div>
                                             </div>
                                             <div className="record-field">
                                                 <span className="record-field-label">Field of study</span>
-                                                <div className="record-field-value">{edu.field_of_study || '—'}</div>
+                                                <div className={`record-field-value${isFilled(edu.field_of_study) ? ' record-field-value-filled' : ''}`}>{edu.field_of_study || '—'}</div>
                                             </div>
                                             <div className="record-field">
                                                 <span className="record-field-label">Period</span>
-                                                <div className="record-field-value">
+                                                <div className={`record-field-value${(edu.start_date || edu.end_date) ? ' record-field-value-filled' : ''}`}>
                                                     {edu.start_date || ''} {edu.start_date && edu.end_date ? '–' : ''} {edu.end_date || ''}
                                                 </div>
                                             </div>
                                             {edu.grade && (
                                                 <div className="record-field">
                                                     <span className="record-field-label">Grade</span>
-                                                    <div className="record-field-value">{edu.grade}</div>
+                                                    <div className="record-field-value record-field-value-filled">{edu.grade}</div>
                                                 </div>
                                             )}
                                             {edu.description && (
                                                 <div className="record-field">
                                                     <span className="record-field-label">Description</span>
-                                                    <div className="record-field-value">{edu.description}</div>
+                                                    <div className="record-field-value record-field-value-filled">{edu.description}</div>
                                                 </div>
                                             )}
                                         </div>

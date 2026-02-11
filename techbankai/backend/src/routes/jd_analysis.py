@@ -779,6 +779,18 @@ async def analyze_jd_v2(
             detached["resume_role"] = detached.get("role")
             detached["resume_experience"] = detached.get("experience_years", 0)
 
+            # Calculate sector info consistently for cached and fresh results
+            unique_sectors = sorted(list({
+                    job.get("sector") 
+                    for job in detached.get("work_history", []) 
+                    if job.get("sector") and job.get("sector") != "Unknown"
+                }))
+            unique_domains = sorted(list({
+                    job.get("domain") 
+                    for job in detached.get("work_history", []) 
+                    if job.get("domain") and job.get("domain") != "Unknown"
+                }))
+
             # Use cached result if available (skip GPT)
             cached = cached_map.get(resume.id)
             if cached and cached.match_score is not None:
@@ -815,6 +827,9 @@ async def analyze_jd_v2(
                     "preferred_location": detached.get("preferred_location"),
                     "notice_period": detached.get("notice_period"),
                     "uploaded_at": detached.get("uploaded_at"),
+                    "primary_sector": detached.get("primary_sector"),
+                    "unique_sectors": unique_sectors,
+                    "unique_domains": unique_domains,
                     "_cached": True,
                 }
 
@@ -899,6 +914,10 @@ async def analyze_jd_v2(
                 "preferred_location": detached.get("preferred_location"),
                 "notice_period": detached.get("notice_period"),
                 "uploaded_at": detached.get("uploaded_at"),
+                "primary_sector": detached.get("primary_sector"),
+                "sector_experience": detached.get("parsed_data", {}).get("sector_experience"),
+                "unique_domains": unique_domains,
+                "unique_sectors": unique_sectors,
                 "_cached": False,
             }
 

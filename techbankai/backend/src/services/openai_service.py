@@ -833,3 +833,88 @@ Return ONLY the JSON structure specified in the system prompt.
     except Exception as e:
         logger.error(f"GPT-4 matching failed: {e}")
         raise
+
+
+async def identify_company_sector_with_gpt(company_name: str) -> Dict:
+    """
+    Use GPT-4 to identify the industry sector and domain for a company.
+    
+    Args:
+        company_name: Name of the company
+    
+    Returns:
+        Dict with sector, domain, confidence, and method
+    """
+    client = get_openai_client()
+    if not client:
+        logger.error("OpenAI client not initialized - API key missing or invalid")
+        return {
+            'sector': 'Unknown',
+            'domain': 'Unknown',
+            'confidence': 'none',
+            'method': 'ai_failed'
+        }
+    
+    try:
+        system_prompt = """You are an industry classification expert.
+Your task is to identify the industry sector and domain for a given company name.
+
+Return ONLY valid JSON with no additional text.
+
+Sector categories (use EXACTLY these):
+- BFSI (Banking, Financial Services, Insurance)
+- IT Services (Software, Technology Consulting)
+- E-commerce (Online Retail, Marketplaces)
+- Healthcare (Hospitals, Pharmaceuticals, Health Tech)
+- Manufacturing (Automotive, Steel, FMCG, etc.)
+- Telecom (Telecommunications)
+- Education (EdTech, Universities)
+- Consulting (Management, Professional Services)
+- Technology (Internet Services, Social Media, Consumer Electronics)
+- Unknown (if cannot determine)
+
+Output format:
+{
+  "sector": "<one of the categories above>",
+  "domain": "<specific domain within sector>",
+  "confidence": "high|medium|low",
+  "method": "ai"
+}
+"""
+        
+        user_prompt = f"""Identify the industry sector and domain for this company:
+
+Company Name: {company_name}
+
+Return JSON only."""
+        
+        response = await client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"},
+            max_tokens=200,
+            temperature=0.1
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        
+        # Ensure required fields
+        result.setdefault('sector', 'Unknown')
+        result.setdefault('domain', 'Unknown')
+        result.setdefault('confidence', 'low')
+        result.setdefault('method', 'ai')
+        
+        logger.info(f"AI identified sector for {company_name}: {result['sector']}")
+        return result
+    
+    except Exception as e:
+        logger.error(f"GPT-4 sector identification failed for {company_name}: {e}")
+        return {
+            'sector': 'Unknown',
+            'domain': 'Unknown',
+            'confidence': 'none',
+            'method': 'ai_failed'
+        }

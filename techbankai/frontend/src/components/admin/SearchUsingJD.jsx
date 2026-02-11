@@ -46,6 +46,11 @@ const ResultCard = ({ match, index, dimensionLabels = {} }) => {
           </div>
           <div className="meta-badges">
             <span className="user-type-badge">{match.user_type}</span>
+            {match.primary_sector && match.primary_sector !== 'Unknown' && (
+              <span className="sector-badge" data-sector={match.primary_sector}>
+                🏢 {match.primary_sector}
+              </span>
+            )}
             {breakdownEntries.map((b) => (
               <span
                 key={b.dimId}
@@ -63,6 +68,12 @@ const ResultCard = ({ match, index, dimensionLabels = {} }) => {
         <div className="info-block">
           <span className="info-label">Current Role</span>
           <span className="info-value role-text-highlight">{match.role || 'N/A'}</span>
+        </div>
+        <div className="info-block">
+          <span className="info-label">Primary Sector</span>
+          <span className="info-value">
+            {match.primary_sector || 'N/A'}
+          </span>
         </div>
         <div className="info-block">
           <span className="info-label">Experience</span>
@@ -86,6 +97,35 @@ const ResultCard = ({ match, index, dimensionLabels = {} }) => {
               </span>
             )}
           </span>
+        </div>
+        <div className="info-block">
+          <span className="info-label">Industries & Domains</span>
+          <div className="info-value domain-list">
+            {(() => {
+              const sectors = match.unique_sectors || [];
+              const domains = match.unique_domains || [];
+              const items = sectors.length > 0 ? sectors : domains;
+              const title = sectors.length > 0 ? 'Sector' : 'Domain';
+
+              if (items.length === 0) return <span className="text-muted">N/A</span>;
+
+              return (
+                <>
+                  {items.slice(0, 3).map((item, i) => (
+                    <span key={i} className="domain-tag" title={title}>{item}</span>
+                  ))}
+                  {items.length > 3 && (
+                    <span
+                      className="more-domains"
+                      title={`${title}s: ${items.slice(3).join(', ')}`}
+                    >
+                      +{items.length - 3}
+                    </span>
+                  )}
+                </>
+              );
+            })()}
+          </div>
         </div>
       </div>
 

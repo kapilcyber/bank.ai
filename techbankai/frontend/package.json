@@ -4,11 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:guest": "vite --port 3005 --host 0.0.0.0",
+    "dev:careers": "vite --config vite.config.careers.js --open /careers.html",
+    "dev:guest": "vite --port 3005 --host 0.0.0.0 --strictPort",
     "dev:freelancer": "vite --port 3006 --host 0.0.0.0",
     "dev:employee": "vite --port 3007 --host 0.0.0.0",
     "dev:portals": "concurrently -n guest,freelancer,employee -c cyan,magenta,green \"npm run dev:guest\" \"npm run dev:freelancer\" \"npm run dev:employee\"",
-    "dev:guest:local": "vite --port 3005",
+    "dev:guest:local": "vite --port 3005 --strictPort",
     "dev:freelancer:local": "vite --port 3006",
     "dev:employee:local": "vite --port 3007",
     "dev:portals:local": "concurrently -n guest,freelancer,employee -c cyan,magenta,green \"npm run dev:guest:local\" \"npm run dev:freelancer:local\" \"npm run dev:employee:local\"",
@@ -17,6 +18,8 @@
   },
   "dependencies": {
     "@react-oauth/google": "^0.13.4",
+    "apexcharts": "^5.3.6",
+    "chart.js": "^4.5.1",
     "framer-motion": "^10.16.16",
     "jwt-decode": "^4.0.0",
     "react": "^18.2.0",
