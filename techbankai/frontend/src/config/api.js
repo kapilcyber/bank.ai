@@ -51,9 +51,12 @@ export const API_ENDPOINTS = {
   ADMIN_USERS: '/admin/users',
   ADMIN_UPLOAD_RESUMES: '/resumes/upload',
   ADMIN_UPDATE_RESUME_TYPE: '/admin/resumes',
+<<<<<<< HEAD
   EMPLOYEE_LIST_CONFIG: '/admin/employee-list/config',
   EMPLOYEE_LIST_UPLOAD: '/admin/employee-list/upload',
   EMPLOYEE_LIST: '/admin/employee-list',
+=======
+>>>>>>> d7e623c47261566265067762b33b149988a73df3
 
   // Job Openings Endpoints
   GET_JOB_OPENINGS: '/job-openings',
@@ -626,6 +629,7 @@ export const deleteJobOpening = async (jobId) => {
   })
 }
 
+<<<<<<< HEAD
 // Employee List (Admin) - Company Employee verification toggle and CSV upload
 // =============================================================================
 
@@ -672,3 +676,5 @@ export const getEmployeeList = async (params = {}) => {
   return await apiRequest(endpoint)
 }
 
+=======
+>>>>>>> d7e623c47261566265067762b33b149988a73df3

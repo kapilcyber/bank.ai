@@ -581,6 +581,46 @@ const CandidateDetailModal = ({ candidate, onClose, onTypeUpdated, onRecordsRefr
                             </div>
                         </section>
 
+                        <section className="modal-section">
+                            <h3 className="section-title-sm">Industry Sector Analysis</h3>
+                            <div className="record-fields-list">
+                                <div className="record-field">
+                                    <span className="record-field-label">Primary Sector</span>
+                                    <div className="record-field-value record-field-value-filled">
+                                        {parsed.primary_sector && parsed.primary_sector !== 'Unknown' ? (
+                                            <span className="sector-badge" data-sector={parsed.primary_sector}>
+                                                🏢 {parsed.primary_sector}
+                                            </span>
+                                        ) : (
+                                            'Unknown'
+                                        )}
+                                    </div>
+                                </div>
+                                {parsed.sector_experience && Object.keys(parsed.sector_experience).length > 0 && (
+                                    <div className="record-field">
+                                        <span className="record-field-label">Sector Experience</span>
+                                        <div className="record-tags-wrap">
+                                            {Object.entries(parsed.sector_experience)
+                                                .sort((a, b) => b[1] - a[1]) // Sort by years descending
+                                                .map(([sector, years]) => (
+                                                    <span key={sector} className="sector-exp-tag">
+                                                        {sector}: {years} yrs
+                                                    </span>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {parsed.sector_transitions && parsed.sector_transitions.length > 0 && (
+                                    <div className="record-field">
+                                        <span className="record-field-label">Career Path</span>
+                                        <div className="record-field-value record-field-value-filled">
+                                            {parsed.sector_transitions.join(" ➔ ")}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+
                         <div className="skills-certs-grid">
                             <div className="content-block">
                                 <h3 className="section-title-sm">Core Skills</h3>
@@ -627,7 +667,29 @@ const CandidateDetailModal = ({ candidate, onClose, onTypeUpdated, onRecordsRefr
                                             </div>
                                             <div className="record-field">
                                                 <span className="record-field-label">Company</span>
+<<<<<<< HEAD
                                                 <div className={`record-field-value${isFilled(exp.company) ? ' record-field-value-filled' : ''}`}>{exp.company || '—'}</div>
+=======
+                                                <div className={`record-field-value${isFilled(exp.company) ? ' record-field-value-filled' : ''}`}>
+                                                    {exp.company || '—'}
+                                                    {exp.sector && exp.sector !== 'Unknown' && (
+                                                        <div style={{ marginTop: '4px' }}>
+                                                            <span className="sector-badge" data-sector={exp.sector} style={{
+                                                                padding: '2px 8px',
+                                                                borderRadius: '6px',
+                                                                fontSize: '0.7rem'
+                                                            }}>
+                                                                🏢 {exp.sector}
+                                                            </span>
+                                                            {exp.domain && exp.domain !== 'Unknown' && (
+                                                                <span style={{ fontSize: '0.75rem', color: '#666' }}>
+                                                                    — {exp.domain}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+>>>>>>> d7e623c47261566265067762b33b149988a73df3
                                             </div>
                                             <div className="record-field">
                                                 <span className="record-field-label">Location</span>

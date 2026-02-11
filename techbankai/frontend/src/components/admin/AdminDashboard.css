@@ -1703,4 +1703,102 @@
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.6);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+<<<<<<< HEAD
+=======
+}
+
+/* Sector Badges for Modal */
+.sector-badge {
+    padding: 3px 8px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(127, 183, 176, 0.35);
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--color-text-dark);
+}
+
+.sector-badge[data-sector="BFSI"] {
+    background: rgba(33, 150, 243, 0.15);
+    color: #0d47a1;
+    border-color: rgba(33, 150, 243, 0.3);
+}
+
+.sector-badge[data-sector="IT Services"] {
+    background: rgba(156, 39, 176, 0.15);
+    color: #4a148c;
+    border-color: rgba(156, 39, 176, 0.3);
+}
+
+.sector-badge[data-sector="Healthcare"] {
+    background: rgba(76, 175, 80, 0.15);
+    color: #1b5e20;
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.sector-badge[data-sector="E-commerce"] {
+    background: rgba(255, 152, 0, 0.15);
+    color: #e65100;
+    border-color: rgba(255, 152, 0, 0.3);
+}
+
+.sector-badge[data-sector="Manufacturing"] {
+    background: rgba(121, 85, 72, 0.15);
+    color: #3e2723;
+    border-color: rgba(121, 85, 72, 0.3);
+}
+
+.sector-badge[data-sector="Telecom"] {
+    background: rgba(0, 188, 212, 0.15);
+    color: #006064;
+    border-color: rgba(0, 188, 212, 0.3);
+}
+
+.sector-badge[data-sector="Education"] {
+    background: rgba(255, 235, 59, 0.15);
+    color: #f57f17;
+    border-color: rgba(255, 235, 59, 0.3);
+}
+
+.sector-badge[data-sector="Consulting"] {
+    background: rgba(96, 125, 139, 0.15);
+    color: #263238;
+    border-color: rgba(96, 125, 139, 0.3);
+}
+
+.sector-badge[data-sector="Technology"] {
+    background: rgba(63, 81, 181, 0.15);
+    color: #1a237e;
+    border-color: rgba(63, 81, 181, 0.3);
+}
+
+/* Sector Badge Small (for Modal) */
+.sector-badge-sm {
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    margin-right: 0.5rem;
+}
+
+/* Sector Experience Tags */
+.sector-exp-tag {
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--color-text-dark);
+    font-weight: 600;
+    border: 1px solid rgba(127, 183, 176, 0.3);
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    display: inline-block;
+>>>>>>> d7e623c47261566265067762b33b149988a73df3
 }

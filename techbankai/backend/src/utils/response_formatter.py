@@ -148,6 +148,7 @@ def format_resume_response(resume: Resume) -> Dict[str, Any]:
         'linked_in': linked_in,
         'portfolio': portfolio_url,
         'source_id': resume.source_id,
+        'primary_sector': parsed.get('primary_sector'), # Critical for JD match results
         'parsed_data': parsed,
         'meta_data': formatted_meta,
         'skills': resume.skills or [],
@@ -163,7 +164,9 @@ def format_resume_response(resume: Resume) -> Dict[str, Any]:
                 'start_date': exp.start_date,
                 'end_date': exp.end_date,
                 'is_current': bool(exp.is_current),
-                'description': exp.description
+                'description': exp.description,
+                'sector': getattr(exp, 'sector', None),
+                'domain': getattr(exp, 'domain', None)
             } for exp in (getattr(resume, 'work_history', None) or [])
         ],
         'certificates': [

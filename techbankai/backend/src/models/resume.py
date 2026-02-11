@@ -21,7 +21,12 @@ class Experience(Base):
     is_current = Column(Integer, default=0) # 0 for false, 1 for true
     description = Column(Text, nullable=True)
     
+    # Sector identification fields
+    sector = Column(String(100), nullable=True)  # e.g., "BFSI", "IT Services", "Healthcare"
+    domain = Column(String(100), nullable=True)  # e.g., "Banking", "Software Consulting"
+    
     resume = relationship("Resume", back_populates="work_history")
+
 
 
 class Certification(Base):

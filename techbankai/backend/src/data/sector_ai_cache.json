@@ -1,0 +1,314 @@
+{
+  "microsense networks": {
+    "sector": "Telecom",
+    "domain": "Telecommunications",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "covenant network technology": {
+    "sector": "IT Services",
+    "domain": "Software & IT",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "anitechnology": {
+    "sector": "IT Services",
+    "domain": "Software & IT",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "dhani-loan and services": {
+    "sector": "Telecom",
+    "domain": "Telecommunications",
+    "confidence": "high",
+    "method": "database_partial"
+  },
+  "indiabulls housing finance": {
+    "sector": "BFSI",
+    "domain": "Financial Services",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "evision technoserve": {
+    "sector": "Telecom",
+    "domain": "Telecommunications",
+    "confidence": "high",
+    "method": "database_partial"
+  },
+  "ishan technologies": {
+    "sector": "IT Services",
+    "domain": "Software & IT",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "ams it consulting services": {
+    "sector": "Telecom",
+    "domain": "Telecommunications",
+    "confidence": "high",
+    "method": "database_partial"
+  },
+  "kiwako automation": {
+    "sector": "Manufacturing",
+    "domain": "Manufacturing",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "mars enterprises and hospitality": {
+    "sector": "Healthcare",
+    "domain": "Healthcare Services",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "cms it solutions (ihcl corporate site)": {
+    "sector": "IT Services",
+    "domain": "Software Consulting",
+    "confidence": "high",
+    "method": "database_partial"
+  },
+  "thunga healthcare": {
+    "sector": "Healthcare",
+    "domain": "Healthcare Services",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "brainwork technologies": {
+    "sector": "IT Services",
+    "domain": "Software & IT",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "trigyn technologies": {
+    "sector": "IT Services",
+    "domain": "Software & IT",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "navisite india pvt ltd (now accenture)": {
+    "sector": "IT Services",
+    "domain": "Software Consulting",
+    "confidence": "high",
+    "method": "database_partial"
+  },
+  "hcl technologies": {
+    "sector": "IT Services",
+    "domain": "Software Consulting",
+    "confidence": "high",
+    "method": "database"
+  },
+  "wazir securities": {
+    "sector": "BFSI",
+    "domain": "Financial Services",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "allied digital": {
+    "sector": "IT Services",
+    "domain": "Software & IT",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "tech mahindra": {
+    "sector": "IT Services",
+    "domain": "Software Consulting",
+    "confidence": "high",
+    "method": "database"
+  },
+  "versetal cloud rmm solutions": {
+    "sector": "IT Services",
+    "domain": "Software & IT",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "capgemini & payroll on artech infosystems": {
+    "sector": "IT Services",
+    "domain": "Software Consulting",
+    "confidence": "high",
+    "method": "database_partial"
+  },
+  "swan solution and services": {
+    "sector": "Telecom",
+    "domain": "Telecommunications",
+    "confidence": "high",
+    "method": "database_partial"
+  },
+  "hcl tech": {
+    "sector": "IT Services",
+    "domain": "Software Consulting",
+    "confidence": "high",
+    "method": "database_partial"
+  },
+  "dxc technology": {
+    "sector": "Technology",
+    "domain": "Social Media",
+    "confidence": "high",
+    "method": "database_partial"
+  },
+  "globtier infotech": {
+    "sector": "IT Services",
+    "domain": "Software & IT",
+    "confidence": "medium",
+    "method": "keyword"
+  },
+  "galaxy office automation": {
+    "sector": "Technology",
+    "domain": "Social Media",
+    "confidence": "high",
+    "method": "database_partial"
+  },
+  "hp india": {
+    "sector": "Technology",
+    "domain": "Consumer Electronics",
+    "confidence": "high",
+    "method": "ai"
+  },
+  "acer": {
+    "sector": "Technology",
+    "domain": "Consumer Electronics",
+    "confidence": "high",
+    "method": "ai"
+  },
+  "ps techno system": {
+    "sector": "IT Services",
+    "domain": "Technology Consulting",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "ericsson": {
+    "sector": "Telecom",
+    "domain": "Telecommunications Equipment",
+    "confidence": "high",
+    "method": "ai"
+  },
+  "echoengage": {
+    "sector": "Technology",
+    "domain": "Internet Services",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "detected": {
+    "sector": "Technology",
+    "domain": "Consumer Electronics",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "delve professionals": {
+    "sector": "Consulting",
+    "domain": "Management Consulting",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "alchemy techsol india": {
+    "sector": "IT Services",
+    "domain": "Technology Consulting",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "sritsolution": {
+    "sector": "IT Services",
+    "domain": "Software Development",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "team computers": {
+    "sector": "IT Services",
+    "domain": "Technology Consulting",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "dell": {
+    "sector": "Technology",
+    "domain": "Consumer Electronics",
+    "confidence": "high",
+    "method": "ai"
+  },
+  "mahindra defence": {
+    "sector": "Manufacturing",
+    "domain": "Defense Equipment Manufacturing",
+    "confidence": "high",
+    "method": "ai"
+  },
+  "ducat": {
+    "sector": "Education",
+    "domain": "EdTech",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "cache digitech": {
+    "sector": "IT Services",
+    "domain": "Technology Consulting",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "lenovo": {
+    "sector": "Technology",
+    "domain": "Consumer Electronics",
+    "confidence": "high",
+    "method": "ai"
+  },
+  "insight business machines": {
+    "sector": "IT Services",
+    "domain": "Technology Consulting",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "nsc global": {
+    "sector": "IT Services",
+    "domain": "Technology Consulting",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "jk paper": {
+    "sector": "Manufacturing",
+    "domain": "Paper and Pulp",
+    "confidence": "high",
+    "method": "ai"
+  },
+  "teceze": {
+    "sector": "IT Services",
+    "domain": "Technology Consulting",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "radiansys": {
+    "sector": "IT Services",
+    "domain": "Technology Consulting",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "fiverr": {
+    "sector": "Technology",
+    "domain": "Freelance Marketplace",
+    "confidence": "high",
+    "method": "ai"
+  },
+  "ybi foundation": {
+    "sector": "Education",
+    "domain": "EdTech",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "natcom pvtltd": {
+    "sector": "Telecom",
+    "domain": "Telecommunications",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "intec infonet": {
+    "sector": "IT Services",
+    "domain": "Technology Consulting",
+    "confidence": "medium",
+    "method": "ai"
+  },
+  "uipath": {
+    "sector": "IT Services",
+    "domain": "Robotic Process Automation",
+    "confidence": "high",
+    "method": "ai"
+  },
+  "mindcode labs": {
+    "sector": "IT Services",
+    "domain": "Software Development",
+    "confidence": "medium",
+    "method": "ai"
+  }
+}

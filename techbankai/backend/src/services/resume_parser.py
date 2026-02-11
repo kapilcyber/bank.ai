@@ -115,17 +115,38 @@ async def parse_resume(
             parsed_data['resume_technical_skills'] = merged_skills
             parsed_data['all_skills'] = merged_skills
     
-    # Step 5: Ensure all_skills is populated (merge resume_technical_skills if not already merged)
+    # Step 5: Enrich work history with sector information
+    work_history = parsed_data.get('work_history', [])
+    if work_history and isinstance(work_history, list):
+        from src.services.company_sector_mapper import (
+            enrich_work_history_with_sectors,
+            get_candidate_primary_sector
+        )
+        
+        # Enrich each work history entry with sector and domain (async with AI support)
+        enriched_work_history = await enrich_work_history_with_sectors(work_history)
+        parsed_data['work_history'] = enriched_work_history
+        
+        # Calculate candidate's primary sector and sector experience
+        sector_analysis = get_candidate_primary_sector(enriched_work_history)
+        parsed_data['primary_sector'] = sector_analysis.get('primary_sector', 'Unknown')
+        parsed_data['sector_experience'] = sector_analysis.get('sector_experience', {})
+        parsed_data['sector_transitions'] = sector_analysis.get('sector_transitions', [])
+        
+        logger.info(f"Identified primary sector: {parsed_data['primary_sector']}")
+    
+    # Step 6: Ensure all_skills is populated (merge resume_technical_skills if not already merged)
     if not parsed_data.get('all_skills'):
         parsed_data['all_skills'] = normalize_skills(parsed_data.get('resume_technical_skills', []))
     
-    # Step 6: Validate against ParsedResume schema
+    # Step 7: Validate against ParsedResume schema
     try:
         validated = ParsedResume(**parsed_data)
         return validated.model_dump()
     except Exception as e:
         logger.warning(f"Schema validation failed, using parsed data as-is: {e}")
         return parsed_data
+
 
 
 def fallback_parse_resume(text: str) -> Dict:
