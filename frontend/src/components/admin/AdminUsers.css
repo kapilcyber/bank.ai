@@ -1,0 +1,138 @@
+/* Admin Users - Platform users list (Admin, HR, Talent Acquisition) */
+.admin-users-page {
+  padding: 0;
+}
+
+.admin-users-heading {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-dark);
+  text-align: left;
+}
+
+.admin-users-error {
+  padding: 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-input);
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+.admin-users-loading,
+.admin-users-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.platform-admins-section {
+  margin-bottom: 0;
+  overflow-x: auto;
+}
+
+.platform-admins-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.platform-admins-table thead tr {
+  background: linear-gradient(135deg, rgba(127, 183, 176, 0.35) 0%, rgba(127, 183, 176, 0.2) 100%);
+  border-bottom: 2px solid rgba(127, 183, 176, 0.5);
+}
+
+.platform-admins-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #0f766e;
+  white-space: nowrap;
+}
+
+.platform-admins-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(127, 183, 176, 0.15);
+  vertical-align: middle;
+}
+
+.platform-admins-table tbody tr:hover {
+  background: rgba(127, 183, 176, 0.08);
+}
+
+.platform-admin-name {
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+
+.platform-admin-email {
+  color: rgba(26, 26, 26, 0.8);
+  word-break: break-all;
+}
+
+.platform-admin-id {
+  color: rgba(26, 26, 26, 0.75);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.platform-admin-role {
+  font-weight: 600;
+  color: rgba(26, 26, 26, 0.85);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.th-actions {
+  text-align: center;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.platform-admin-actions {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.admin-user-delete-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.1);
+  border: 1px solid rgba(185, 28, 28, 0.35);
+  border-radius: var(--radius-input, 6px);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.admin-user-delete-btn:hover:not(:disabled) {
+  background: rgba(185, 28, 28, 0.2);
+  border-color: rgba(185, 28, 28, 0.5);
+}
+
+.admin-user-delete-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .platform-admins-table {
+    font-size: 0.8rem;
+  }
+  .platform-admins-table th,
+  .platform-admins-table td {
+    padding: 0.5rem 0.75rem;
+  }
+  .platform-admin-role {
+    font-size: 0.65rem;
+  }
+}

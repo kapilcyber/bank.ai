@@ -4,7 +4,8 @@ import { motion } from 'framer-motion'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell, Sector, LineChart, Line,
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  RadialBarChart, RadialBar
 } from 'recharts'
 import { API_BASE_URL } from '../../config/api'
 import './AdminDashboard.css'
@@ -61,6 +62,7 @@ const NightingaleRoseWedge = (props) => {
   const normalizedValue = maxTotal > 0 ? (payload.total / maxTotal) : 0;
   const customOuterRadius = innerRadius + (outerRadius - innerRadius) * Math.sqrt(normalizedValue);
 
+  const strokeColor = fill || '#6b7280'
   return (
     <g className="rose-wedge">
       <Sector
@@ -71,7 +73,7 @@ const NightingaleRoseWedge = (props) => {
         innerRadius={innerRadius}
         outerRadius={customOuterRadius}
         fill={fill}
-        stroke="#7FB7B0"
+        stroke={strokeColor}
         strokeWidth={1}
         fillOpacity={0.35}
         className="wedge-sector"
@@ -83,7 +85,7 @@ const NightingaleRoseWedge = (props) => {
         endAngle={endAngle}
         innerRadius={customOuterRadius - 2}
         outerRadius={customOuterRadius}
-        fill="#7FB7B0"
+        fill={strokeColor}
         fillOpacity={0.6}
       />
     </g>
@@ -164,6 +166,10 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
         totalUsers: data.total_users || 0,
         totalJD: data.total_jd_analyses || 0,
         totalMatches: data.total_matches || 0,
+        totalCategories: data.total_categories ?? 0,
+        totalPlatformUsers: data.total_platform_users ?? 0,
+        totalEmployees: data.total_employees ?? 0,
+        totalRoles: data.total_roles ?? 0,
         userTypeCounts: data.user_type_breakdown || {},
         topSkills: data.top_skills || [],
         topSkillsByUserType: data.top_skills_by_user_type || {},
@@ -171,6 +177,11 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
         departmentDistribution: data.departmentDistribution || data.user_type_breakdown || {},
         trends: data.trends || { day: [], month: [], quarter: [] },
         experienceDistribution: data.experience_distribution || [],
+        noticePeriodDistribution: data.notice_period_distribution || [],
+        relocationDistribution: data.relocation_distribution ?? (() => {
+          const total = data.total_records ?? data.total_resumes ?? 0
+          return total > 0 ? [{ name: 'Ready to Relocate', count: 0 }, { name: 'Not open to relocation', count: total }] : []
+        })(),
         locationDistribution: data.location_distribution || [],
         roleDistribution: data.role_distribution || [],
         recentResumes: data.recentResumes || data.recent_resumes || [],
@@ -314,9 +325,23 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
             <span>📈</span>
           </div>
           <div className="stat-info-new">
-            <span className="label">Total Talent Pool</span>
+            <span className="label">Talent Pool</span>
             <span className="value">{filteredTotal ? filteredTotal.toLocaleString() : '0'}</span>
-            <span className="stat-trend-new">Global Database</span>
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="stat-card-new"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.05 }}
+        >
+          <div className="stat-icon-wrapper" style={{ background: 'rgba(127, 183, 176, 0.2)', color: '#0d9488' }}>
+            <span>📂</span>
+          </div>
+          <div className="stat-info-new">
+            <span className="label">Total Categories</span>
+            <span className="value">{dashboardData.totalCategories ?? 0}</span>
           </div>
         </motion.div>
 
@@ -326,13 +351,27 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+          <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981' }}>
+            <span>👥</span>
+          </div>
+          <div className="stat-info-new">
+            <span className="label">Platform Users</span>
+            <span className="value">{dashboardData.totalPlatformUsers ?? 0}</span>
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="stat-card-new"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
+        >
+          <div className="stat-icon-wrapper" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6' }}>
             <span>🏢</span>
           </div>
           <div className="stat-info-new">
-            <span className="label">Active Departments</span>
-            <span className="value">{dashboardData.departments.length}</span>
-            <span className="stat-trend-new">Cross-Functional</span>
+            <span className="label">Total Employees</span>
+            <span className="value">{dashboardData.totalEmployees ?? 0}</span>
           </div>
         </motion.div>
 
@@ -342,13 +381,12 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
-          <div className="stat-icon-wrapper" style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
-            <span>✅</span>
+          <div className="stat-icon-wrapper" style={{ background: 'rgba(139, 92, 246, 0.2)', color: '#8b5cf6' }}>
+            <span>🎯</span>
           </div>
           <div className="stat-info-new">
-            <span className="label">Current Filter</span>
-            <span className="value">{filteredTotal}</span>
-            <span className="stat-trend-new">Matched Candidates</span>
+            <span className="label">Total Roles</span>
+            <span className="value">{dashboardData.totalRoles ?? 0}</span>
           </div>
         </motion.div>
       </div>
@@ -462,12 +500,6 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="chart-stats-mini">
-            <p className="rose-chart-info" style={{ marginTop: '1rem', textAlign: 'center' }}>
-              <span className="info-icon">📈</span>
-              Analyzing candidate acquisition flow for current <strong>{timeframe}ly</strong> cycle.
-            </p>
-          </div>
         </motion.div>
 
 
@@ -479,7 +511,6 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
         >
           <div className="section-header-row">
             <h3>Experience Distribution</h3>
-            <span className="section-subtitle">Density Analysis (Years)</span>
           </div>
           <div className="chart-container" style={{ height: '280px', marginTop: '1.5rem' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -537,6 +568,137 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
           </div>
         </motion.div>
 
+        {/* Notice Period Windrose (Nightingale-style) - data from database */}
+        <motion.div
+          className="dashboard-section clay-card notice-windrose-section"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+        >
+          <div className="section-header-row">
+            <h3>Notice Period</h3>
+          </div>
+          <div className="chart-container" style={{ height: '320px', marginTop: '1.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            {(!dashboardData.noticePeriodDistribution || dashboardData.noticePeriodDistribution.length === 0) ? (
+              <div className="no-data-placeholder">
+                <p>No notice period data in database</p>
+              </div>
+            ) : (() => {
+              const roseData = dashboardData.noticePeriodDistribution.map(d => ({ name: d.name, value: 1, total: d.count || 0 }))
+              const maxTotal = Math.max(...roseData.map(x => x.total), 1)
+              const WINDROSE_COLORS = ['#22c55e', '#ef4444', '#3b82f6', '#ec4899', '#a16207', '#6b7280']
+              return (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                    <Pie
+                      data={roseData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={100}
+                      paddingAngle={1}
+                      dataKey="value"
+                      nameKey="name"
+                      shape={(props) => <NightingaleRoseWedge {...props} maxTotal={maxTotal} />}
+                    >
+                      {roseData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={WINDROSE_COLORS[index % WINDROSE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const p = payload[0].payload
+                          return (
+                            <div className="custom-recharts-tooltip">
+                              <p style={{ color: '#1F2937', fontSize: '12px', fontWeight: 600, margin: 0 }}>{p.name}</p>
+                              <p style={{ color: '#7FB7B0', fontSize: '14px', fontWeight: 600, margin: '4px 0 0' }}>Candidates: {p.total}</p>
+                            </div>
+                          )
+                        }
+                        return null
+                      }}
+                    />
+                    <Legend
+                      layout="horizontal"
+                      verticalAlign="bottom"
+                      align="center"
+                      formatter={(value) => value}
+                      wrapperStyle={{ fontSize: '10px', fontWeight: 600 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )
+            })()}
+          </div>
+        </motion.div>
+
+        {/* Relocation Arc diagram - data from database (ready_to_relocate) */}
+        <motion.div
+          className="dashboard-section clay-card relocation-arc-section"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <div className="section-header-row">
+            <h3>Relocation</h3>
+          </div>
+          <div className="chart-container" style={{ height: '320px', marginTop: '1.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            {(!dashboardData.relocationDistribution || dashboardData.relocationDistribution.length === 0) ? (
+              <div className="no-data-placeholder">
+                <p>No relocation data in database</p>
+              </div>
+            ) : (() => {
+              const rel = Array.isArray(dashboardData.relocationDistribution) ? dashboardData.relocationDistribution : []
+              const total = rel.reduce((s, d) => s + (d.count || 0), 0) || 1
+              const arcData = rel.map((d, i) => ({
+                name: d.name,
+                count: d.count || 0,
+                value: Math.round((100 * (d.count || 0)) / total),
+                fill: ['#7FB7B0', '#D8B892'][i % 2]
+              }))
+              return (
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadialBarChart
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="20%"
+                    outerRadius="90%"
+                    data={arcData}
+                    startAngle={90}
+                    endAngle={-270}
+                  >
+                    <RadialBar
+                      background
+                      minAngle={15}
+                      dataKey="value"
+                      nameKey="name"
+                    >
+                      {arcData.map((entry, index) => (
+                        <Cell key={`reloc-${index}`} fill={entry.fill} />
+                      ))}
+                    </RadialBar>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const p = payload[0].payload
+                          return (
+                            <div className="custom-recharts-tooltip">
+                              <p style={{ color: '#1F2937', fontSize: '12px', fontWeight: 600, margin: 0 }}>{p.name}</p>
+                              <p style={{ color: '#7FB7B0', fontSize: '14px', fontWeight: 600, margin: '4px 0 0' }}>Candidates: {p.count}</p>
+                            </div>
+                          )
+                        }
+                        return null
+                      }}
+                    />
+                    <Legend layout="horizontal" verticalAlign="bottom" align="center" formatter={(value) => value} wrapperStyle={{ fontSize: '10px', fontWeight: 600 }} />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+              )
+            })()}
+          </div>
+        </motion.div>
 
         <motion.div
           className="dashboard-section clay-card skills-radar-section"
@@ -546,7 +708,6 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
         >
           <div className="section-header-row">
             <h3>Top Candidate Skills</h3>
-            <span className="section-subtitle">Real-time Analytics</span>
           </div>
 
           <div className="skills-analytics-radar" style={{ height: '400px', marginTop: '1.5rem' }}>
@@ -605,7 +766,6 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
           <div className="section-header-row">
             <div className="header-left">
               <h3>Geospatial Talent Density</h3>
-              <span className="section-subtitle">Talent by Location</span>
             </div>
             <div className="location-filter-wrapper">
               <select

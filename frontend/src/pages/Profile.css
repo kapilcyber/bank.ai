@@ -409,6 +409,89 @@
   transform: none;
 }
 
+/* Platform admins list (Admin, HR, Talent Acquisition) */
+.platform-admins-section {
+  margin-bottom: 2rem;
+}
+
+.platform-admins-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(26, 26, 26, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 1rem 0;
+}
+
+.platform-admins-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.platform-admins-header {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(26, 26, 26, 0.7);
+  margin-bottom: 0.5rem;
+}
+
+.platform-admin-item {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 0.9rem;
+}
+
+.platform-admin-name {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.platform-admin-email {
+  color: rgba(26, 26, 26, 0.7);
+}
+
+.platform-admin-id {
+  color: rgba(26, 26, 26, 0.75);
+  font-size: 0.85rem;
+}
+
+.platform-admin-role {
+  font-weight: 600;
+  color: rgba(26, 26, 26, 0.85);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+}
+
+@media (max-width: 768px) {
+  .platform-admins-header,
+  .platform-admin-item {
+    grid-template-columns: 1fr 1fr minmax(80px, 1fr) auto;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+  }
+  .platform-admin-role {
+    font-size: 0.65rem;
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .profile-container {

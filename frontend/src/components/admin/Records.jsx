@@ -145,11 +145,10 @@ const Records = ({ initialFilter, setInitialFilter }) => {
     }
 
     return (
-        <div className="admin-dashboard">
+        <div className="admin-dashboard records-dashboard">
             <div className="dashboard-header">
                 <div className="header-text-group">
                     <h2>Candidate Records</h2>
-                    <p className="dashboard-subtitle">View and manage latest applications</p>
                 </div>
 
                 <div className="records-search-wrapper">
@@ -190,8 +189,8 @@ const Records = ({ initialFilter, setInitialFilter }) => {
             </div>
 
             <motion.div
-                className="dashboard-section"
-                style={{ width: '100%', padding: '0', background: 'transparent', boxShadow: 'none', border: 'none' }}
+                className="dashboard-section records-table-section"
+                style={{ width: '100%', padding: '0', boxShadow: 'none' }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}

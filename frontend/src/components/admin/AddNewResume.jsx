@@ -115,11 +115,7 @@ const AddNewResume = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="admin-badge">
-          Admin Portal
-        </div>
         <h2>Add New Resumes</h2>
-        <p>Expand your talent pool by uploading multiple candidate resumes for AI-powered screening.</p>
       </motion.div>
 
       <motion.div

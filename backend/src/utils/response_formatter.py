@@ -97,11 +97,11 @@ def format_resume_response(resume: Resume) -> Dict[str, Any]:
     
     # Fallback to meta_data for older records or profile updates
     if not ready_to_relocate:
-        ready_to_relocate = meta.get('ready_to_relocate', False)
+        ready_to_relocate = meta.get('ready_to_relocate') or (meta.get('user_profile') or {}).get('ready_to_relocate', False)
     if not preferred_location:
         preferred_location = meta.get('preferred_location')
     if not notice_period:
-        notice_period = meta.get('notice_period', 0)
+        notice_period = meta.get('notice_period') or (meta.get('user_profile') or {}).get('notice_period', 0)
 
     # LinkedIn & Portfolio (from form_data)
     linked_in = None

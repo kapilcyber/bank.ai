@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { API_BASE_URL } from '../../config/api'
 import './SearchTalent.css'
@@ -20,7 +21,6 @@ const SearchTalent = () => {
   const [loading, setLoading] = useState(false)
   const [sortByDate, setSortByDate] = useState('newest') // 'newest' | 'oldest' - latest resume on top
   const [skillsModalResult, setSkillsModalResult] = useState(null)
-  const [skillsModalAnchor, setSkillsModalAnchor] = useState({ top: 0, left: 0 })
 
   // Apply sort: newest first (default, matches API) or oldest first
   const displayedResults = sortByDate === 'oldest'
@@ -117,7 +117,6 @@ const SearchTalent = () => {
         transition={{ duration: 0.5 }}
       >
         <h2>Search Talent</h2>
-        <p>Find ideal candidates using advanced filtering and AI-powered matching.</p>
       </motion.div>
 
       <motion.div
@@ -342,17 +341,6 @@ const SearchTalent = () => {
                                   className="talent-more-count talent-more-btn"
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    const cardEl = e.currentTarget.closest('.talent-premium-card')
-                                    const rect = cardEl ? cardEl.getBoundingClientRect() : e.currentTarget.getBoundingClientRect()
-                                    const popupWidth = 420
-                                    const popupHeight = Math.min(450, window.innerHeight - 80)
-                                    let top = rect.top + (rect.height / 2) - (popupHeight / 2)
-                                    let left = rect.left + (rect.width / 2) - (popupWidth / 2)
-                                    if (left + popupWidth > window.innerWidth - 16) left = window.innerWidth - popupWidth - 16
-                                    if (left < 16) left = 16
-                                    if (top < 16) top = 16
-                                    if (top + popupHeight > window.innerHeight - 16) top = window.innerHeight - popupHeight - 16
-                                    setSkillsModalAnchor({ top, left })
                                     setSkillsModalResult(result)
                                   }}
                                   title="View all skills"
@@ -376,7 +364,7 @@ const SearchTalent = () => {
                           </div>
                         )}
                       </div>
-                      <a href={result.file_url} target="_blank" rel="noreferrer" className="talent-action-btn">
+                      <a href={`${API_BASE_URL.replace(/\/api\/?$/, '')}${result.file_url || ''}`} target="_blank" rel="noreferrer" className="talent-action-btn">
                         <span>📄</span> Resume
                       </a>
                     </div>
@@ -388,24 +376,21 @@ const SearchTalent = () => {
         </div>
       </motion.div>
 
-      {/* Full skills popup – same card info + all skills */}
-      {skillsModalResult && (
+      {/* Full skills popup – rendered in viewport center via portal */}
+      {skillsModalResult && createPortal(
         <div
           className="skills-modal-overlay"
           onClick={() => setSkillsModalResult(null)}
           role="presentation"
         >
-          <motion.div
-            className="skills-modal-card"
-            style={{
-              top: skillsModalAnchor.top,
-              left: skillsModalAnchor.left
-            }}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="skills-modal-center-wrap">
+            <motion.div
+              className="skills-modal-card"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+            >
             <div className="skills-modal-header">
               <div className="talent-profile-main">
                 <div className={`talent-avatar ${String(skillsModalResult.user_type || skillsModalResult.source_type || 'candidate').toLowerCase().replace(/\s+/g, '_')}`}>
@@ -452,13 +437,15 @@ const SearchTalent = () => {
             </div>
             {skillsModalResult.file_url && (
               <div className="skills-modal-footer">
-                <a href={skillsModalResult.file_url} target="_blank" rel="noreferrer" className="talent-action-btn">
+                <a href={`${API_BASE_URL.replace(/\/api\/?$/, '')}${skillsModalResult.file_url || ''}`} target="_blank" rel="noreferrer" className="talent-action-btn">
                   <span>📄</span> Resume
                 </a>
               </div>
             )}
           </motion.div>
-        </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   )

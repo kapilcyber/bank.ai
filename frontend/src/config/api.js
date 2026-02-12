@@ -49,6 +49,7 @@ export const API_ENDPOINTS = {
   // Admin Endpoints
   ADMIN_STATS: '/admin/stats',
   ADMIN_USERS: '/admin/users',
+  ADMIN_PLATFORM_ADMINS: '/admin/users/platform-admins',
   ADMIN_UPLOAD_RESUMES: '/resumes/upload',
   ADMIN_UPDATE_RESUME_TYPE: '/admin/resumes',
   EMPLOYEE_LIST_CONFIG: '/admin/employee-list/config',
@@ -412,6 +413,23 @@ export const removeProfilePhoto = async () => {
     }
     throw error
   }
+}
+
+/**
+ * Get list of platform users with admin roles (Admin, HR, Talent Acquisition). Admin only.
+ * @returns {Promise<{ users: Array<{ id, name, email, mode, employee_id?, created_at? }> }>}
+ */
+export const getPlatformAdminUsers = async () => {
+  return await apiRequest(API_ENDPOINTS.ADMIN_PLATFORM_ADMINS)
+}
+
+/**
+ * Delete a platform user by ID (Admin only). Removes user credentials from database.
+ * @param {number} userId - User ID to delete
+ * @returns {Promise<{ message: string }>}
+ */
+export const deletePlatformUser = async (userId) => {
+  return await apiRequest(`${API_ENDPOINTS.ADMIN_USERS}/${userId}`, { method: 'DELETE' })
 }
 
 // Resume Upload API Functions

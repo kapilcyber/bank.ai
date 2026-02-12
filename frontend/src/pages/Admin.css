@@ -32,6 +32,12 @@
   display: flex;
   justify-content: center;
   box-shadow: var(--shadow-soft);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.admin-sub-navbar:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 24px rgba(127, 183, 176, 0.2), var(--shadow-soft);
 }
 
 .admin-tabs-container {
@@ -61,7 +67,7 @@
   font-weight: 600;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform 0.25s ease, color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
   white-space: nowrap;
 }
 
@@ -69,6 +75,8 @@
   color: var(--color-text-dark);
   background: rgba(127, 183, 176, 0.12);
   border-radius: var(--radius-input);
+  transform: scale(1.06);
+  box-shadow: 0 4px 12px rgba(127, 183, 176, 0.15);
 }
 
 .nav-tab-item.active {
@@ -77,6 +85,12 @@
   background: rgba(127, 183, 176, 0.2);
   border-radius: var(--radius-input);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  transform: scale(1.02);
+}
+
+.nav-tab-item.active:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 12px rgba(127, 183, 176, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.5);
 }
 
 .tab-icon {

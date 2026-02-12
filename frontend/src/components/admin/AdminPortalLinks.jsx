@@ -57,7 +57,6 @@ const AdminPortalLinks = () => {
     <div className="admin-portal-links">
       <div className="portal-links-header">
         <h2>Portal Links</h2>
-        <p className="portal-links-subtitle">Share these links with users (no login required)</p>
       </div>
       <motion.div
         className="portal-links-section"

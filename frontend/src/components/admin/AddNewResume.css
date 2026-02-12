@@ -2,22 +2,25 @@
 .add-new-resume {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 2.5rem;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-/* Page Header */
+/* Page Header – left top of container */
 .resume-header {
   text-align: left;
   margin-bottom: 1rem;
+  padding-left: 0;
+  align-self: flex-start;
 }
 
 .resume-header h2 {
   font-size: 2.5rem;
   font-weight: 600;
   color: var(--color-text-dark);
-  margin-bottom: 0.75rem;
+  margin: 0 0 0.75rem 0;
   letter-spacing: -1px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -44,6 +47,12 @@
 }
 
 /* Upload Summary Cards */
+.upload-summary,
+.upload-resume-section {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .upload-summary {
   background: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(20px);

@@ -95,27 +95,26 @@
 
 .browse-jd-btn {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: #ffffff;
   color: #1a1a1a;
   padding: 0.8rem 2.25rem;
   border-radius: 12px;
   font-weight: 800;
   cursor: pointer;
   margin-top: 1.5rem;
-  transition: all 0.3s;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2),
-              inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: none;
 }
 
-.browse-jd-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+/* No visual change on hover – same as default */
+.browse-jd-btn:hover,
+.browse-jd-btn:focus,
+.jd-drop-zone:hover .browse-jd-btn {
+  background: #ffffff;
+  color: #1a1a1a;
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .jd-textarea {
@@ -151,27 +150,22 @@
 .find-candidates-btn {
   width: 100%;
   max-width: 320px;
-  background: rgba(120, 120, 128, 0.25);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(127, 183, 176, 0.25);
   color: #1a1a1a;
-  border: 1px solid rgba(100, 100, 108, 0.35);
+  border: 1px solid rgba(127, 183, 176, 0.45);
   padding: 1rem;
   border-radius: 16px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(127, 183, 176, 0.2);
 }
 
 .find-candidates-btn:hover:not(:disabled) {
-  background: rgba(100, 100, 108, 0.35);
-  transform: translateY(-3px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2),
-              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  background: rgba(127, 183, 176, 0.4);
+  border-color: rgba(127, 183, 176, 0.55);
+  box-shadow: 0 8px 20px rgba(127, 183, 176, 0.3);
 }
 
 .find-candidates-btn:disabled {

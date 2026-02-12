@@ -10,6 +10,7 @@ import AddNewResume from '../components/admin/AddNewResume'
 import Records from '../components/admin/Records'
 import ManageJobOpenings from '../components/admin/ManageJobOpenings'
 import EmployeeListConfig from '../components/admin/EmployeeListConfig'
+import AdminUsers from '../components/admin/AdminUsers'
 import AdminTransition from '../components/admin/AdminTransition'
 import CyberBackground from '../components/admin/CyberBackground'
 import './Admin.css'
@@ -45,7 +46,8 @@ const Admin = () => {
     { id: 'search-jd', label: 'Search Using JD', icon: '📝', colorClass: 'tab-search-jd' },
     { id: 'add-resume', label: 'Add New Resume', icon: '➕', colorClass: 'tab-add-resume' },
     { id: 'manage-jobs', label: 'Manage Jobs', icon: '💼', colorClass: 'tab-manage-jobs' },
-    { id: 'employee-list', label: 'Employee List', icon: '👥', colorClass: 'tab-employee-list' }
+    { id: 'employee-list', label: 'Employee List', icon: '👥', colorClass: 'tab-employee-list' },
+    { id: 'users', label: 'Users', icon: '👤', colorClass: 'tab-users' }
   ]
 
   const renderContent = () => {
@@ -66,6 +68,8 @@ const Admin = () => {
         return <ManageJobOpenings />
       case 'employee-list':
         return <EmployeeListConfig />
+      case 'users':
+        return <AdminUsers />
       default:
         return <AdminDashboard onNavigateToRecords={navigateToRecords} />
     }

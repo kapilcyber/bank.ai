@@ -301,7 +301,6 @@ const SearchUsingJD = () => {
         transition={{ duration: 0.5, delay: 0.3 }}
       >
         <h2>📄 Job Description</h2>
-        <p>Provide a job description to find the best matching candidates from your pool.</p>
 
         <div className="jd-method-tabs">
           <button

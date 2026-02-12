@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from src.models.resume import Resume, Education
 from src.models.jd_analysis import JDAnalysis, MatchResult
 from src.models.user_db import User
+from src.models.employee_list import CompanyEmployeeList
 from src.config.database import get_postgres_db
 from src.middleware.auth_middleware import get_admin_user
 from src.utils.logger import get_logger
@@ -45,6 +46,17 @@ async def get_dashboard_stats(
         # Get total education entries count
         total_education_result = await db.execute(select(func.count(Education.id)))
         total_education = total_education_result.scalar()
+        
+        # Platform users (Admin, HR, Talent Acquisition) count
+        PLATFORM_MODES = ('admin', 'hr', 'talent_acquisition', 'talent acquisition')
+        platform_users_result = await db.execute(
+            select(func.count(User.id)).where(func.lower(User.mode).in_(PLATFORM_MODES))
+        )
+        total_platform_users = platform_users_result.scalar() or 0
+        
+        # Total employees from CSV (company_employee_list)
+        employees_result = await db.execute(select(func.count(CompanyEmployeeList.id)))
+        total_employees = employees_result.scalar() or 0
         
         # Get all resumes with formatted responses and prefetch relationships
         from sqlalchemy.orm import selectinload
@@ -88,6 +100,24 @@ async def get_dashboard_stats(
         experience_counts = {} # Bins: 0, 1, 2, 3...
         state_distribution = {} # Maharashtra, Karnataka, etc.
         role_candidates = {} # 'Software Engineer': [{'name': '...', 'exp': ...}, ...]
+        # Notice period buckets for windrose (days): Immediate, 0-15, 15-30, 30-60, 60-90, 90+
+        notice_period_buckets = {
+            'Immediate (0d)': 0,
+            '1–15 days': 0,
+            '16–30 days': 0,
+            '31–60 days': 0,
+            '61–90 days': 0,
+            '90+ days': 0,
+        }
+        # Relocation: ready_to_relocate true vs false (same sources as format_resume_response)
+        relocation_ready_count = 0
+        relocation_not_ready_count = 0
+
+        def _to_bool(v):
+            if v is None: return False
+            if isinstance(v, bool): return v
+            if isinstance(v, str): return v.strip().lower() in ('1', 'true', 'yes')
+            return bool(v)
 
         # Indian State Mapping for normalization
         STATE_MAPPING = {
@@ -213,6 +243,34 @@ async def get_dashboard_stats(
                     'exp': float(resume.experience_years or 0)
                 })
 
+            # Notice period (days) for windrose - same sources as format_resume_response (Records)
+            # Order: form_data.noticePeriod > meta_data.notice_period > meta_data.user_profile.notice_period > parsed_data.notice_period
+            notice_days = None
+            if resume.source_metadata and isinstance(resume.source_metadata.get('form_data'), dict):
+                notice_days = resume.source_metadata['form_data'].get('noticePeriod')
+            if notice_days is None and resume.meta_data:
+                notice_days = resume.meta_data.get('notice_period')
+            if notice_days is None and resume.meta_data and isinstance(resume.meta_data.get('user_profile'), dict):
+                notice_days = resume.meta_data['user_profile'].get('notice_period')
+            if notice_days is None and resume.parsed_data:
+                notice_days = resume.parsed_data.get('notice_period') or resume.parsed_data.get('noticePeriod')
+            try:
+                notice_days = int(notice_days) if notice_days is not None else 0
+            except (TypeError, ValueError):
+                notice_days = 0
+            if notice_days <= 0:
+                notice_period_buckets['Immediate (0d)'] += 1
+            elif notice_days <= 15:
+                notice_period_buckets['1–15 days'] += 1
+            elif notice_days <= 30:
+                notice_period_buckets['16–30 days'] += 1
+            elif notice_days <= 60:
+                notice_period_buckets['31–60 days'] += 1
+            elif notice_days <= 90:
+                notice_period_buckets['61–90 days'] += 1
+            else:
+                notice_period_buckets['90+ days'] += 1
+
         # Format trends for Recharts (sorted lists)
         formatted_trends = {
             p: sorted(trends[p].values(), key=lambda x: x['name'])
@@ -244,6 +302,14 @@ async def get_dashboard_stats(
                 logger.warning(f"Failed to format resume {r.id if hasattr(r, 'id') else 'unknown'}: {resume_error}")
                 # Skip this resume but continue processing others
 
+        # Relocation counts from formatted_resumes so we match Records exactly (same format_resume_response logic)
+        relocation_ready_count = sum(1 for fr in formatted_resumes if _to_bool(fr.get('ready_to_relocate', False)))
+        relocation_not_ready_count = len(formatted_resumes) - relocation_ready_count
+
+        # Total talent categories (distinct user types with data) and total distinct roles from resumes
+        total_categories = len(user_type_counts) if user_type_counts else 0
+        total_roles = len(role_candidates) if role_candidates else 0
+
         # Log the counts for debugging
         logger.info(f"Dashboard stats - Total resumes: {total_resumes}, Total users: {total_users}")
         logger.info(f"User type breakdown: {user_type_counts}")
@@ -255,6 +321,10 @@ async def get_dashboard_stats(
             'total_jd_analyses': total_jd_analyses,
             'total_matches': total_matches,
             'total_education': total_education,
+            'total_categories': total_categories,
+            'total_platform_users': total_platform_users,
+            'total_employees': total_employees,
+            'total_roles': total_roles,
             'departmentDistribution': user_type_counts, # Keep name for backwards compatibility during transition
             'user_type_breakdown': user_type_counts, # Now includes ALL user types (Admin Uploads, Gmail Resume, etc.)
             'top_skills': [{'skill': skill, 'count': count} for skill, count in top_skills],
@@ -275,6 +345,13 @@ async def get_dashboard_stats(
                 } 
                 for r, cands in role_candidates.items()
             ], key=lambda x: x['count'], reverse=True),
+            'notice_period_distribution': [
+                {'name': name, 'count': count} for name, count in notice_period_buckets.items()
+            ],
+            'relocation_distribution': [
+                {'name': 'Ready to Relocate', 'count': relocation_ready_count},
+                {'name': 'Not open to relocation', 'count': relocation_not_ready_count},
+            ],
             'trends': formatted_trends,
             'recentResumes': formatted_resumes, # Renamed for frontend consistency
             'recent_jd_analyses': [
@@ -329,6 +406,41 @@ async def list_users(
     except Exception as e:
         logger.error(f"List users error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Modes that count as "platform admin" (Admin, HR, Talent Acquisition). Match case-insensitively.
+PLATFORM_ADMIN_MODES_LOWER = ('admin', 'hr', 'talent_acquisition', 'talent acquisition')
+
+
+@router.get("/users/platform-admins")
+async def list_platform_admin_users(
+    current_user: dict = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_postgres_db)
+):
+    """List users who are currently on the platform as Admin, HR, or Talent Acquisition. Admin only."""
+    try:
+        users_query = select(User).where(
+            func.lower(User.mode).in_(PLATFORM_ADMIN_MODES_LOWER)
+        ).order_by(User.name)
+        result = await db.execute(users_query)
+        users = result.scalars().all()
+        return {
+            'users': [
+                {
+                    'id': u.id,
+                    'name': u.name,
+                    'email': u.email,
+                    'mode': u.mode or 'user',
+                    'employee_id': getattr(u, 'employee_id', None),
+                    'created_at': u.created_at.isoformat() if u.created_at else None
+                }
+                for u in users
+            ]
+        }
+    except Exception as e:
+        logger.error(f"List platform admin users error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.delete("/users/{user_id}")
 async def delete_user(

@@ -125,7 +125,7 @@ const EmployeeListConfig = () => {
       {error && <div className="employee-list-config-error">{error}</div>}
       {success && <div className="employee-list-config-success">{success}</div>}
 
-      <section className="employee-list-config-section">
+      <section className="employee-list-config-section employee-list-config-section-verification">
         <h2>Verification toggle</h2>
         <label className="employee-list-config-toggle">
           <input
@@ -137,12 +137,8 @@ const EmployeeListConfig = () => {
         </label>
       </section>
 
-      <p className="employee-list-config-status">
-        Uploaded list in database: <strong>{config.count} employees</strong>. Each new upload overwrites this list.
-      </p>
-
       {config.count > 0 && (
-        <section className="employee-list-config-section">
+        <section className="employee-list-config-section employee-list-config-section-uploaded">
           <h2>Uploaded list</h2>
           <p>Uploaded list is stored in the database. Below are the employees currently in the list.</p>
           {listLoading ? (
@@ -172,7 +168,7 @@ const EmployeeListConfig = () => {
         </section>
       )}
 
-      <section className="employee-list-config-section">
+      <section className="employee-list-config-section employee-list-config-section-upload">
         <h2>Upload list (CSV or Excel)</h2>
         <p>Upload a CSV or Excel (.xlsx, .xls) with columns: <code>employee_id</code>, <code>full_name</code>, <code>email</code>. This replaces the uploaded list.</p>
         <a href="#" onClick={(e) => { e.preventDefault(); downloadTemplate() }} className="employee-list-config-template">Download CSV template</a>

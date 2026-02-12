@@ -52,30 +52,36 @@
   white-space: nowrap;
 }
 
-/* Central Tabs Container - Soft elevated pill */
+/* Central Tabs Container - Soft elevated pill, icon-only by default */
 .navbar-center-tabs {
   position: absolute;
   top: calc(100% + 1.5rem);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   align-items: center;
   justify-content: center;
   background: var(--color-card-surface);
   border: 1px solid rgba(127, 183, 176, 0.25);
-  padding: 0.5rem 0.6rem;
+  padding: 0.5rem 0.5rem;
   border-radius: var(--radius-button);
   box-shadow: var(--shadow-soft);
   z-index: 10;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Tab buttons */
+.navbar-center-tabs:hover {
+  box-shadow: 0 8px 24px rgba(127, 183, 176, 0.18), var(--shadow-soft);
+}
+
+/* Tab buttons - icon only by default; on hover: zoom out + show label */
 .nav-glass-tab {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.6rem 1.25rem;
+  padding: 0.6rem 0.75rem;
+  min-width: 0;
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-input);
@@ -84,16 +90,30 @@
   color: var(--color-text-dark);
   opacity: 0.85;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform 0.25s ease, background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
   outline: none;
   white-space: nowrap;
+}
+
+/* Label hidden by default; revealed on hover with smooth expand */
+.tab-label {
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  transition: max-width 0.3s ease, opacity 0.25s ease;
 }
 
 .nav-glass-tab:hover {
   background: rgba(127, 183, 176, 0.12);
   color: var(--color-text-dark);
   opacity: 1;
-  transform: translateY(-1px);
+  transform: scale(1.1);
+  box-shadow: 0 4px 14px rgba(127, 183, 176, 0.2);
+}
+
+.nav-glass-tab:hover .tab-label {
+  max-width: 140px;
+  opacity: 1;
 }
 
 .nav-glass-tab.active {
@@ -106,6 +126,21 @@
   transform: none;
   z-index: 1;
   margin-bottom: 0;
+}
+
+.nav-glass-tab.active:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 14px rgba(127, 183, 176, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.nav-glass-tab.active .tab-label {
+  max-width: 0;
+  opacity: 0;
+}
+
+.nav-glass-tab.active:hover .tab-label {
+  max-width: 140px;
+  opacity: 1;
 }
 
 /* Clear pseudo-elements */
@@ -129,7 +164,8 @@
 .nav-glass-tab.tab-search-jd.active,
 .nav-glass-tab.tab-add-resume.active,
 .nav-glass-tab.tab-manage-jobs.active,
-.nav-glass-tab.tab-employee-list.active {
+.nav-glass-tab.tab-employee-list.active,
+.nav-glass-tab.tab-users.active {
   color: var(--color-text-dark);
 }
 
