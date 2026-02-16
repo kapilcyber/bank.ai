@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useApp } from '../context/AppContext'
 import { uploadResumeWithProfile, parseResumeOnly } from '../config/api'
@@ -8,6 +8,7 @@ import './Application.css'
 
 const Application = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { selectedEmploymentType, userProfile, portalEmployeeId } = useApp()
 
   useEffect(() => {
@@ -312,6 +313,10 @@ const Application = () => {
       }
       if (portalEmployeeId && (selectedEmploymentType?.id === 'company-employee' || selectedEmploymentType?.title === 'Company Employee')) {
         profileData.employee_id = portalEmployeeId
+      }
+      const jobId = searchParams.get('jobId')
+      if (jobId) {
+        profileData.jobId = jobId
       }
 
       // Upload resume with profile data

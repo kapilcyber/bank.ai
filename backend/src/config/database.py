@@ -106,7 +106,7 @@ async def init_postgres_db():
             await conn.execute(text("SELECT 1"))
         
         # Import all models to ensure they're registered with Base
-        from src.models import resume, jd_analysis, user_db, token_blacklist
+        from src.models import resume, jd_analysis, user_db, token_blacklist, job_opening, job_application
         
         # Create all tables
         async with engine.begin() as conn:
@@ -158,6 +158,25 @@ async def init_postgres_db():
                 await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_job_openings_status ON job_openings (status);"))
                 await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_job_openings_business_area ON job_openings (business_area);"))
                 await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_job_openings_created_at ON job_openings (created_at DESC);"))
+                
+                # Job Applications indexes (for career page applicant tracking)
+                await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_job_applications_job_id ON job_applications (job_id);"))
+                await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_job_applications_resume_id ON job_applications (resume_id);"))
+                
+                # Add applicant_name column if missing (for existing job_applications tables)
+                try:
+                    col_result = await conn.execute(text("""
+                        SELECT column_name FROM information_schema.columns
+                        WHERE table_name = 'job_applications' AND column_name = 'applicant_name'
+                    """))
+                    if col_result.fetchone() is None:
+                        await conn.execute(text("""
+                            ALTER TABLE job_applications
+                            ADD COLUMN applicant_name VARCHAR(255) NULL
+                        """))
+                        print("Added applicant_name column to job_applications")
+                except Exception as e:
+                    print(f"Could not add applicant_name to job_applications: {e}")
             print("PostgreSQL tables and indexes initialized")
         except Exception as e:
             print(f"PostgreSQL index initialization warning: {e}")

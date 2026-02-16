@@ -14,6 +14,8 @@ import aiofiles
 from pathlib import Path
 from urllib.parse import urlparse
 from src.models.resume import Resume
+from src.models.job_application import JobApplication
+from src.models.job_opening import JobOpening
 from src.config.settings import settings
 from src.config.database import get_postgres_db
 from src.middleware.auth_middleware import get_admin_user, get_current_user, decode_access_token, is_token_blacklisted
@@ -990,6 +992,7 @@ async def upload_user_profile_resume(
     preferredLocation: str = Form(None),
     linkedIn: str = Form(None),
     portfolio: str = Form(None),
+    jobId: Optional[str] = Form(None),
     credentials: Optional[HTTPAuthorizationCredentials] = Security(security),
     db: AsyncSession = Depends(get_postgres_db)
 ):
@@ -1181,6 +1184,32 @@ async def upload_user_profile_resume(
         # Save structured data (Experience/Certification/Education)
         await save_structured_resume_data(db, resume.id, parsed_data, clear_existing=True, form_education=education_data, form_experiences=experiences_data)
         await db.commit()
+
+        # If jobId provided (career page application), create JobApplication record
+        job_id = (jobId or "").strip()
+        if job_id:
+            try:
+                # Verify job exists in job_openings
+                job_result = await db.execute(select(JobOpening).where(JobOpening.job_id == job_id))
+                if job_result.scalar_one_or_none():
+                    applicant_name = fullName or parsed_data.get('resume_candidate_name')
+                    applicant_email = email or uploader_email or parsed_data.get('resume_contact_info')
+                    job_app = JobApplication(
+                        job_id=job_id,
+                        resume_id=resume.id,
+                        applicant_name=applicant_name,
+                        applicant_email=applicant_email,
+                        applied_at=datetime.utcnow()
+                    )
+                    db.add(job_app)
+                    await db.commit()
+                    logger.info(f"JobApplication created: job_id={job_id}, resume_id={resume.id}")
+                else:
+                    logger.warning(f"job_id {job_id} not found in job_openings, skipping JobApplication")
+            except Exception as job_err:
+                # UniqueConstraint violation (duplicate) - resume already applied for this job
+                await db.rollback()
+                logger.info(f"JobApplication skipped (likely duplicate): {job_err}")
         
         logger.info(f"Successfully processed user profile resume: {file.filename}")
         

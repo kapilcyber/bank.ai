@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime
 
 from src.models.job_opening import JobOpening
+from src.models.job_application import JobApplication
 from src.config.database import get_postgres_db
 from src.middleware.auth_middleware import get_admin_user, get_current_user
 from fastapi import Security
@@ -224,6 +225,29 @@ async def filter_job_openings(
     
     except Exception as e:
         logger.error(f"Filter job openings error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{job_id}/applicants/count")
+async def get_job_applicant_count(
+    job_id: str,
+    db: AsyncSession = Depends(get_postgres_db)
+):
+    """Get the number of applicants for a specific job (public endpoint)."""
+    try:
+        # Verify job exists
+        job_result = await db.execute(select(JobOpening).where(JobOpening.job_id == job_id))
+        if not job_result.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Job opening not found")
+        count_result = await db.execute(
+            select(func.count(JobApplication.id)).where(JobApplication.job_id == job_id)
+        )
+        count = count_result.scalar() or 0
+        return {"job_id": job_id, "applicant_count": count}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get job applicant count error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

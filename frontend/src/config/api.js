@@ -489,6 +489,9 @@ export const uploadResumeWithProfile = async (file, profileData = {}) => {
   // Always send LinkedIn and Portfolio so backend can store them (empty string if not provided)
   formData.append('linkedIn', profileData.linkedIn != null ? String(profileData.linkedIn).trim() : '')
   formData.append('portfolio', profileData.portfolio != null ? String(profileData.portfolio).trim() : '')
+  if (profileData.jobId) {
+    formData.append('jobId', profileData.jobId)
+  }
 
   return await uploadFile(API_ENDPOINTS.UPLOAD_USER_PROFILE, formData)
 }
