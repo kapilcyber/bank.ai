@@ -56,6 +56,9 @@ export const API_ENDPOINTS = {
   EMPLOYEE_LIST_UPLOAD: '/admin/employee-list/upload',
   EMPLOYEE_LIST: '/admin/employee-list',
 
+  // Help Assistant
+  ASSISTANT_QUERY: '/assistant/query',
+
   // Job Openings Endpoints
   GET_JOB_OPENINGS: '/job-openings',
   GET_JOB_OPENING: '/job-openings',
@@ -430,6 +433,18 @@ export const getPlatformAdminUsers = async () => {
  */
 export const deletePlatformUser = async (userId) => {
   return await apiRequest(`${API_ENDPOINTS.ADMIN_USERS}/${userId}`, { method: 'DELETE' })
+}
+
+/**
+ * Help assistant query (intent-based, no OpenAI). Returns { reply, data }.
+ * @param {string} message - User message
+ * @returns {Promise<{ reply: string, data?: object }>}
+ */
+export const assistantQuery = async (message) => {
+  return await apiRequest(API_ENDPOINTS.ASSISTANT_QUERY, {
+    method: 'POST',
+    body: JSON.stringify({ message: String(message).trim() })
+  })
 }
 
 // Resume Upload API Functions

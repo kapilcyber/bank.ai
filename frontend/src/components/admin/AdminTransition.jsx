@@ -1,107 +1,101 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import './AdminTransition.css';
+import React, { useEffect, useState, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import './AdminTransition.css'
 
-const AdminTransition = ({ onComplete }) => {
-    const [stage, setStage] = useState(0);
+const getTimeGreeting = () => {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) return 'Good morning'
+  if (hour >= 12 && hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
 
-    const stages = [
-        "Initializing Portal...",
-        "Loading Admin Dashboard...",
-        "Preparing Analytics...",
-        "Almost Ready...",
-        "Welcome to Admin Portal"
-    ];
+const AdminTransition = ({ onComplete, userProfile, name: nameProp }) => {
+  const [stage, setStage] = useState(0)
 
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setStage((prev) => (prev < stages.length - 1 ? prev + 1 : prev));
-        }, 1000);
+  const greeting = useMemo(() => getTimeGreeting(), [])
+  const userName = (nameProp || userProfile?.name || '').trim() || 'User'
 
-        const completeTimer = setTimeout(() => {
-            onComplete();
-        }, 5500);
+  const screens = [
+    { type: 'greeting', text: greeting },
+    { type: 'name', text: userName },
+    { type: 'welcome', text: 'Welcome to the techbank' },
+    { type: 'powered' }
+  ]
 
-        return () => {
-            clearInterval(timer);
-            clearTimeout(completeTimer);
-        };
-    }, [onComplete, stages.length]);
+  const stageDuration = 2400
+  const totalDuration = screens.length * stageDuration + 800
 
-    return (
-        <div className="admin-transition-overlay">
-            <div className="transition-background">
-                <div className="gradient-orb orb-1"></div>
-                <div className="gradient-orb orb-2"></div>
-                <div className="gradient-orb orb-3"></div>
-            </div>
+  useEffect(() => {
+    const stageTimer = setInterval(() => {
+      setStage((prev) => (prev < screens.length - 1 ? prev + 1 : prev))
+    }, stageDuration)
 
-            <div className="content-wrapper">
-                <motion.div
-                    className="logo-container"
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.8, ease: [0.34, 1.56, 0.64, 1] }}
-                >
-                    <div className="logo-circle">
-                        <motion.div
-                            className="logo-inner"
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                        >
-                            <motion.span
-                                className="logo-text"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.5 }}
-                            >
-                                TB
-                            </motion.span>
-                        </motion.div>
-                    </div>
-                    <motion.div
-                        className="outer-ring"
-                        animate={{ rotate: -360 }}
-                        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                    ></motion.div>
-                    <motion.div
-                        className="pulse-ring"
-                        animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0, 0.6] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                    ></motion.div>
-                </motion.div>
+    const completeTimer = setTimeout(() => {
+      onComplete()
+    }, totalDuration)
 
-                <motion.div
-                    className="status-container"
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                >
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={stage}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.4 }}
-                            className="status-text"
-                        >
-                            {stages[stage]}
-                        </motion.div>
-                    </AnimatePresence>
+    return () => {
+      clearInterval(stageTimer)
+      clearTimeout(completeTimer)
+    }
+  }, [onComplete, screens.length, stageDuration, totalDuration])
 
-                    <div className="progress-bar-container">
-                        <motion.div
-                            className="progress-bar-fill"
-                            initial={{ width: "0%" }}
-                            animate={{ width: "100%" }}
-                            transition={{ duration: 5, ease: "easeInOut" }}
-                        />
-                    </div>
-                </motion.div>
-            </div>
-        </div>
-    );
-};
+  const isPoweredScreen = screens[stage].type === 'powered'
 
-export default AdminTransition;
+  return (
+    <div className="admin-transition-overlay">
+      <div className="transition-background">
+        <div className="gradient-orb orb-1" />
+        <div className="gradient-orb orb-2" />
+        <div className="gradient-orb orb-3" />
+      </div>
+
+      <div className="content-wrapper content-wrapper-text-only">
+        <motion.div
+          className="status-container transition-welcome-container"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <AnimatePresence mode="wait">
+            {isPoweredScreen ? (
+              <motion.div
+                key="powered"
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -24 }}
+                transition={{ duration: 0.45 }}
+                className="transition-screen-powered-wrap"
+              >
+                <span className="transition-powered-by-text transition-powered-by-text-centre">Powered by</span>
+                <img src="/cache.png" alt="Cache" className="transition-powered-by-logo transition-powered-by-logo-centre" />
+              </motion.div>
+            ) : (
+              <motion.div
+                key={stage}
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -24 }}
+                transition={{ duration: 0.45 }}
+                className={`transition-screen-text transition-screen-${screens[stage].type}`}
+              >
+                {screens[stage].text}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="progress-bar-container">
+            <motion.div
+              className="progress-bar-fill"
+              initial={{ width: '0%' }}
+              animate={{ width: '100%' }}
+              transition={{ duration: totalDuration / 1000 - 0.5, ease: 'easeInOut' }}
+            />
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  )
+}
+
+export default AdminTransition

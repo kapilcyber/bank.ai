@@ -3,8 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useApp } from '../context/AppContext'
 import { login, adminSignup, isAdminRole } from '../config/api'
-import AdminTransition from '../components/admin/AdminTransition'
-import StartupSequence from '../components/StartupSequence'
 import './LandingPage.css'
 
 const ADMIN_ROLES = ['Admin', 'Talent Acquisition', 'HR']
@@ -26,19 +24,13 @@ const LandingPage = () => {
     const [isLoading, setIsLoading] = useState(false)
     const [authError, setAuthError] = useState('')
     const [authSuccess, setAuthSuccess] = useState('')
-    const [showAdminTransition, setShowAdminTransition] = useState(false)
-    const [showInitialStartup, setShowInitialStartup] = useState(() => {
-        // Only show once per session
-        return !sessionStorage.getItem('startupShown')
-    })
-
     const navigate = useNavigate()
     const location = useLocation()
     const { isAuthenticated, userProfile, setIsAuthenticated, setUserProfile, logout } = useApp()
 
     useEffect(() => {
         const checkAuth = async () => {
-            if (isAuthenticated && !showAdminTransition) {
+            if (isAuthenticated) {
                 if (isAdminRole(userProfile?.mode)) {
                     navigate('/admin', { replace: true })
                 } else {
@@ -47,7 +39,7 @@ const LandingPage = () => {
             }
         }
         checkAuth()
-    }, [isAuthenticated, userProfile, navigate, logout, showAdminTransition])
+    }, [isAuthenticated, userProfile, navigate, logout])
 
     const validateEmail = (email) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -174,12 +166,6 @@ const LandingPage = () => {
         }
     }
 
-    const handleTransitionComplete = () => {
-        sessionStorage.setItem('adminEntranceShown', 'true')
-        const from = location.state?.from?.pathname || '/admin'
-        navigate(from, { replace: true })
-    }
-
     const handleSubmit = async (e) => {
         e.preventDefault()
         setAuthError('')
@@ -209,7 +195,8 @@ const LandingPage = () => {
             if (isAdminRole(userProfileData.mode)) {
                 setIsAuthenticated(true)
                 setUserProfile(userProfileData)
-                setShowAdminTransition(true)
+                sessionStorage.setItem('adminEntranceShown', 'true')
+                navigate('/admin', { replace: true })
             } else {
                 setAuthError('Access Denied: Admin credentials required.')
                 await logout()
@@ -219,17 +206,6 @@ const LandingPage = () => {
         } finally {
             setIsLoading(false)
         }
-    }
-
-    if (showInitialStartup) {
-        return <StartupSequence onComplete={() => {
-            setShowInitialStartup(false)
-            sessionStorage.setItem('startupShown', 'true')
-        }} />
-    }
-
-    if (showAdminTransition) {
-        return <AdminTransition onComplete={handleTransitionComplete} />
     }
 
     return (

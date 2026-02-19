@@ -16,7 +16,7 @@ from src.config.database import init_postgres_db
 from src.config.settings import settings
 
 # Import routes
-from src.routes import auth, resume, jd_analysis, admin, job_openings
+from src.routes import auth, resume, jd_analysis, admin, job_openings, assistant
 from src.routes.resumes import company, admin as resume_admin, user_profile, gmail, outlook
 from src.routes import user_profile_api
 
@@ -139,6 +139,7 @@ app.include_router(gmail.router)  # Gmail webhook
 app.include_router(outlook.router)  # Outlook trigger
 app.include_router(jd_analysis.router)
 app.include_router(admin.router)
+app.include_router(assistant.router)
 # Employee list: register routes explicitly on app so path is guaranteed
 from src.routes.employee_list import (
     get_config as employee_list_get_config,
@@ -153,7 +154,8 @@ app.add_api_route("/api/admin/employee-list", employee_list_list_employees, meth
 app.include_router(user_profile_api.router)
 app.include_router(job_openings.router)
 
-# Debug: Log registered routes for parse-only endpoint
+# Debug: Log assistant and resume routes
+logger.info("Assistant: POST /api/assistant/query registered")
 logger.info("Registered routes for /api/resumes:")
 for route in app.routes:
     if hasattr(route, 'path') and '/api/resumes' in route.path:

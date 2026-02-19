@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '../context/AppContext'
 import Navbar from '../components/Navbar'
 import AdminDashboard from '../components/admin/AdminDashboard'
@@ -11,17 +10,13 @@ import Records from '../components/admin/Records'
 import ManageJobOpenings from '../components/admin/ManageJobOpenings'
 import EmployeeListConfig from '../components/admin/EmployeeListConfig'
 import AdminUsers from '../components/admin/AdminUsers'
-import AdminTransition from '../components/admin/AdminTransition'
 import CyberBackground from '../components/admin/CyberBackground'
+import HelpAssistant from '../components/admin/HelpAssistant'
 import './Admin.css'
 
 const Admin = () => {
   const { userProfile } = useApp()
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [showEntrance, setShowEntrance] = useState(() => {
-    // Only show if not shown this session
-    return !sessionStorage.getItem('adminEntranceShown')
-  })
   const [initialFilter, setInitialFilter] = useState(null)
 
   const navigateToRecords = (filter = null) => {
@@ -29,26 +24,29 @@ const Admin = () => {
     setActiveTab('records')
   }
 
-  const handleEntranceComplete = () => {
-    setShowEntrance(false)
-    sessionStorage.setItem('adminEntranceShown', 'true')
-  }
+  const isAdminRoleOnly = (userProfile?.mode ?? '').toLowerCase() === 'admin'
 
-  if (showEntrance) {
-    return <AdminTransition onComplete={handleEntranceComplete} />
-  }
+  const tabs = useMemo(() => {
+    const all = [
+      { id: 'dashboard', label: 'Dashboard', icon: '📊', colorClass: 'tab-dashboard' },
+      { id: 'links', label: 'Links', icon: '🔗', colorClass: 'tab-links' },
+      { id: 'records', label: 'Records', icon: '📂', colorClass: 'tab-records' },
+      { id: 'search-talent', label: 'Search Talent', icon: '🔍', colorClass: 'tab-search-talent' },
+      { id: 'search-jd', label: 'Search Using JD', icon: '📝', colorClass: 'tab-search-jd' },
+      { id: 'add-resume', label: 'Add New Resume', icon: '➕', colorClass: 'tab-add-resume' },
+      { id: 'manage-jobs', label: 'Manage Jobs', icon: '💼', colorClass: 'tab-manage-jobs' },
+      { id: 'employee-list', label: 'Employee List', icon: '👥', colorClass: 'tab-employee-list' },
+      { id: 'users', label: 'Users', icon: '👤', colorClass: 'tab-users' }
+    ]
+    if (isAdminRoleOnly) return all
+    return all.filter((t) => t.id !== 'employee-list' && t.id !== 'users')
+  }, [isAdminRoleOnly])
 
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊', colorClass: 'tab-dashboard' },
-    { id: 'links', label: 'Links', icon: '🔗', colorClass: 'tab-links' },
-    { id: 'records', label: 'Records', icon: '📂', colorClass: 'tab-records' },
-    { id: 'search-talent', label: 'Search Talent', icon: '🔍', colorClass: 'tab-search-talent' },
-    { id: 'search-jd', label: 'Search Using JD', icon: '📝', colorClass: 'tab-search-jd' },
-    { id: 'add-resume', label: 'Add New Resume', icon: '➕', colorClass: 'tab-add-resume' },
-    { id: 'manage-jobs', label: 'Manage Jobs', icon: '💼', colorClass: 'tab-manage-jobs' },
-    { id: 'employee-list', label: 'Employee List', icon: '👥', colorClass: 'tab-employee-list' },
-    { id: 'users', label: 'Users', icon: '👤', colorClass: 'tab-users' }
-  ]
+  useEffect(() => {
+    if (!isAdminRoleOnly && (activeTab === 'employee-list' || activeTab === 'users')) {
+      setActiveTab('dashboard')
+    }
+  }, [isAdminRoleOnly, activeTab])
 
   const renderContent = () => {
     switch (activeTab) {
@@ -87,16 +85,12 @@ const Admin = () => {
       />
 
       <div className="admin-content">
-        <motion.div
-          className="admin-content-area"
-          key={activeTab}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
+        <div className="admin-content-area" key={activeTab}>
           {renderContent()}
-        </motion.div>
+        </div>
       </div>
+
+      <HelpAssistant />
     </div>
   )
 }

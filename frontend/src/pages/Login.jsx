@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import { useApp } from '../context/AppContext'
 import { login, googleLogin } from '../config/api'
 import { GoogleLogin } from '@react-oauth/google'
-import AdminTransition from '../components/admin/AdminTransition'
 import './Login.css'
 
 const Login = () => {
@@ -15,7 +14,6 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [authError, setAuthError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
-  const [showAdminTransition, setShowAdminTransition] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const { isAuthenticated, userProfile, setIsAuthenticated, setUserProfile, logout } = useApp()
@@ -26,7 +24,7 @@ const Login = () => {
     // If arriving at login with ?admin=true but already logged in as a normal user, 
     // we should log out so the user can sign in with admin credentials.
     const handleAuthState = async () => {
-      if (isAuthenticated && !showAdminTransition) {
+      if (isAuthenticated) {
         if (isAdminPanelMode) {
           const isAdmin = userProfile?.mode?.toLowerCase().includes('admin')
           if (isAdmin) {
@@ -53,7 +51,7 @@ const Login = () => {
       // Clear the message from location state
       window.history.replaceState({}, document.title)
     }
-  }, [location, isAuthenticated, userProfile, isAdminPanelMode, logout, navigate, showAdminTransition])
+  }, [location, isAuthenticated, userProfile, isAdminPanelMode, logout, navigate])
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -114,16 +112,6 @@ const Login = () => {
     return validateEmail(email) && validatePassword(password)
   }
 
-  const handleTransitionComplete = () => {
-    sessionStorage.setItem('adminEntranceShown', 'true')
-    const from = location.state?.from?.pathname
-    if (from) {
-      navigate(from, { replace: true })
-    } else {
-      navigate('/admin')
-    }
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     setAuthError('')
@@ -160,11 +148,10 @@ const Login = () => {
       const isAdmin = userProfileData.mode?.toLowerCase().includes('admin')
       console.log('User mode:', userProfileData.mode, 'isAdmin:', isAdmin)
 
-      // If admin, show transition first
       if (isAdmin) {
-        setShowAdminTransition(true)
+        sessionStorage.setItem('adminEntranceShown', 'true')
+        navigate('/admin', { replace: true })
       } else {
-        // Determine where to redirect
         const from = location.state?.from?.pathname
         if (from) {
           navigate(from, { replace: true })
@@ -177,10 +164,6 @@ const Login = () => {
       setAuthError(error.message || 'Invalid email or password. Please try again.')
       setIsLoading(false)
     }
-  }
-
-  if (showAdminTransition) {
-    return <AdminTransition onComplete={handleTransitionComplete} />
   }
 
   return (
@@ -348,7 +331,8 @@ const Login = () => {
                       console.log('Google login mode:', userProfileData.mode, 'isAdmin:', isAdmin);
 
                       if (isAdmin) {
-                        setShowAdminTransition(true);
+                        sessionStorage.setItem('adminEntranceShown', 'true');
+                        navigate('/admin', { replace: true });
                       } else {
                         const from = location.state?.from?.pathname;
                         if (from) {
