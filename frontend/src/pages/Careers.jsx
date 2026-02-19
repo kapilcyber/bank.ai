@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { getJobOpenings } from '../config/api'
@@ -74,13 +74,12 @@ const Careers = () => {
   }, [])
 
   const handleApply = (jobId) => {
-    // Navigate to application page with job ID
+    // Redirect to guest portal with job ID (guest sets employment type and goes to application)
     if (isStandalone) {
-      // For standalone mode, navigate to the main app's application page
-      const baseUrl = window.location.origin.replace(':3005', ':3003')
-      window.location.href = `${baseUrl}/application?jobId=${jobId}`
+      const guestBaseUrl = import.meta.env.VITE_CAREERS_GUEST_REDIRECT_URL || window.location.origin.replace(':3005', ':3003')
+      window.location.href = `${guestBaseUrl}/guest?jobId=${jobId}`
     } else {
-      navigate(`/application?jobId=${jobId}`)
+      navigate(`/guest?jobId=${jobId}`)
     }
   }
 

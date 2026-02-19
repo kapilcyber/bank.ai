@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 
 const GUEST_TYPE = {
@@ -12,13 +12,15 @@ const GUEST_TYPE = {
 
 const GuestPortal = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { setSelectedEmploymentType, setPortalEmployeeId } = useApp()
 
   useEffect(() => {
     setPortalEmployeeId(null)
     setSelectedEmploymentType(GUEST_TYPE)
-    navigate('/application', { replace: true })
-  }, [navigate, setSelectedEmploymentType, setPortalEmployeeId])
+    const jobId = searchParams.get('jobId')
+    navigate('/application' + (jobId ? `?jobId=${jobId}` : ''), { replace: true })
+  }, [navigate, setSelectedEmploymentType, setPortalEmployeeId, searchParams])
 
   return null
 }
