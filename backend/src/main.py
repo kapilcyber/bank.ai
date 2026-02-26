@@ -146,11 +146,15 @@ from src.routes.employee_list import (
     update_config as employee_list_update_config,
     upload_csv as employee_list_upload_csv,
     list_employees as employee_list_list_employees,
+    get_left_after_upload as employee_list_get_left_after_upload,
+    downgrade_left_employees as employee_list_downgrade_left,
 )
 app.add_api_route("/api/admin/employee-list/config", employee_list_get_config, methods=["GET"], tags=["Admin - Employee List"])
 app.add_api_route("/api/admin/employee-list/config", employee_list_update_config, methods=["PUT"], tags=["Admin - Employee List"])
 app.add_api_route("/api/admin/employee-list/upload", employee_list_upload_csv, methods=["POST"], tags=["Admin - Employee List"])
+app.add_api_route("/api/admin/employee-list/left-after-upload", employee_list_get_left_after_upload, methods=["GET"], tags=["Admin - Employee List"])
 app.add_api_route("/api/admin/employee-list", employee_list_list_employees, methods=["GET"], tags=["Admin - Employee List"])
+app.add_api_route("/api/admin/employee-list/downgrade-left", employee_list_downgrade_left, methods=["POST"], tags=["Admin - Employee List"])
 app.include_router(user_profile_api.router)
 app.include_router(job_openings.router)
 

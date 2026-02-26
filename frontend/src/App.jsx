@@ -3,6 +3,7 @@ import { AppProvider } from './context/AppContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import LandingPage from './pages/LandingPage'
+import SetPassword from './pages/SetPassword'
 import Profile from './pages/Profile'
 import Admin from './pages/Admin'
 import GuestPortal from './pages/GuestPortal'
@@ -15,10 +16,14 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/set-password" element={<SetPassword />} />
       <Route path="/guest" element={<GuestPortal />} />
       <Route path="/freelancer" element={<FreelancerPortal />} />
       <Route path="/employee" element={<EmployeePortal />} />
+      {/* Careers: support /careers, /Careers, and /careers.html so reload always stays on careers */}
       <Route path="/careers" element={<Careers />} />
+      <Route path="/Careers" element={<Navigate to="/careers" replace />} />
+      <Route path="/careers.html" element={<Navigate to="/careers" replace />} />
       <Route path="/application" element={<Application />} />
       <Route
         path="/profile"

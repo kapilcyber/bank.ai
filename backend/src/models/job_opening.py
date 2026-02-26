@@ -13,6 +13,8 @@ class JobOpening(Base):
     title = Column(String(255), nullable=False)
     location = Column(String(255), nullable=False)
     business_area = Column(String(100), nullable=False, index=True)
+    experience_required = Column(String(20), nullable=True)  # e.g. "0-1", "1+", "2+", ... "50+"
+    job_type = Column(String(50), nullable=True)  # internship, full_time, remote, hybrid, contract
     description = Column(Text)
     jd_file_url = Column(String(500), nullable=True)
     status = Column(String(20), default="active", index=True)  # "active" or "inactive"

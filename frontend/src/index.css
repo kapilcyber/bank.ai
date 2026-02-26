@@ -151,3 +151,55 @@ code {
   left: 0;
 }
 
+/* Dark mode – applied when data-theme="dark" on <html> */
+[data-theme="dark"] {
+  --color-bg-base: #1a1a1f;
+  --color-card-surface: #252530;
+  --color-text-dark: #e2e4e9;
+  --color-text-muted: #9ca3af;
+  --color-primary: #e2e4e9;
+  --color-soft: #252530;
+  --glass-bg: #252530;
+  --glass-bg-hover: rgba(37, 37, 48, 0.98);
+  --glass-border: rgba(127, 183, 176, 0.2);
+  --shadow-soft: 0 20px 40px rgba(0, 0, 0, 0.35);
+  --shadow-floating: 0 30px 60px rgba(0, 0, 0, 0.4);
+  --gradient-soft: linear-gradient(135deg, #252530 0%, #1a1a1f 100%);
+  --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-axis: #808090;
+  --chart-text: #e2e4e9;
+  --chart-muted: #9ca3af;
+  --shadow-clay: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] body {
+  background: #1a1a1f;
+  color: #d1d5db;
+}
+
+[data-theme="dark"] body::before,
+[data-theme="dark"] body::after {
+  opacity: 0.12;
+}
+
+/* Dark mode: text hierarchy – primary vs muted (so not everything is the same white) */
+[data-theme="dark"] .cyber-value.secondary,
+[data-theme="dark"] .cyber-info-box label,
+[data-theme="dark"] [class*="muted"],
+[data-theme="dark"] .profile-toggle-label {
+  color: var(--color-text-muted) !important;
+}
+
+[data-theme="dark"] .cyber-name,
+[data-theme="dark"] .cyber-value:not(.secondary),
+[data-theme="dark"] .cyber-value.highlight,
+[data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3,
+[data-theme="dark"] .cyber-status-pill {
+  color: var(--color-text-dark) !important;
+}
+
+/* Muted / secondary text in dark mode – not white, so hierarchy is clear */
+[data-theme="dark"] .cyber-info-box label {
+  color: var(--color-text-muted) !important;
+}
+

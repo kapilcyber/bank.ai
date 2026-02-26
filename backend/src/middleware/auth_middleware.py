@@ -41,6 +41,19 @@ def decode_access_token(token: str):
         return None
 
 
+INVITE_TOKEN_EXPIRY_DAYS = 7
+
+
+def create_invite_token(email: str) -> str:
+    """Create a JWT token for the set-password (invite) flow. Valid for 7 days."""
+    to_encode = {
+        "type": "invite",
+        "sub": email.lower(),
+        "exp": datetime.utcnow() + timedelta(days=INVITE_TOKEN_EXPIRY_DAYS),
+    }
+    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
 async def blacklist_token(token: str, exp: Optional[datetime] = None, db: Optional[AsyncSession] = None):
     """Blacklist a JWT token until its expiration."""
     if db is None:

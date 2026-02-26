@@ -11,6 +11,192 @@
   text-align: left;
 }
 
+.invite-user-section {
+  margin-bottom: 2rem;
+  padding: 1.25rem;
+  background: rgba(127, 183, 176, 0.08);
+  border: 1px solid rgba(127, 183, 176, 0.25);
+  border-radius: var(--radius-input, 8px);
+}
+
+.invite-user-heading {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-dark);
+}
+
+.invite-user-hint {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.invite-user-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.invite-user-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.invite-user-row label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+
+.invite-user-select {
+  min-width: 220px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  border: 1px solid rgba(127, 183, 176, 0.4);
+  border-radius: var(--radius-input, 6px);
+  background: #fff;
+}
+
+.invite-user-success {
+  padding: 0.75rem 1rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: var(--radius-input);
+  color: #15803d;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.invite-user-btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  border: none;
+  border-radius: var(--radius-input, 6px);
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.invite-user-btn:hover:not(:disabled) {
+  opacity: 0.95;
+}
+
+.invite-user-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Invite message modal */
+.invite-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.invite-modal {
+  background: #fff;
+  border-radius: var(--radius-input, 8px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  max-width: 520px;
+  width: 100%;
+  padding: 1.5rem;
+}
+
+.invite-modal-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text-dark);
+}
+
+.invite-modal-hint {
+  margin: 0 0 1rem 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.invite-modal-textarea {
+  width: 100%;
+  min-height: 160px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  line-height: 1.5;
+  border: 1px solid rgba(127, 183, 176, 0.4);
+  border-radius: var(--radius-input, 6px);
+  resize: vertical;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+}
+
+.invite-modal-textarea:focus {
+  outline: none;
+  border-color: #0d9488;
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+}
+
+.invite-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.invite-modal-btn {
+  flex: 0 0 auto;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-input, 6px);
+  cursor: pointer;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+.invite-modal-done {
+  color: var(--color-text-dark);
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.invite-modal-done:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.invite-modal-cancel {
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.1);
+}
+
+.invite-modal-cancel:hover {
+  background: rgba(185, 28, 28, 0.2);
+}
+
+.invite-modal-send {
+  color: #fff;
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+}
+
+.invite-modal-send:hover:not(:disabled) {
+  opacity: 0.95;
+}
+
+.invite-modal-send:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .admin-users-error {
   padding: 1rem;
   background: rgba(239, 68, 68, 0.1);
@@ -91,6 +277,20 @@
   white-space: nowrap;
 }
 
+.platform-admin-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.platform-admin-status.status-invite-sent {
+  color: #b45309;
+}
+
+.platform-admin-status.status-logged-in {
+  color: #15803d;
+}
+
 .th-actions {
   text-align: center;
   width: 1%;
@@ -121,6 +321,12 @@
 
 .admin-user-delete-btn:disabled {
   opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.platform-admin-no-remove {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
   cursor: not-allowed;
 }
 

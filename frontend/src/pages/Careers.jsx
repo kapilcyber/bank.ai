@@ -1,15 +1,36 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { getJobOpenings } from '../config/api'
+import { getJobOpenings, API_BASE_URL } from '../config/api'
 import CareersHeader from '../components/CareersHeader'
 import './Careers.css'
+
+// Full URL for JD PDF (backend serves uploads at same host, path like /uploads/jd/...)
+const getJdPdfUrl = (jdFileUrl) => {
+  if (!jdFileUrl) return null
+  if (jdFileUrl.startsWith('http://') || jdFileUrl.startsWith('https://')) return jdFileUrl
+  const origin = (API_BASE_URL || '').replace(/\/api\/?$/, '')
+  return `${origin}${jdFileUrl.startsWith('/') ? '' : '/'}${jdFileUrl}`
+}
 
 // Check if we're running as standalone (careers page on port 3005)
 const isStandalone = typeof window !== 'undefined' && (
   window.location.port === '3005' || 
   document.getElementById('careers-root') !== null
 )
+
+// Display label for job_type (internship, full_time, remote, hybrid, contract)
+const getJobTypeLabel = (jobType) => {
+  if (!jobType) return null
+  const labels = {
+    internship: 'Internship',
+    full_time: 'Full-time',
+    remote: 'Remote',
+    hybrid: 'Hybrid',
+    contract: 'Contract'
+  }
+  return labels[jobType] || jobType.replace('_', '-')
+}
 
 // Icon mapping for different job types
 const getJobIcon = (title) => {
@@ -103,24 +124,21 @@ const Careers = () => {
     fetchJobOpenings()
   }, [])
 
-  // Filter jobs based on selected category
-  const filteredJobs = jobOpenings.filter(job => {
-    if (!selectedCategory) return true
-    
-    const category = categories.find(cat => cat.id === selectedCategory)
-    if (!category) return true
-    
-    const jobTitle = job.title?.toLowerCase() || ''
-    const businessArea = job.business_area?.toLowerCase() || ''
-    const combined = `${jobTitle} ${businessArea}`
-    
-    return category.keywords.some(keyword => 
-      combined.includes(keyword.toLowerCase())
-    )
-  })
+  // Filter jobs: null = "View all" (show all), otherwise filter by category
+  const filteredJobs = !selectedCategory
+    ? jobOpenings
+    : jobOpenings.filter(job => {
+        const category = categories.find(cat => cat.id === selectedCategory)
+        if (!category) return true
+        const jobTitle = job.title?.toLowerCase() || ''
+        const businessArea = job.business_area?.toLowerCase() || ''
+        const combined = `${jobTitle} ${businessArea}`
+        return category.keywords.some(keyword =>
+          combined.includes(keyword.toLowerCase())
+        )
+      })
 
   const handleCategoryClick = (categoryId) => {
-    // Toggle: if same category clicked, deselect it
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId)
   }
 
@@ -132,34 +150,45 @@ const Careers = () => {
         Navbar && <Navbar userProfile={userProfile} showProfile={true} />
       )}
       <div className="careers-content">
-        {/* Latest Jobs Section */}
         <motion.div
           className="latest-jobs-section"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="latest-jobs-header">
-            <h2 className="latest-jobs-title">Latest Jobs</h2>
+          {/* Hero */}
+          <div className="careers-hero">
+            <span className="careers-hero-pill">We're hiring!</span>
+            <h1 className="careers-hero-title">Be part of our mission</h1>
+            <p className="careers-hero-description">
+              We're looking for passionate people to join us on our mission. We value flat hierarchies, clear communication, and full ownership and responsibility.
+            </p>
           </div>
-          
-          <p className="latest-jobs-description">
-            At Cache, we combine human ingenuity with breakthrough technology and foster innovation for an inclusive workplace.
-          </p>
 
-          {/* Category Filters */}
+          {/* Category Filters: View all + categories */}
           <div className="category-filters">
+            <motion.button
+              type="button"
+              className={`category-filter ${selectedCategory === null ? 'active' : ''}`}
+              onClick={() => setSelectedCategory(null)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+            >
+              View all
+            </motion.button>
             {categories.map((category) => (
-              <motion.div
+              <motion.button
                 key={category.id}
+                type="button"
                 className={`category-filter ${selectedCategory === category.id ? 'active' : ''}`}
                 onClick={() => handleCategoryClick(category.id)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.2 }}
               >
                 {category.name}
-              </motion.div>
+              </motion.button>
             ))}
           </div>
 
@@ -176,71 +205,111 @@ const Careers = () => {
           )}
           
           {!loading && !error && (
-            <>
-              {/* Only show job openings when a category is selected */}
-              {selectedCategory && (
-                <motion.div
-                  className="job-openings-grid"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {filteredJobs.length === 0 ? (
-                    <div className="no-jobs-message">
-                      <p>
-                        No job openings found for "{categories.find(c => c.id === selectedCategory)?.name}".
-                      </p>
-                      <button 
-                        className="clear-filter-button"
-                        onClick={() => setSelectedCategory(null)}
-                      >
-                        Back to Categories
-                      </button>
-                    </div>
-                  ) : (
-                    filteredJobs.map((job) => (
-                      <motion.div
-                        key={job.job_id || job.id}
-                        className="job-card"
-                        whileHover={{ scale: 1.02, boxShadow: '0 8px 16px rgba(0,0,0,0.15)' }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <div className="job-icon">{getJobIcon(job.title)}</div>
-                        <div className="job-content">
-                          <h3 className="job-title">{job.title}</h3>
-                          <p className="job-location">
-                            {job.location 
-                              ? job.location.includes('|') 
-                                ? job.location 
-                                : `India | ${job.location}`
-                              : 'India | Location not specified'}
-                          </p>
-                          <p className="job-business-area">
-                            Business Area: <span>{job.business_area || 'Not specified'}</span>
-                          </p>
-                          <button
-                            className="apply-button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleApply(job.job_id || job.id)
-                            }}
-                          >
-                            Apply Now
-                          </button>
-                        </div>
-                      </motion.div>
-                    ))
+            <motion.div
+              className="job-openings-list"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {filteredJobs.length === 0 ? (
+                <div className="no-jobs-message">
+                  <p>
+                    {selectedCategory
+                      ? `No job openings found for "${categories.find(c => c.id === selectedCategory)?.name}".`
+                      : 'No job openings at the moment.'}
+                  </p>
+                  {selectedCategory && (
+                    <button
+                      type="button"
+                      className="clear-filter-button"
+                      onClick={() => setSelectedCategory(null)}
+                    >
+                      View all
+                    </button>
                   )}
-                </motion.div>
-              )}
-              
-              {/* Show message when no category is selected */}
-              {!selectedCategory && !loading && !error && (
-                <div className="select-category-message">
-                  <p>Select a category above to view job openings</p>
+                </div>
+              ) : (
+                <div className="job-list">
+                  {filteredJobs.map((job) => (
+                    <motion.div
+                      key={job.job_id || job.id}
+                      className="job-row"
+                      whileHover={{ backgroundColor: 'rgba(0,0,0,0.02)' }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="job-row-main">
+                        <h3 className="job-row-title">{job.title}</h3>
+                        {job.description && (
+                          <p className="job-row-description">
+                            {job.description.length > 160
+                              ? `${job.description.slice(0, 160).trim()}…`
+                              : job.description}
+                          </p>
+                        )}
+                        <div className="job-row-tags">
+                          <span className="job-row-tag">
+                            <span className="job-row-tag-icon" aria-hidden>📍</span>
+                            {job.location
+                              ? job.location.includes('|')
+                                ? job.location
+                                : `India | ${job.location}`
+                              : 'India'}
+                          </span>
+                          {getJobTypeLabel(job.job_type) && (
+                            <span className="job-row-tag">
+                              <span className="job-row-tag-icon" aria-hidden>💼</span>
+                              {getJobTypeLabel(job.job_type)}
+                            </span>
+                          )}
+                          {(job.experience_required != null && job.experience_required !== '') && (
+                            <span className="job-row-tag">
+                              <span className="job-row-tag-icon" aria-hidden>🕐</span>
+                              {job.experience_required}
+                            </span>
+                          )}
+                          {(job.business_area != null && job.business_area !== '') && (
+                            <span className="job-row-tag">
+                              <span className="job-row-tag-icon" aria-hidden>📋</span>
+                              {job.business_area}
+                            </span>
+                          )}
+                          {!job.experience_required && !job.job_type && (
+                            <span className="job-row-tag">
+                              <span className="job-row-tag-icon" aria-hidden>🕐</span>
+                              Full-time
+                            </span>
+                          )}
+                        </div>
+                        {job.jd_file_url && (
+                          <a
+                            href={getJdPdfUrl(job.jd_file_url)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="job-row-jd-link"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            View Job Description (PDF)
+                          </a>
+                        )}
+                      </div>
+                      <div className="job-row-apply-wrap">
+                        <button
+                          type="button"
+                          className="job-row-apply"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleApply(job.job_id || job.id)
+                          }}
+                        >
+                          Apply
+                          <span className="job-row-apply-arrow" aria-hidden>↗</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               )}
-            </>
+            </motion.div>
           )}
         </motion.div>
       </div>

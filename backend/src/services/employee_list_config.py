@@ -1,6 +1,7 @@
 """Employee list config and verification: app_config, company_employee_list table, CSV/Excel upload only."""
 import csv
 import io
+import json
 import os
 from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +15,7 @@ ALLOWED_EXTENSIONS = (".csv", ".xlsx", ".xls")
 logger = get_logger(__name__)
 
 CONFIG_KEY_ENABLED = "employee_verification_enabled"
+CONFIG_KEY_LEFT_AFTER_UPLOAD = "employee_list_left_after_upload"
 
 
 async def is_employee_list_available(db: AsyncSession) -> bool:
@@ -46,6 +48,25 @@ async def set_employee_list_config(
         )
         db.add(AppConfig(key=CONFIG_KEY_ENABLED, value="true" if enabled else "false"))
     await db.commit()
+
+
+async def set_left_employees_after_upload(db: AsyncSession, left_employees: List[Dict[str, Any]]) -> None:
+    """Store the list of employees who were in the previous list but not in the new one (after an upload)."""
+    await db.execute(delete(AppConfig).where(AppConfig.key == CONFIG_KEY_LEFT_AFTER_UPLOAD))
+    db.add(AppConfig(key=CONFIG_KEY_LEFT_AFTER_UPLOAD, value=json.dumps(left_employees)))
+    await db.commit()
+
+
+async def get_left_employees_after_upload(db: AsyncSession) -> List[Dict[str, Any]]:
+    """Return the stored list of employees who left (not in new list after last upload). Empty if none or no upload yet."""
+    r = await db.execute(select(AppConfig.value).where(AppConfig.key == CONFIG_KEY_LEFT_AFTER_UPLOAD))
+    val = r.scalar_one_or_none()
+    if not val or not (val or "").strip():
+        return []
+    try:
+        return json.loads(val)
+    except (json.JSONDecodeError, TypeError):
+        return []
 
 
 def _normalize_header(name: str) -> str:
@@ -173,18 +194,29 @@ async def replace_employee_list_from_csv(
     db: AsyncSession,
     file_content: bytes,
     filename: str = "upload.csv",
-) -> int:
+):
     """
     Parse CSV or Excel (employee_id, full_name, email), validate, overwrite company_employee_list table, bulk insert.
-    Returns count of rows inserted.
+    Returns (count, removed): count of rows inserted, and list of {email, employee_id, full_name} for employees
+    who were in the previous list but are not in the new list (they "left").
     """
-    rows = _parse_employee_file(file_content, filename)
+    # Current list before replace (to compute who left)
+    current_result = await db.execute(select(CompanyEmployeeList))
+    current_rows = list(current_result.scalars().all())
+    new_rows = _parse_employee_file(file_content, filename)
+    new_emails = {(r["email"] or "").strip().lower() for r in new_rows}
+    removed = [
+        {"email": (r.email or "").strip().lower(), "employee_id": (r.employee_id or "").strip(), "full_name": (r.full_name or "").strip() or None}
+        for r in current_rows
+        if (r.email or "").strip().lower() and (r.email or "").strip().lower() not in new_emails
+    ]
+
     await db.execute(delete(CompanyEmployeeList))
-    for r in rows:
+    for r in new_rows:
         db.add(CompanyEmployeeList(
             employee_id=r["employee_id"],
             full_name=r.get("full_name"),
             email=r["email"],
         ))
     await db.commit()
-    return len(rows)
+    return len(new_rows), removed

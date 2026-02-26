@@ -56,6 +56,29 @@ export const AppProvider = ({ children }) => {
   // Portal-only: employee_id after verify (no login). Session-only, not persisted.
   const [portalEmployeeId, setPortalEmployeeId] = useState(null)
 
+  // Dark mode: persisted in localStorage, applied to document
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem('darkMode') === 'true'
+    } catch (e) {
+      return false
+    }
+  })
+
+  useEffect(() => {
+    try {
+      if (darkMode) {
+        localStorage.setItem('darkMode', 'true')
+        document.documentElement.setAttribute('data-theme', 'dark')
+      } else {
+        localStorage.removeItem('darkMode')
+        document.documentElement.removeAttribute('data-theme')
+      }
+    } catch (e) {
+      console.error('Error persisting dark mode:', e)
+    }
+  }, [darkMode])
+
   // Persist authentication state
   useEffect(() => {
     if (isAuthenticated) {
@@ -109,6 +132,8 @@ export const AppProvider = ({ children }) => {
         setSelectedEmploymentType,
         portalEmployeeId,
         setPortalEmployeeId,
+        darkMode,
+        setDarkMode,
         logout,
       }}
     >

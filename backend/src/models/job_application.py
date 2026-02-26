@@ -10,6 +10,7 @@ class JobApplication(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     job_id = Column(String(100), ForeignKey("job_openings.job_id", ondelete="CASCADE"), nullable=False, index=True)
+    job_title = Column(String(255), nullable=True)  # Job title at time of application (for display/history)
     resume_id = Column(Integer, ForeignKey("resumes.id", ondelete="CASCADE"), nullable=False, index=True)
     applicant_name = Column(String(255), nullable=True)
     applicant_email = Column(String(255), nullable=True)

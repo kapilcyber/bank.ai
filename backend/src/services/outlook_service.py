@@ -201,6 +201,43 @@ class AttachmentHandler:
             logger.error(f"Error fetching attachments: {e}")
             raise
 
+def send_mail_via_graph(to_email: str, subject: str, body_html: str, body_plain: str = "") -> None:
+    """
+    Send an email via Microsoft Graph API as the configured mailbox (e.g. techbank@cachedigitech.com).
+    Uses client credentials OAuth2 token. Requires Mail.Send application permission for the app.
+    Raises RuntimeError if Graph is not configured or send fails.
+    """
+    if not all([settings.azure_tenant_id, settings.azure_client_id, settings.azure_client_secret]):
+        raise RuntimeError("Microsoft Graph is not configured (AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET).")
+    mailbox = (settings.mailbox_email or "").strip()
+    if not mailbox:
+        raise RuntimeError("MAILBOX_EMAIL is not set; cannot send from Outlook.")
+
+    authenticator = GraphAuthenticator()
+    url = f"{EmailFetcher.GRAPH_BASE_URL}/users/{mailbox}/sendMail"
+    headers = authenticator.get_auth_headers()
+    payload = {
+        "message": {
+            "subject": subject,
+            "body": {
+                "contentType": "HTML",
+                "content": body_html or body_plain.replace("\n", "<br>\n"),
+            },
+            "toRecipients": [{"emailAddress": {"address": to_email}}],
+        },
+        "saveToSentItems": True,
+    }
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        response.raise_for_status()
+        logger.info(f"Graph sendMail succeeded to {to_email}")
+    except requests.RequestException as e:
+        err_msg = getattr(e, "response", None)
+        if err_msg is not None and hasattr(err_msg, "text"):
+            logger.error(f"Graph sendMail failed: {err_msg.text}")
+        raise RuntimeError(f"Failed to send email via Outlook: {e}") from e
+
+
 class OutlookService:
     """Main service to orchestrate Outlook resume fetching."""
     def __init__(self):

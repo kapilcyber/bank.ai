@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
-from typing import Dict
+from typing import Dict, Optional
 from starlette.responses import Response
 
 from src.models.user import UserCreate, UserLogin, UserResponse
@@ -63,6 +63,13 @@ class AdminSignupRequest(BaseModel):
     password: str
     role: str  # Admin, Talent Acquisition, HR
     employee_id: str  # Required for all admin roles
+
+
+class SetPasswordWithTokenRequest(BaseModel):
+    """Request to set password using an invite (set-password) token."""
+    token: str
+    new_password: str
+    email: Optional[str] = None  # If provided, must match the token's email (invite recipient)
 
 
 _reset_tokens: Dict[str, Dict[str, datetime]] = {}
@@ -205,77 +212,8 @@ async def signup(user: UserCreate, db: AsyncSession = Depends(get_postgres_db)):
 
 @router.post("/admin-signup", response_model=UserResponse)
 async def admin_signup(payload: AdminSignupRequest, db: AsyncSession = Depends(get_postgres_db)):
-    """Register a new admin/staff user (Admin, Talent Acquisition, HR). Stored in DB for login."""
-    try:
-        # Check if user already exists
-        query = select(User).where(User.email == payload.email.lower())
-        result = await db.execute(query)
-        existing_user = result.scalar_one_or_none()
-        if existing_user:
-            raise HTTPException(status_code=409, detail="User with this email already exists")
-
-        # Map role to mode (stored in DB)
-        role_lower = payload.role.strip().lower()
-        if role_lower in ('admin', 'administrator'):
-            mode = "admin"
-        elif role_lower in ('talent acquisition', 'talent_acquisition', 'ta'):
-            mode = "talent_acquisition"
-        elif role_lower in ('hr', 'human resources'):
-            mode = "hr"
-        else:
-            mode = "admin"  # Default
-
-        if len(payload.password) < 8:
-            raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
-
-        if not payload.employee_id or not payload.employee_id.strip():
-            raise HTTPException(status_code=400, detail="Employee ID is required for admin signup")
-
-        config = await get_employee_list_config(db)
-        if config.get("enabled", True) and not await is_employee_list_available(db):
-            logger.error("Admin signup: company employee list not available")
-            raise HTTPException(
-                status_code=503,
-                detail="Company employee list is not available. Please contact your administrator."
-            )
-        result = await verify_employee_against_list(payload.employee_id, payload.email, db)
-        if config.get("enabled", True) and result is None:
-            raise HTTPException(
-                status_code=403,
-                detail="Verification failed: this Employee ID and Email do not match any company record. Use the exact ID and email from your company list."
-            )
-
-        employee_id_clean = payload.employee_id.strip().upper()
-
-        new_user = User(
-            name=payload.name.strip(),
-            email=payload.email.lower(),
-            password_hash=hash_password(payload.password),
-            mode=mode,
-            employee_id=employee_id_clean,
-            employment_type=None,
-        )
-        db.add(new_user)
-        await db.commit()
-        await db.refresh(new_user)
-
-        logger.info(f"New admin user registered: {payload.email} (role={payload.role}, mode={mode})")
-
-        return UserResponse(
-            id=new_user.id,
-            name=new_user.name,
-            email=new_user.email,
-            mode=new_user.mode,
-            employment_type=new_user.employment_type,
-            employee_id=new_user.employee_id,
-            freelancer_id=new_user.freelancer_id,
-            created_at=new_user.created_at
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Admin signup error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    """Admin signup is disabled. Use the invite flow from the Admin dashboard instead."""
+    raise HTTPException(status_code=403, detail="Admin signup is disabled. Use the invite flow from the Admin dashboard instead.")
 
 
 @router.post("/verify-employee")
@@ -307,6 +245,11 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_postgres_
         # Verify password
         if not verify_password(credentials.password, user.password_hash):
             raise HTTPException(status_code=401, detail="Invalid password")
+
+        # Record login time (for "already has access" / has_logged_in)
+        user.last_login_at = datetime.utcnow()
+        await db.commit()
+        await db.refresh(user)
         
         # Create JWT token
         token_data = {
@@ -483,6 +426,49 @@ async def reset_password(
         raise HTTPException(status_code=500, detail="Failed to reset password")
 
 
+@router.post("/set-password-with-token")
+async def set_password_with_token(
+    payload: SetPasswordWithTokenRequest,
+    db: AsyncSession = Depends(get_postgres_db),
+):
+    """
+    Set a new password using an invite (set-password) token. No auth required.
+    Token is returned from the invite flow and contains email and expiry.
+    """
+    try:
+        if not payload.token or not payload.new_password:
+            raise HTTPException(status_code=400, detail="Token and new password are required")
+        if len(payload.new_password) < 8:
+            raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+        decoded = decode_access_token(payload.token)
+        if not decoded or decoded.get("type") != "invite":
+            raise HTTPException(status_code=400, detail="Invalid or expired link. Request a new invite if needed.")
+
+        email = decoded.get("sub")
+        if not email:
+            raise HTTPException(status_code=400, detail="Invalid token")
+        if payload.email and payload.email.strip().lower() != email.lower():
+            raise HTTPException(status_code=400, detail="Email does not match the invite. Use the email address this link was sent to.")
+
+        query = select(User).where(User.email == email.lower())
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        user.password_hash = hash_password(payload.new_password)
+        await db.commit()
+        await db.refresh(user)
+        logger.info(f"Password set via invite token for user: {user.email}")
+        return {"message": "Password has been set successfully. You can now log in."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Set password with token error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to set password")
+
+
 # Google OAuth
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -543,6 +529,9 @@ async def google_login(
             logger.info(f"New Google user registered: {email}")
         else:
             logger.info(f"Google user logged in: {email}")
+        user.last_login_at = datetime.utcnow()
+        await db.commit()
+        await db.refresh(user)
 
         # Create JWT
         token_data = {

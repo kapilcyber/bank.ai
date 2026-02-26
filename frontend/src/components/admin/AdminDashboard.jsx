@@ -114,28 +114,30 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
   ].sort();
 
   useEffect(() => {
-    fetchDashboardData()
+    fetchDashboardData(selectedUserType)
 
     // Refresh only when new data arrives (e.g. after resume upload), not on tab/focus
     const handleResumeUploaded = (event) => {
       console.log('📥 AdminDashboard: Received resumeUploaded event', event.detail)
       setTimeout(() => {
         console.log('🔄 AdminDashboard: Refreshing dashboard data after upload...')
-        fetchDashboardData()
+        fetchDashboardData(selectedUserType)
       }, 1000)
     }
 
     window.addEventListener('resumeUploaded', handleResumeUploaded)
     return () => window.removeEventListener('resumeUploaded', handleResumeUploaded)
-  }, [])
+  }, [selectedUserType])
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (userTypeFilter = 'all') => {
     try {
       setLoading(true)
       setError(null)
       const token = localStorage.getItem('authToken')
-
-      const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+      const query = (userTypeFilter && userTypeFilter !== 'all')
+        ? `?user_type=${encodeURIComponent(userTypeFilter)}`
+        : ''
+      const response = await fetch(`${API_BASE_URL}/admin/stats${query}`, {
         headers: {
           ...(token && { Authorization: `Bearer ${token}` })
         }
@@ -247,7 +249,7 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
         <div className="error-message">
           <h3>Connection Error</h3>
           <p>{error}</p>
-          <button onClick={fetchDashboardData} className="retry-btn">
+          <button onClick={() => fetchDashboardData(selectedUserType)} className="retry-btn">
             Retry Connection
           </button>
         </div>
@@ -263,21 +265,9 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
     )
   }
 
-  // Calculate filtered data based on selected user type
-  const filteredTotal = selectedUserType === 'all'
-    ? (dashboardData?.totalRecords ?? 0)
-    : (dashboardData?.userTypeCounts?.[selectedUserType] || 0)
-  
-  // Debug logging
-  console.log('📊 AdminDashboard: filteredTotal =', filteredTotal)
-  console.log('📊 AdminDashboard: selectedUserType =', selectedUserType)
-  console.log('📊 AdminDashboard: dashboardData.totalRecords =', dashboardData?.totalRecords)
-
-  const filteredTopSkills = selectedUserType === 'all'
-    ? dashboardData.topSkills
-    : (dashboardData.topSkillsByUserType?.[selectedUserType] || [])
-
-
+  // API returns already-filtered data when user_type query is set; totalRecords and all graphs reflect current filter
+  const talentPoolCount = dashboardData?.totalRecords ?? 0
+  const topSkillsForChart = dashboardData?.topSkills ?? []
 
   return (
     <div className="admin-dashboard">
@@ -326,7 +316,7 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
           </div>
           <div className="stat-info-new">
             <span className="label">Talent Pool</span>
-            <span className="value">{filteredTotal ? filteredTotal.toLocaleString() : '0'}</span>
+            <span className="value">{talentPoolCount ? talentPoolCount.toLocaleString() : '0'}</span>
           </div>
         </motion.div>
 
@@ -711,13 +701,13 @@ const AdminDashboard = ({ onNavigateToRecords }) => {
           </div>
 
           <div className="skills-analytics-radar" style={{ height: '400px', marginTop: '1.5rem' }}>
-            {filteredTopSkills.length === 0 ? (
+            {topSkillsForChart.length === 0 ? (
               <div className="no-data-placeholder">
                 <p>No skill data detected in database</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={filteredTopSkills.slice(0, 8)}>
+                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={topSkillsForChart.slice(0, 8)}>
                   <PolarGrid stroke="rgba(0,0,0,0.05)" />
                   <PolarAngleAxis
                     dataKey="skill"

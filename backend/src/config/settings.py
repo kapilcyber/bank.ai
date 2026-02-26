@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     # CORS Configuration
     cors_origins: str = "*"  # Comma-separated origins or "*" for all
 
+    # Frontend base URL (for invite/set-password links in emails). App runs on port 3003 by default.
+    frontend_base_url: str = "http://localhost:3003"
+
     # Google OAuth Configuration
     google_client_id: Optional[str] = None
     google_client_secret: Optional[str] = None

@@ -1,14 +1,20 @@
+import secrets
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 from datetime import datetime, timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from src.models.resume import Resume, Education
 from src.models.jd_analysis import JDAnalysis, MatchResult
 from src.models.user_db import User
 from src.models.employee_list import CompanyEmployeeList
+from src.models.job_application import JobApplication
 from src.config.database import get_postgres_db
-from src.middleware.auth_middleware import get_admin_user
+from src.config.settings import settings
+from src.middleware.auth_middleware import get_admin_user, create_invite_token
+from src.routes.auth import hash_password
+from src.services.email_service import send_admin_invite_email, is_email_configured
 from src.utils.logger import get_logger
 from src.utils.user_type_mapper import normalize_user_type, get_user_type_from_source_type
 from src.utils.response_formatter import format_resume_response
@@ -19,16 +25,25 @@ router = APIRouter(prefix="/api/admin", tags=["Admin"])
 ALLOWED_SOURCE_TYPES = {'company_employee', 'freelancer', 'guest', 'admin', 'gmail'}
 
 
+class InviteRequest(BaseModel):
+    """Request to send an admin invite to a company employee."""
+    email: EmailStr
+    role: str  # Admin, Talent Acquisition, HR
+    custom_set_password_link: Optional[str] = None  # if set, this link is used in the email instead of the generated one
+    temporary_password: Optional[str] = None  # if set, this password is used instead of a generated one
+
+
 class UpdateResumeTypeRequest(BaseModel):
     source_type: str
     source_id: str | None = None  # optional: current source_id for fallback lookup when id not found
 
 @router.get("/stats")
 async def get_dashboard_stats(
+    user_type: Optional[str] = Query(None, description="Filter by talent category: all, Company Employee, Freelancer, Guest User, Admin Uploads"),
     current_user: dict = Depends(get_admin_user),
     db: AsyncSession = Depends(get_postgres_db)
 ):
-    """Get dashboard statistics with breakdown by user type and upload trends (Admin only)"""
+    """Get dashboard statistics with breakdown by user type and upload trends (Admin only). Optional user_type filter applies to all resume-based metrics and graphs."""
     try:
         # Get PostgreSQL stats (including users)
         total_users_result = await db.execute(select(func.count(User.id)))
@@ -69,6 +84,18 @@ async def get_dashboard_stats(
         all_resumes_result = await db.execute(all_resumes_query)
         all_resumes = all_resumes_result.scalars().all()
 
+        # Apply user_type filter: only resume-based metrics (graphs + talent pool count) use filtered list
+        filter_user_type = (user_type or "").strip() if user_type else None
+        if filter_user_type and filter_user_type.lower() != "all":
+            resumes_to_use = []
+            for r in all_resumes:
+                meta = r.meta_data or {}
+                ut = normalize_user_type(meta.get("user_type") or get_user_type_from_source_type(r.source_type))
+                if ut == filter_user_type:
+                    resumes_to_use.append(r)
+        else:
+            resumes_to_use = all_resumes
+
         # Initialize trend data structure
         target_user_types = ['Company Employee', 'Freelancer', 'Guest User']
         
@@ -93,9 +120,10 @@ async def get_dashboard_stats(
         one_year_ago = datetime.utcnow() - timedelta(days=365)
 
         # Initialize user type counts for ALL user types (not just target types)
-        # This ensures admin uploads and other types are also counted
         user_type_counts = {ut: 0 for ut in target_user_types}
         user_type_skills = {ut: {} for ut in target_user_types}
+        if filter_user_type and filter_user_type not in user_type_skills:
+            user_type_skills[filter_user_type] = {}
         skill_count = {}
         experience_counts = {} # Bins: 0, 1, 2, 3...
         state_distribution = {} # Maharashtra, Karnataka, etc.
@@ -144,20 +172,19 @@ async def get_dashboard_stats(
             'himachal pradesh': 'Himachal Pradesh'
         }
 
-        for resume in all_resumes:
+        for resume in resumes_to_use:
             # Normalize user type
             meta = resume.meta_data or {}
-            user_type = normalize_user_type(meta.get('user_type') or get_user_type_from_source_type(resume.source_type))
+            ut = normalize_user_type(meta.get('user_type') or get_user_type_from_source_type(resume.source_type))
             
             # Count ALL user types (including Admin Uploads, Gmail Resume, etc.)
             # Initialize the count if it doesn't exist
-            if user_type not in user_type_counts:
-                user_type_counts[user_type] = 0
-            user_type_counts[user_type] += 1
+            if ut not in user_type_counts:
+                user_type_counts[ut] = 0
+            user_type_counts[ut] += 1
             
-            # Global and Type-based counts/skills (for existing dashboard cards)
-            if user_type in target_user_types:
-                
+            # Count skills when in target types OR when a filter is applied (so filtered view shows skills)
+            if ut in target_user_types or filter_user_type:
                 # Robust skill extraction
                 skills_list = resume.skills or []
                 if not skills_list and resume.parsed_data:
@@ -165,15 +192,17 @@ async def get_dashboard_stats(
                      skills_list = resume.parsed_data.get('resume_technical_skills', []) or resume.parsed_data.get('all_skills', [])
 
                 if skills_list:
+                    if ut not in user_type_skills:
+                        user_type_skills[ut] = {}
                     for skill in skills_list:
                         # Normalize skill
                         skill = skill.strip()
                         if not skill: continue
                         
                         # Add to user type breakdown
-                        user_type_skills[user_type][skill] = user_type_skills[user_type].get(skill, 0) + 1
+                        user_type_skills[ut][skill] = user_type_skills[ut].get(skill, 0) + 1
                         
-                        # Add to global count (regardless of who uploaded it)
+                        # Add to global count (for dashboard top_skills chart)
                         skill_count[skill] = skill_count.get(skill, 0) + 1
 
             # Populate Experience Distribution
@@ -190,8 +219,8 @@ async def get_dashboard_stats(
                         trends[period][key] = {ut: 0 for ut in target_user_types}
                         trends[period][key]['name'] = key
                     
-                    if user_type in target_user_types:
-                        trends[period][key][user_type] += 1
+                    if ut in target_user_types:
+                        trends[period][key][ut] += 1
             
             # Map location to Indian State
             # Safe extraction: Source Metadata (Form Data) > Parsed Data
@@ -291,9 +320,9 @@ async def get_dashboard_stats(
         recent_jd_result = await db.execute(recent_jd_query)
         recent_jd = recent_jd_result.scalars().all()
 
-        # Format resumes safely, skipping any that cause errors
+        # Format resumes safely, skipping any that cause errors (use filtered list for consistency)
         formatted_resumes = []
-        for r in all_resumes:
+        for r in resumes_to_use:
             if r is None:
                 continue
             try:
@@ -316,8 +345,8 @@ async def get_dashboard_stats(
         
         return {
             'total_users': total_users,
-            'total_records': total_resumes, # Renamed for frontend consistency
-            'total_resumes': total_resumes, # Also include original key for compatibility
+            'total_records': len(resumes_to_use),  # Filtered count for dashboard graphs + talent pool
+            'total_resumes': len(resumes_to_use),
             'total_jd_analyses': total_jd_analyses,
             'total_matches': total_matches,
             'total_education': total_education,
@@ -370,6 +399,126 @@ async def get_dashboard_stats(
         logger.error(f"Get stats error: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/notifications")
+async def get_admin_notifications(
+    limit: int = Query(50, ge=1, le=100),
+    days: int = Query(7, ge=1, le=30),
+    current_user: dict = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_postgres_db)
+):
+    """Recent activity: resume uploads (job apps, Outlook/Gmail, employee, admin), user logins, and time-based reminders."""
+    try:
+        since = datetime.utcnow() - timedelta(days=days)
+        notifications = []
+
+        # 1) Recent resume uploads (job applications, Gmail/Outlook, employee, admin, etc.)
+        resume_query = (
+            select(Resume.id, Resume.uploaded_at, Resume.source_type, Resume.filename)
+            .where(Resume.uploaded_at >= since)
+            .order_by(Resume.uploaded_at.desc())
+            .limit(limit)
+        )
+        res = await db.execute(resume_query)
+        rows = res.all()
+        resume_ids = [r[0] for r in rows]
+        job_title_by_resume = {}
+        if resume_ids:
+            ja_res = await db.execute(
+                select(JobApplication.resume_id, JobApplication.job_title).where(JobApplication.resume_id.in_(resume_ids))
+            )
+            job_title_by_resume = {r[0]: r[1] for r in ja_res.all()}
+
+        def source_label(st):
+            if not st:
+                return "Upload"
+            st = (st or "").lower()
+            if st == "guest":
+                return "Career / Guest"
+            if st == "gmail":
+                return "Gmail / Email"
+            if st == "outlook":
+                return "Outlook"
+            if st == "company_employee":
+                return "Employee"
+            if st == "admin":
+                return "Admin upload"
+            if st == "freelancer":
+                return "Freelancer"
+            return st.replace("_", " ").title()
+
+        for r in rows:
+            rid, uploaded_at, source_type, filename = r[0], r[1], r[2], r[3]
+            job_title = job_title_by_resume.get(rid)
+            if job_title:
+                message = f"New application for «{job_title}»"
+                ntype = "job_application"
+            else:
+                message = f"New resume uploaded ({source_label(source_type)})"
+                ntype = "resume_upload"
+            notifications.append({
+                "id": f"resume-{rid}",
+                "type": ntype,
+                "message": message,
+                "timestamp": uploaded_at.isoformat() if uploaded_at else None,
+                "resume_id": rid,
+                "job_title": job_title,
+                "source_type": source_type,
+                "filename": filename,
+            })
+
+        # 2) Recent user logins (credentials or Google) – real time
+        login_query = (
+            select(User.id, User.name, User.email, User.last_login_at)
+            .where(User.last_login_at >= since)
+            .order_by(User.last_login_at.desc())
+            .limit(limit)
+        )
+        login_res = await db.execute(login_query)
+        for u in login_res.all():
+            uid, name, email, last_login_at = u[0], u[1], u[2], u[3]
+            if not last_login_at:
+                continue
+            display = (name or email or "User").strip() or "User"
+            notifications.append({
+                "id": f"login-{uid}-{last_login_at.timestamp()}",
+                "type": "login",
+                "message": f"User logged in: {display}",
+                "timestamp": last_login_at.isoformat(),
+                "user_id": uid,
+                "email": email,
+            })
+
+        # 3) Self-generated reminder every ~2 hours: prompt to open Records tab
+        now = datetime.utcnow()
+        if now.hour % 2 == 0:
+            notifications.insert(0, {
+                "id": "reminder-records",
+                "type": "reminder",
+                "message": "Reminder: Open the Records tab to see new resumes (open this toggle if you haven’t in 1–2 hours).",
+                "timestamp": now.isoformat(),
+            })
+
+        # Sort all by timestamp desc and cap
+        def ts_key(n):
+            t = n.get("timestamp")
+            if not t:
+                return now
+            try:
+                return datetime.fromisoformat(t.replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                return now
+        notifications.sort(key=ts_key, reverse=True)
+        notifications = notifications[:limit]
+
+        # Badge count = exact number of notifications in the list (so the number is never random)
+        unread_count = min(len(notifications), 99)
+        return {"notifications": notifications, "unread_count": unread_count}
+    except Exception as e:
+        logger.error(f"Get notifications error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/users")
 async def list_users(
@@ -432,7 +581,8 @@ async def list_platform_admin_users(
                     'email': u.email,
                     'mode': u.mode or 'user',
                     'employee_id': getattr(u, 'employee_id', None),
-                    'created_at': u.created_at.isoformat() if u.created_at else None
+                    'created_at': u.created_at.isoformat() if u.created_at else None,
+                    'has_logged_in': getattr(u, 'last_login_at', None) is not None,
                 }
                 for u in users
             ]
@@ -456,7 +606,17 @@ async def delete_user(
         
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
+        current_user_id = current_user.get("user_id")
+        is_self_delete = current_user_id and str(current_user_id) == str(user_id)
+        is_target_admin = (user.mode or "").strip().lower() == "admin"
+
+        if is_target_admin and not is_self_delete:
+            raise HTTPException(
+                status_code=403,
+                detail="Admin users cannot be removed by others. Admins can only remove themselves via Profile → Leave platform.",
+            )
+
         await db.execute(delete(User).where(User.id == user_id))
         await db.commit()
         
@@ -468,6 +628,103 @@ async def delete_user(
     except Exception as e:
         logger.error(f"Delete user error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/invite")
+async def send_invite(
+    payload: InviteRequest,
+    current_user: dict = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_postgres_db),
+):
+    """
+    Send an admin portal invite to a company employee. Creates user with temp password and emails
+    a set-password link. Admin only.
+    """
+    try:
+        email = payload.email.lower().strip()
+        role_lower = (payload.role or "").strip().lower()
+        if role_lower in ("admin", "administrator"):
+            mode = "admin"
+        elif role_lower in ("talent acquisition", "talent_acquisition", "ta"):
+            mode = "talent_acquisition"
+        elif role_lower in ("hr", "human resources"):
+            mode = "hr"
+        else:
+            mode = "admin"
+
+        emp_result = await db.execute(
+            select(CompanyEmployeeList).where(func.lower(CompanyEmployeeList.email) == email)
+        )
+        employee = emp_result.scalar_one_or_none()
+        if not employee:
+            raise HTTPException(
+                status_code=400,
+                detail="Email not found in company employee list. Add the employee to the list first.",
+            )
+
+        existing = await db.execute(select(User).where(User.email == email))
+        if existing.scalar_one_or_none():
+            raise HTTPException(
+                status_code=409,
+                detail="This user already has portal access. They can log in or use Forgot Password.",
+            )
+
+        custom_password = (payload.temporary_password or "").strip()
+        if custom_password and len(custom_password) < 6:
+            raise HTTPException(status_code=400, detail="Temporary password must be at least 6 characters.")
+        temp_password = custom_password if custom_password else secrets.token_urlsafe(12)
+        name = (employee.full_name or email).strip() or "User"
+        user = User(
+            name=name,
+            email=email,
+            password_hash=hash_password(temp_password),
+            mode=mode,
+            employee_id=(employee.employee_id or "").strip().upper(),
+            employment_type=None,
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+
+        token = create_invite_token(email)
+        base_url = (getattr(settings, "frontend_base_url", None) or "http://localhost:3003").rstrip("/")
+        set_password_link = f"{base_url}/set-password?token={token}"
+        custom_stripped = (payload.custom_set_password_link or "").strip()
+        link_for_email = custom_stripped if custom_stripped else set_password_link
+        if custom_stripped:
+            logger.info("Invite email using custom link (first 80 chars): %s", custom_stripped[:80])
+
+        email_sent = False
+        if is_email_configured():
+            try:
+                send_admin_invite_email(
+                    to_email=email,
+                    login_id=email,
+                    temporary_password=temp_password,
+                    set_password_link=link_for_email,
+                )
+                email_sent = True
+            except Exception as send_err:
+                logger.warning("Invite email could not be sent (user was created): %s", send_err)
+
+        logger.info(f"Invite flow for {email} by {current_user.get('email')}: user created, email_sent=%s", email_sent)
+        return {
+            "message": (
+                f"Invite sent to {email}. They will receive an email with a link to set their password."
+                if email_sent
+                else f"User created for {email}. Email is not configured or could not be sent; use the message below to share credentials manually."
+            ),
+            "email_sent": email_sent,
+            "login_id": email,
+            "temporary_password": temp_password,
+            "set_password_link": set_password_link,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Invite error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.patch("/resumes/{resume_id}/type")
 async def update_resume_type(

@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { API_BASE_URL } from '../config/api'
+import { API_BASE_URL, getAdminNotifications } from '../config/api'
 import './Navbar.css'
 
 const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, showLogout = true, adminTabs, activeTab, setActiveTab, centerHeading }) => {
@@ -16,6 +16,46 @@ const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, show
 
   const navigate = useNavigate()
   const { logout } = useApp()
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const notificationsRef = useRef(null)
+
+  const fetchNotifications = async (showLoading = false) => {
+    if (!adminTabs) return
+    try {
+      if (showLoading) setNotificationsLoading(true)
+      const data = await getAdminNotifications({ limit: 30, days: 7 })
+      setNotifications(data.notifications || [])
+      setUnreadCount(data.unread_count ?? 0)
+    } catch (e) {
+      setNotifications([])
+      setUnreadCount(0)
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!adminTabs) return
+    fetchNotifications(true)
+    const interval = setInterval(() => fetchNotifications(false), 60000)
+    const onResumeUploaded = () => fetchNotifications(false)
+    window.addEventListener('resumeUploaded', onResumeUploaded)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('resumeUploaded', onResumeUploaded)
+    }
+  }, [adminTabs])
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target)) setNotificationsOpen(false)
+    }
+    if (notificationsOpen) document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [notificationsOpen])
 
   const handleAdminToggle = () => {
     navigate('/admin')
@@ -47,7 +87,7 @@ const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, show
             onClick={() => !isPortalMode && navigate('/admin')}
             style={{ cursor: isPortalMode ? 'default' : 'pointer' }}
           >
-            techbankai
+            TechBankAI
           </motion.h1>
         </div>
 
@@ -84,6 +124,50 @@ const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, show
             >
               Admin
             </button>
+          )}
+
+          {adminTabs && (
+            <div className="navbar-notification-wrap" ref={notificationsRef}>
+              <button
+                type="button"
+                className="navbar-notification-bell"
+                onClick={() => setNotificationsOpen((o) => !o)}
+                title="Notifications"
+                aria-label="Notifications"
+              >
+                <span className="navbar-notification-bell-icon">🔔</span>
+                {unreadCount > 0 && !notificationsOpen && (
+                  <span className="navbar-notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
+              </button>
+              {notificationsOpen && (
+                <div className="navbar-notification-dropdown">
+                  <div className="navbar-notification-dropdown-header">
+                    <span>Notifications</span>
+                    <button type="button" className="navbar-notification-dropdown-refresh" onClick={() => fetchNotifications(true)} disabled={notificationsLoading}>
+                      {notificationsLoading ? '…' : '↻'}
+                    </button>
+                  </div>
+                  <div className="navbar-notification-dropdown-list">
+                    {notifications.length === 0 && !notificationsLoading && (
+                      <div className="navbar-notification-empty">No recent notifications</div>
+                    )}
+                    {notifications.slice(0, 20).map((n) => (
+                      <div key={n.id || n.resume_id} className={`navbar-notification-item navbar-notification-item--${n.type || 'default'}`}>
+                        {n.type === 'reminder' && <span className="navbar-notification-type-tag">Reminder</span>}
+                        {n.type === 'login' && <span className="navbar-notification-type-tag navbar-notification-type-tag--login">Login</span>}
+                        {n.type === 'job_application' && <span className="navbar-notification-type-tag navbar-notification-type-tag--job">Application</span>}
+                        {n.type === 'resume_upload' && <span className="navbar-notification-type-tag navbar-notification-type-tag--resume">Resume</span>}
+                        <div className="navbar-notification-message">{n.message}</div>
+                        <div className="navbar-notification-time">
+                          {n.timestamp ? new Date(n.timestamp).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : ''}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {showProfile && (

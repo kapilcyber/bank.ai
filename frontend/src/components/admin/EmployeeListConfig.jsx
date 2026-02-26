@@ -3,7 +3,8 @@ import {
   getEmployeeListConfig,
   updateEmployeeListConfig,
   uploadEmployeeListCsv,
-  getEmployeeList
+  getEmployeeList,
+  getEmployeeListLeftAfterUpload
 } from '../../config/api'
 import './EmployeeListConfig.css'
 
@@ -17,6 +18,8 @@ const EmployeeListConfig = () => {
   const [dragActive, setDragActive] = useState(false)
   const [listItems, setListItems] = useState([])
   const [listLoading, setListLoading] = useState(false)
+  const [leftEmployeesModal, setLeftEmployeesModal] = useState(null) // { left_employees: [...] } or null
+  const [diffLoading, setDiffLoading] = useState(false)
 
   useEffect(() => {
     fetchConfig()
@@ -99,6 +102,19 @@ const EmployeeListConfig = () => {
     }
   }
 
+  const openListDifferenceModal = async () => {
+    try {
+      setDiffLoading(true)
+      setError(null)
+      const data = await getEmployeeListLeftAfterUpload()
+      setLeftEmployeesModal({ left_employees: data.left_employees || [] })
+    } catch (err) {
+      setError(err.message || err.detail || 'Failed to load list difference')
+    } finally {
+      setDiffLoading(false)
+    }
+  }
+
   const downloadTemplate = () => {
     const csv = 'employee_id,full_name,email\nCT1001,John Doe,john@example.com'
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -120,7 +136,62 @@ const EmployeeListConfig = () => {
 
   return (
     <div className="employee-list-config">
-      <h1>Employee List</h1>
+      <div className="employee-list-config-header">
+        <h1>Employee List</h1>
+        <div className={`employee-list-diff-popover-wrap${leftEmployeesModal !== null ? ' employee-list-diff-popover-open' : ''}`}>
+          <button
+            type="button"
+            className="employee-list-config-diff-btn"
+            onClick={openListDifferenceModal}
+            disabled={diffLoading}
+          >
+            {diffLoading ? 'Loading...' : 'View list difference'}
+          </button>
+          {leftEmployeesModal !== null && (
+            <div className="employee-list-left-popover">
+              <h2 className="employee-list-left-modal-title">Left company employees</h2>
+              <p className="employee-list-left-modal-desc">
+                Employees who were in the previous list but are not in the current list after the last upload.
+              </p>
+              {(!leftEmployeesModal.left_employees || leftEmployeesModal.left_employees.length === 0) ? (
+                <p className="employee-list-left-modal-empty">No difference. Everyone in the previous list is in the current list (or no list has been uploaded yet).</p>
+              ) : (
+                <>
+                  <div className="employee-list-left-modal-list-wrap">
+                    <table className="employee-list-config-table employee-list-left-modal-table">
+                      <thead>
+                        <tr>
+                          <th>Employee ID</th>
+                          <th>Name</th>
+                          <th>Email</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {leftEmployeesModal.left_employees.map((e, i) => (
+                          <tr key={e.user_id || i}>
+                            <td>{e.employee_id || '—'}</td>
+                            <td>{e.full_name || '—'}</td>
+                            <td>{e.email || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+              <div className="employee-list-left-modal-actions" style={{ marginTop: 16 }}>
+                <button
+                  type="button"
+                  className="employee-list-left-modal-close"
+                  onClick={() => setLeftEmployeesModal(null)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {error && <div className="employee-list-config-error">{error}</div>}
       {success && <div className="employee-list-config-success">{success}</div>}

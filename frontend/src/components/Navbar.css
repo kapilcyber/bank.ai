@@ -178,7 +178,8 @@
   align-items: center;
   gap: 1rem;
   flex-shrink: 0;
-  z-index: 1;
+  position: relative;
+  z-index: 100;
 }
 
 .admin-toggle {
@@ -288,6 +289,187 @@
 
 .navbar-cache-logo:hover {
   transform: scale(1.05);
+}
+
+/* Notification bell (admin only) */
+.navbar-notification-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.navbar-notification-bell {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: var(--radius-button);
+  color: var(--color-text-dark);
+  font-size: 1.35rem;
+  line-height: 1;
+  transition: background 0.2s, transform 0.2s;
+}
+.navbar-notification-bell:hover {
+  background: rgba(127, 183, 176, 0.15);
+  transform: scale(1.05);
+}
+.navbar-notification-bell-icon {
+  display: inline-block;
+}
+.navbar-notification-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.navbar-notification-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 380px;
+  max-height: 420px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  z-index: 1100;
+  font-family: var(--font-family, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+}
+.navbar-notification-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: #f8fafc;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #0f172a;
+  letter-spacing: 0.01em;
+}
+.navbar-notification-dropdown-refresh {
+  font-family: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #475569;
+  border-radius: 6px;
+}
+.navbar-notification-dropdown-refresh:hover:not(:disabled) {
+  background: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+}
+.navbar-notification-dropdown-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+.navbar-notification-item {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s;
+  font-family: inherit;
+  border-left: 3px solid transparent;
+}
+.navbar-notification-item:hover {
+  background: #f8fafc;
+}
+.navbar-notification-message {
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.45;
+}
+.navbar-notification-time {
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: 6px;
+}
+.navbar-notification-empty {
+  padding: 28px 18px;
+  text-align: center;
+  font-family: inherit;
+  font-weight: 600;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.navbar-notification-type-tag {
+  display: inline-block;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0f766e;
+  background: rgba(13, 148, 136, 0.12);
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+.navbar-notification-type-tag--login {
+  color: #0369a1;
+  background: rgba(2, 132, 199, 0.12);
+}
+.navbar-notification-type-tag--job {
+  color: #166534;
+  background: rgba(22, 101, 52, 0.12);
+}
+.navbar-notification-type-tag--resume {
+  color: #713f12;
+  background: rgba(120, 53, 15, 0.12);
+}
+
+/* Differentiate by type: left border + subtle background */
+.navbar-notification-item--reminder {
+  border-left-color: #0d9488;
+  background: rgba(13, 148, 136, 0.04);
+}
+.navbar-notification-item--reminder .navbar-notification-message {
+  color: #0f766e;
+}
+.navbar-notification-item--login {
+  border-left-color: #0284c7;
+  background: rgba(2, 132, 199, 0.04);
+}
+.navbar-notification-item--login .navbar-notification-message {
+  color: #0c4a6e;
+}
+.navbar-notification-item--job_application {
+  border-left-color: #15803d;
+  background: rgba(22, 101, 52, 0.04);
+}
+.navbar-notification-item--job_application .navbar-notification-message {
+  color: #14532d;
+}
+.navbar-notification-item--resume_upload {
+  border-left-color: #b45309;
+  background: rgba(180, 83, 9, 0.04);
+}
+.navbar-notification-item--resume_upload .navbar-notification-message {
+  color: #78350f;
+}
+.navbar-notification-item--default {
+  border-left-color: #64748b;
+  background: rgba(100, 116, 139, 0.04);
 }
 
 /* Responsive */

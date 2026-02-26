@@ -6,9 +6,13 @@ from typing import Optional
 import uuid
 from datetime import datetime
 
+from sqlalchemy.orm import selectinload
+
 from src.models.job_opening import JobOpening
 from src.models.job_application import JobApplication
+from src.models.resume import Resume
 from src.config.database import get_postgres_db
+from src.utils.response_formatter import format_resume_response
 from src.middleware.auth_middleware import get_admin_user, get_current_user
 from fastapi import Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -24,11 +28,16 @@ router = APIRouter(prefix="/api/job-openings", tags=["Job Openings"])
 ALLOWED_EXTENSIONS = ['pdf', 'docx', 'doc']
 
 
+JOB_TYPES = ("internship", "full_time", "remote", "hybrid", "contract")
+
+
 @router.post("")
 async def create_job_opening(
     title: str = Form(...),
     location: str = Form(...),
     business_area: str = Form(...),
+    experience_required: Optional[str] = Form(None),
+    job_type: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     jd_file: Optional[UploadFile] = File(None),
     status: str = Form("active"),
@@ -40,6 +49,8 @@ async def create_job_opening(
         # Validate status
         if status not in ["active", "inactive"]:
             raise HTTPException(status_code=400, detail="Status must be 'active' or 'inactive'")
+        if job_type and job_type not in JOB_TYPES:
+            raise HTTPException(status_code=400, detail="job_type must be one of: internship, full_time, remote, hybrid, contract")
         
         # Generate unique job_id
         job_id = f"JOB-{uuid.uuid4().hex[:8].upper()}"
@@ -69,6 +80,8 @@ async def create_job_opening(
             title=title,
             location=location,
             business_area=business_area,
+            experience_required=experience_required,
+            job_type=job_type,
             description=description or "",
             jd_file_url=jd_file_url,
             status=status,
@@ -87,6 +100,8 @@ async def create_job_opening(
             "title": job_opening.title,
             "location": job_opening.location,
             "business_area": job_opening.business_area,
+            "experience_required": job_opening.experience_required,
+            "job_type": job_opening.job_type,
             "description": job_opening.description,
             "jd_file_url": job_opening.jd_file_url,
             "status": job_opening.status,
@@ -165,6 +180,8 @@ async def list_job_openings(
                     "title": job.title,
                     "location": job.location,
                     "business_area": job.business_area,
+                    "experience_required": job.experience_required,
+                    "job_type": getattr(job, "job_type", None),
                     "description": job.description,
                     "jd_file_url": job.jd_file_url,
                     "status": job.status,
@@ -212,6 +229,8 @@ async def filter_job_openings(
                     "title": job.title,
                     "location": job.location,
                     "business_area": job.business_area,
+                    "experience_required": job.experience_required,
+                    "job_type": getattr(job, "job_type", None),
                     "description": job.description,
                     "jd_file_url": job.jd_file_url,
                     "status": job.status,
@@ -251,6 +270,62 @@ async def get_job_applicant_count(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/{job_id}/applicants")
+async def get_job_applicants(
+    job_id: str,
+    current_user: dict = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_postgres_db)
+):
+    """List all applicants (resumes) for a specific job opening. Admin only. Same record shape as Records page."""
+    try:
+        job_result = await db.execute(select(JobOpening).where(JobOpening.job_id == job_id))
+        job_opening = job_result.scalar_one_or_none()
+        if not job_opening:
+            raise HTTPException(status_code=404, detail="Job opening not found")
+
+        app_result = await db.execute(
+            select(JobApplication.resume_id, JobApplication.job_title, JobApplication.applied_at).where(JobApplication.job_id == job_id)
+        )
+        app_rows = app_result.all()
+        if not app_rows:
+            return {
+                "job_id": job_id,
+                "job_title": job_opening.title,
+                "applicants": []
+            }
+        resume_ids = [row[0] for row in app_rows]
+        # Map resume_id -> stored job title and applied_at (for this application)
+        application_meta = {row[0]: {"job_title": row[1], "applied_at": row[2]} for row in app_rows}
+
+        resumes_query = select(Resume).where(Resume.id.in_(resume_ids)).options(
+            selectinload(Resume.work_history),
+            selectinload(Resume.certificates),
+            selectinload(Resume.educations)
+        )
+        res_result = await db.execute(resumes_query)
+        resumes = res_result.scalars().all()
+        applicants = []
+        for r in resumes:
+            try:
+                data = format_resume_response(r)
+                meta = application_meta.get(r.id, {})
+                data["applied_for_job_title"] = meta.get("job_title") or job_opening.title
+                data["applied_at"] = meta.get("applied_at").isoformat() if meta.get("applied_at") else None
+                applicants.append(data)
+            except Exception as resume_error:
+                logger.warning(f"Failed to format applicant resume {r.id}: {resume_error}")
+        return {
+            "job_id": job_id,
+            "job_title": job_opening.title,
+            "applicants": applicants
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get job applicants error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/{job_id}")
 async def get_job_opening(
     job_id: str,
@@ -271,6 +346,8 @@ async def get_job_opening(
             "title": job_opening.title,
             "location": job_opening.location,
             "business_area": job_opening.business_area,
+            "experience_required": job_opening.experience_required,
+            "job_type": job_opening.job_type,
             "description": job_opening.description,
             "jd_file_url": job_opening.jd_file_url,
             "status": job_opening.status,
@@ -292,6 +369,8 @@ async def update_job_opening(
     title: Optional[str] = Form(None),
     location: Optional[str] = Form(None),
     business_area: Optional[str] = Form(None),
+    experience_required: Optional[str] = Form(None),
+    job_type: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     jd_file: Optional[UploadFile] = File(None),
     status: Optional[str] = Form(None),
@@ -314,6 +393,12 @@ async def update_job_opening(
             job_opening.location = location
         if business_area is not None:
             job_opening.business_area = business_area
+        if experience_required is not None:
+            job_opening.experience_required = experience_required
+        if job_type is not None:
+            if job_type and job_type not in JOB_TYPES:
+                raise HTTPException(status_code=400, detail="job_type must be one of: internship, full_time, remote, hybrid, contract")
+            job_opening.job_type = job_type or None
         if description is not None:
             job_opening.description = description
         if status is not None:
@@ -352,6 +437,8 @@ async def update_job_opening(
             "title": job_opening.title,
             "location": job_opening.location,
             "business_area": job_opening.business_area,
+            "experience_required": job_opening.experience_required,
+            "job_type": job_opening.job_type,
             "description": job_opening.description,
             "jd_file_url": job_opening.jd_file_url,
             "status": job_opening.status,

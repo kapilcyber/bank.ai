@@ -2,17 +2,22 @@ import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { getProfile, uploadProfilePhoto, removeProfilePhoto, API_BASE_URL } from '../config/api'
+import { getProfile, uploadProfilePhoto, removeProfilePhoto, deletePlatformUser, API_BASE_URL } from '../config/api'
 import Navbar from '../components/Navbar'
 import CyberBackground from '../components/admin/CyberBackground'
 import './Profile.css'
 
+const PLATFORM_MODES = ['admin', 'hr', 'talent_acquisition', 'talent acquisition']
+
 const Profile = () => {
   const navigate = useNavigate()
-  const { userProfile, logout, setUserProfile } = useApp()
+  const { userProfile, logout, setUserProfile, darkMode, setDarkMode } = useApp()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [leaving, setLeaving] = useState(false)
   const fileInputRef = useRef(null)
+
+  const isPlatformUser = PLATFORM_MODES.includes((userProfile?.mode || '').toLowerCase())
 
   // Use profile_img from backend profile data
   const profileImg = userProfile?.profile_img
@@ -67,6 +72,23 @@ const Profile = () => {
     // Using ref for direct DOM access
     if (fileInputRef.current) {
       fileInputRef.current.click()
+    }
+  }
+
+  const handleLeavePlatform = async () => {
+    if (!userProfile?.id) return
+    if (!window.confirm('Are you sure you want to leave the platform? Your account will be removed and you will be logged out.')) return
+    try {
+      setLeaving(true)
+      setError('')
+      await deletePlatformUser(userProfile.id)
+      logout()
+      navigate('/')
+    } catch (err) {
+      console.error('Leave platform error:', err)
+      setError(err.message || err.detail || 'Failed to leave platform.')
+    } finally {
+      setLeaving(false)
     }
   }
 
@@ -184,6 +206,23 @@ const Profile = () => {
                 {userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString() : 'N/A'}
               </p>
             </div>
+
+            <div className="cyber-info-box profile-dark-mode-row">
+              <label><span className="icon">🌙</span> DARK MODE</label>
+              <div className="profile-dark-mode-toggle">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={darkMode}
+                  aria-label={darkMode ? 'Turn off dark mode' : 'Turn on dark mode'}
+                  className={`profile-toggle-track ${darkMode ? 'profile-toggle-track--on' : ''}`}
+                  onClick={() => setDarkMode(prev => !prev)}
+                >
+                  <span className="profile-toggle-thumb" />
+                </button>
+                <span className="profile-toggle-label">{darkMode ? 'On' : 'Off'}</span>
+              </div>
+            </div>
           </div>
 
           {/* Actions */}
@@ -194,6 +233,17 @@ const Profile = () => {
             <button className="cyber-btn danger" onClick={() => { logout(); navigate('/'); }}>
               Logout
             </button>
+            {isPlatformUser && (
+              <button
+                type="button"
+                className="cyber-btn leave-platform-btn"
+                onClick={handleLeavePlatform}
+                disabled={leaving}
+                title="Remove your account from the platform"
+              >
+                {leaving ? 'Leaving…' : 'Leave platform'}
+              </button>
+            )}
           </div>
         </motion.div>
       </div>

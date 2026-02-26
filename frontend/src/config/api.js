@@ -34,7 +34,9 @@ export const API_ENDPOINTS = {
   FORGOT_PASSWORD_SEND_CODE: '/auth/forgot-password/send-code',
   FORGOT_PASSWORD_VERIFY_CODE: '/auth/forgot-password/verify-code',
   FORGOT_PASSWORD_RESET: '/auth/forgot-password/reset',
+  SET_PASSWORD_WITH_TOKEN: '/auth/set-password-with-token',
   VERIFY_EMPLOYEE: '/auth/verify-employee',
+  ADMIN_INVITE: '/admin/invite',
 
   // User Profile
   GET_PROFILE: '/user/profile',
@@ -48,6 +50,7 @@ export const API_ENDPOINTS = {
 
   // Admin Endpoints
   ADMIN_STATS: '/admin/stats',
+  ADMIN_NOTIFICATIONS: '/admin/notifications',
   ADMIN_USERS: '/admin/users',
   ADMIN_PLATFORM_ADMINS: '/admin/users/platform-admins',
   ADMIN_UPLOAD_RESUMES: '/resumes/upload',
@@ -55,6 +58,8 @@ export const API_ENDPOINTS = {
   EMPLOYEE_LIST_CONFIG: '/admin/employee-list/config',
   EMPLOYEE_LIST_UPLOAD: '/admin/employee-list/upload',
   EMPLOYEE_LIST: '/admin/employee-list',
+  EMPLOYEE_LIST_LEFT_AFTER_UPLOAD: '/admin/employee-list/left-after-upload',
+  EMPLOYEE_LIST_DOWNGRADE_LEFT: '/admin/employee-list/downgrade-left',
 
   // Help Assistant
   ASSISTANT_QUERY: '/assistant/query',
@@ -151,14 +156,15 @@ export const apiRequest = async (endpoint, options = {}) => {
  * Upload file to API
  * @param {string} endpoint - API endpoint
  * @param {FormData} formData - Form data with file
+ * @param {string} [method='POST'] - HTTP method (e.g. 'PUT' for updates)
  * @returns {Promise} - API response
  */
-export const uploadFile = async (endpoint, formData) => {
+export const uploadFile = async (endpoint, formData, method = 'POST') => {
   const token = getAuthToken()
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'POST',
+      method,
       headers: {
         ...(token && { Authorization: `Bearer ${token}` }),
       },
@@ -340,6 +346,35 @@ export const resetPassword = async (email, code, newPassword) => {
 }
 
 /**
+ * Set password using invite (set-password) token. No auth required.
+ * @param {string} token - Token from set-password link
+ * @param {string} newPassword - New password
+ * @param {string} [email] - Email (must match invite recipient; optional but recommended for confirmation)
+ */
+export const setPasswordWithToken = async (token, newPassword, email) => {
+  const body = { token, new_password: newPassword }
+  if (email) body.email = email
+  return await apiRequest(API_ENDPOINTS.SET_PASSWORD_WITH_TOKEN, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+/**
+ * Send admin portal invite to a company employee (admin only).
+ * @param {{ email: string, role: string, custom_set_password_link?: string, temporary_password?: string }} data - email, role, optional custom portal link, optional custom password
+ */
+export const sendAdminInvite = async (data) => {
+  const body = { email: data.email, role: data.role }
+  if (data.custom_set_password_link) body.custom_set_password_link = data.custom_set_password_link
+  if (data.temporary_password) body.temporary_password = data.temporary_password
+  return await apiRequest(API_ENDPOINTS.ADMIN_INVITE, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+/**
  * Get detailed user profile from backend
  * @returns {Promise} - User profile data
  */
@@ -424,6 +459,19 @@ export const removeProfilePhoto = async () => {
  */
 export const getPlatformAdminUsers = async () => {
   return await apiRequest(API_ENDPOINTS.ADMIN_PLATFORM_ADMINS)
+}
+
+/**
+ * Get admin notifications (recent resume uploads, job applications). Admin only.
+ * @param {object} params - Optional { limit, days }
+ * @returns {Promise<{ notifications: Array, unread_count: number }>}
+ */
+export const getAdminNotifications = async (params = {}) => {
+  const q = new URLSearchParams()
+  if (params.limit != null) q.set('limit', params.limit)
+  if (params.days != null) q.set('days', params.days)
+  const query = q.toString()
+  return await apiRequest(query ? `${API_ENDPOINTS.ADMIN_NOTIFICATIONS}?${query}` : API_ENDPOINTS.ADMIN_NOTIFICATIONS)
 }
 
 /**
@@ -599,6 +647,15 @@ export const getJobOpening = async (jobId) => {
 }
 
 /**
+ * Get applicants (resumes) for a specific job opening. Admin only. Same shape as Records.
+ * @param {string} jobId - Job ID
+ * @returns {Promise<{ job_id, job_title, applicants }>}
+ */
+export const getJobApplicants = async (jobId) => {
+  return await apiRequest(`${API_ENDPOINTS.GET_JOB_OPENINGS}/${jobId}/applicants`)
+}
+
+/**
  * Filter job openings by business_area or title
  * @param {object} params - Filter parameters (business_area, title)
  * @returns {Promise} - Filtered job openings
@@ -625,6 +682,8 @@ export const createJobOpening = async (jobData, jdFile = null) => {
   formData.append('title', jobData.title)
   formData.append('location', jobData.location)
   formData.append('business_area', jobData.business_area)
+  if (jobData.experience_required) formData.append('experience_required', jobData.experience_required)
+  if (jobData.job_type) formData.append('job_type', jobData.job_type)
   if (jobData.description) formData.append('description', jobData.description)
   if (jobData.status) formData.append('status', jobData.status)
   if (jdFile) formData.append('jd_file', jdFile)
@@ -644,11 +703,13 @@ export const updateJobOpening = async (jobId, jobData, jdFile = null) => {
   if (jobData.title) formData.append('title', jobData.title)
   if (jobData.location) formData.append('location', jobData.location)
   if (jobData.business_area) formData.append('business_area', jobData.business_area)
+  if (jobData.experience_required !== undefined) formData.append('experience_required', jobData.experience_required)
+  if (jobData.job_type !== undefined) formData.append('job_type', jobData.job_type || '')
   if (jobData.description !== undefined) formData.append('description', jobData.description)
   if (jobData.status) formData.append('status', jobData.status)
   if (jdFile) formData.append('jd_file', jdFile)
   
-  return await uploadFile(`${API_ENDPOINTS.UPDATE_JOB_OPENING}/${jobId}`, formData)
+  return await uploadFile(`${API_ENDPOINTS.UPDATE_JOB_OPENING}/${jobId}`, formData, 'PUT')
 }
 
 /**
@@ -706,5 +767,25 @@ export const getEmployeeList = async (params = {}) => {
   const q = new URLSearchParams(params).toString()
   const endpoint = q ? `${API_ENDPOINTS.EMPLOYEE_LIST}?${q}` : API_ENDPOINTS.EMPLOYEE_LIST
   return await apiRequest(endpoint)
+}
+
+/**
+ * Get the list difference (employees in previous list but not in new list after last upload).
+ * @returns {Promise<{left_employees: Array<{user_id, email, employee_id, full_name}>}>}
+ */
+export const getEmployeeListLeftAfterUpload = async () => {
+  return await apiRequest(API_ENDPOINTS.EMPLOYEE_LIST_LEFT_AFTER_UPLOAD)
+}
+
+/**
+ * Downgrade users from Company Employee to Guest User (e.g. after they left - not in new list).
+ * @param {number[]} userIds - User IDs from upload response left_employees
+ * @returns {Promise<{updated: number, message: string}>}
+ */
+export const downgradeLeftEmployees = async (userIds) => {
+  return await apiRequest(API_ENDPOINTS.EMPLOYEE_LIST_DOWNGRADE_LEFT, {
+    method: 'POST',
+    body: JSON.stringify({ user_ids: userIds }),
+  })
 }
 

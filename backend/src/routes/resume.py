@@ -1189,13 +1189,15 @@ async def upload_user_profile_resume(
         job_id = (jobId or "").strip()
         if job_id:
             try:
-                # Verify job exists in job_openings
+                # Verify job exists in job_openings and get title to store
                 job_result = await db.execute(select(JobOpening).where(JobOpening.job_id == job_id))
-                if job_result.scalar_one_or_none():
+                job_opening = job_result.scalar_one_or_none()
+                if job_opening:
                     applicant_name = fullName or parsed_data.get('resume_candidate_name')
                     applicant_email = email or uploader_email or parsed_data.get('resume_contact_info')
                     job_app = JobApplication(
                         job_id=job_id,
+                        job_title=job_opening.title,
                         resume_id=resume.id,
                         applicant_name=applicant_name,
                         applicant_email=applicant_email,
@@ -1203,7 +1205,7 @@ async def upload_user_profile_resume(
                     )
                     db.add(job_app)
                     await db.commit()
-                    logger.info(f"JobApplication created: job_id={job_id}, resume_id={resume.id}")
+                    logger.info(f"JobApplication created: job_id={job_id}, job_title={job_opening.title}, resume_id={resume.id}")
                 else:
                     logger.warning(f"job_id {job_id} not found in job_openings, skipping JobApplication")
             except Exception as job_err:
