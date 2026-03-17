@@ -12,15 +12,29 @@ def check_redis_connection():
     """Check if Redis is available and provide helpful error message if not."""
     try:
         import redis
-        from urllib.parse import urlparse
+        from urllib.parse import urlparse, unquote
         
-        # Parse Redis URL
+        # Parse Redis URL (includes password for redis://:password@host:port/db)
         parsed = urlparse(CELERY_BROKER_URL)
         host = parsed.hostname or 'localhost'
         port = parsed.port or 6379
+        password = unquote(parsed.password) if parsed.password else None
+        db = 0
+        if parsed.path and len(parsed.path) > 1:
+            try:
+                db = int(parsed.path.strip('/').split('/')[0] or 0)
+            except (ValueError, IndexError):
+                pass
         
-        # Try to connect
-        r = redis.Redis(host=host, port=port, socket_connect_timeout=2, decode_responses=False)
+        # Try to connect (must pass password when Redis has requirepass)
+        r = redis.Redis(
+            host=host,
+            port=port,
+            password=password,
+            db=db,
+            socket_connect_timeout=2,
+            decode_responses=False,
+        )
         r.ping()
         logger.info(f"Successfully connected to Redis at {host}:{port}")
         return True

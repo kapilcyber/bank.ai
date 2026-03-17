@@ -1,0 +1,23 @@
+# TechBank.ai - Production overrides
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Requires: POSTGRES_PASSWORD, REDIS_PASSWORD, JWT_SECRET_KEY, and FRONTEND_BASE_URL set in .env (no defaults).
+
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+  redis:
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+  backend:
+    environment:
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/0
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
+
+  celery:
+    environment:
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/0

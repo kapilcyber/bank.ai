@@ -50,6 +50,14 @@ class GraphAuthenticator:
 
         error_description = result.get("error_description", "Unknown error")
         error_code = result.get("error", "unknown")
+
+        # AADSTS7000215 = wrong value: must use Secret Value, not Secret ID
+        if "invalid_client" == error_code or "AADSTS7000215" in str(error_description):
+            raise RuntimeError(
+                "Azure client secret is invalid (AADSTS7000215). Use the Secret VALUE from Azure Portal, not the Secret ID. "
+                "In App registration → Certificates & secrets, the Value is shown only when you create a secret; "
+                "if you no longer have it, create a new client secret and set AZURE_CLIENT_SECRET to that value."
+            )
         raise RuntimeError(f"Failed to acquire access token: {error_code} - {error_description}")
 
     def get_auth_headers(self) -> dict:

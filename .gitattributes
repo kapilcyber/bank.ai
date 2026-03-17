@@ -1,0 +1,2 @@
+# Ensure shell scripts always use LF in repo (fixes exec "no such file or directory" in Docker)
+*.sh text eol=lf

@@ -1,0 +1,10 @@
+﻿# TechBank.ai â€“ Portal links for other PCs on the same network
+# Replace YOUR_PC_IP with your machine's IP (see below) or use the detected IP already filled in.
+# Run: .\start-portals.ps1 (network mode) so these ports are listening.
+
+Guest:              http://172.22.64.1:3005/guest
+Freelancer:         http://172.22.64.1:3006/freelancer
+Company Employee:   http://172.22.64.1:3007/employee
+
+# How to find your IP on Windows: Run in PowerShell: (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { !$_.InterfaceAlias.Match('Loopback') }).IPAddress
+# Or: ipconfig  (look for IPv4 Address under your active adapter, e.g. 192.168.1.5)
