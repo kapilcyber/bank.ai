@@ -17,7 +17,9 @@ const FreelancerPortal = () => {
   useEffect(() => {
     setPortalEmployeeId(null)
     setSelectedEmploymentType(FREELANCER_TYPE)
-    navigate('/application', { replace: true })
+    queueMicrotask(() => {
+      navigate('/application', { replace: true })
+    })
   }, [navigate, setSelectedEmploymentType, setPortalEmployeeId])
 
   return null

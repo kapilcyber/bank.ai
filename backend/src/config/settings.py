@@ -25,10 +25,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expiration_hours: int = 24
     
-    # OpenAI Configuration
-    openai_api_key: Optional[str] = None
-    openai_model: str = "gpt-4o"
-    openai_max_tokens: int = 4096
+    # Ollama Configuration
+    ollama_base_url: str = "http://172.16.200.30:11434"
+    ollama_model: str = "llama3.1:latest"
+    ollama_max_tokens: int = 4096
     
     # Google Drive Configuration
     google_drive_credentials_path: Optional[str] = None
@@ -52,8 +52,8 @@ class Settings(BaseSettings):
     # CORS Configuration
     cors_origins: str = "*"  # Comma-separated origins or "*" for all
 
-    # Frontend base URL (for invite/set-password links in emails). App runs on port 3003 by default.
-    frontend_base_url: str = "http://localhost:3003"
+    # Frontend base URL (for invite/set-password links in emails). Main app runs on port 3005 by default.
+    frontend_base_url: str = "http://localhost:3005"
 
     # Google OAuth Configuration
     google_client_id: Optional[str] = None

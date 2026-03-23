@@ -225,7 +225,7 @@ async def root():
         "features": [
             "User Authentication (JWT)",
             "Resume Upload & Parsing (AI-Powered)",
-            "JD Analysis & Matching (GPT-4)",
+            "JD Analysis & Matching (Ollama)",
             "Intelligent Candidate Scoring",
             "Admin Dashboard"
         ]

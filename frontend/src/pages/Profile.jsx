@@ -227,7 +227,7 @@ const Profile = () => {
 
           {/* Actions */}
           <div className="profile-footer-cyber">
-            <button className="cyber-btn primary" onClick={() => navigate('/admin')}>
+            <button className="cyber-btn primary" onClick={() => navigate('/techbank')}>
               Back to Dashboard
             </button>
             <button className="cyber-btn danger" onClick={() => { logout(); navigate('/'); }}>

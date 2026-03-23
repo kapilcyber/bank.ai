@@ -13,9 +13,10 @@ const getJdPdfUrl = (jdFileUrl) => {
   return `${origin}${jdFileUrl.startsWith('/') ? '' : '/'}${jdFileUrl}`
 }
 
-// Check if we're running as standalone (careers page on port 3005)
+// Standalone careers build (vite.config.careers.js uses port 3010) or careers.html root
+const MAIN_APP_DEV_PORT = import.meta.env.VITE_PORT_MAIN || '3005'
 const isStandalone = typeof window !== 'undefined' && (
-  window.location.port === '3005' || 
+  window.location.port === '3010' ||
   document.getElementById('careers-root') !== null
 )
 
@@ -97,7 +98,9 @@ const Careers = () => {
   const handleApply = (jobId) => {
     // Redirect to guest portal with job ID (guest sets employment type and goes to application)
     if (isStandalone) {
-      const guestBaseUrl = import.meta.env.VITE_CAREERS_GUEST_REDIRECT_URL || window.location.origin.replace(':3005', ':3003')
+      const guestBaseUrl =
+        import.meta.env.VITE_CAREERS_GUEST_REDIRECT_URL ||
+        `${window.location.protocol}//${window.location.hostname}:${MAIN_APP_DEV_PORT}`
       window.location.href = `${guestBaseUrl}/guest?jobId=${jobId}`
     } else {
       navigate(`/guest?jobId=${jobId}`)

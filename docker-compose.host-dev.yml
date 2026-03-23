@@ -1,0 +1,23 @@
+# Nginx on :80 → host Vite :3005 + FastAPI (host.docker.internal:<port>)
+# Use with frontend: npm run dev:behind-proxy  and backend on 0.0.0.0
+#
+# From repo root:
+#   docker compose -f docker-compose.host-dev.yml up
+# Or: .\start-nginx-host-dev.ps1 -BackendPort 8002
+#
+version: "3.8"
+
+services:
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      FRONTEND_UPSTREAM: ${FRONTEND_UPSTREAM:-host.docker.internal:3005}
+      BACKEND_UPSTREAM: ${BACKEND_UPSTREAM:-host.docker.internal:8000}
+    volumes:
+      - ./nginx/nginx.host-dev.template:/templates/nginx.host-dev.template:ro
+      - ./nginx/docker-host-dev-entrypoint.sh:/custom-entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/custom-entrypoint.sh"]

@@ -23,7 +23,11 @@ try {
     <React.StrictMode>
       <ErrorBoundary>
         <GoogleOAuthProvider clientId="646588737744-ervf3j64kdic8iektcc9sflflm3c7iie.apps.googleusercontent.com">
-          <BrowserRouter>
+          <BrowserRouter
+            basename={
+              import.meta.env.BASE_URL === '/' ? undefined : import.meta.env.BASE_URL.replace(/\/$/, '')
+            }
+          >
             <App />
           </BrowserRouter>
         </GoogleOAuthProvider>

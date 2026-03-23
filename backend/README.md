@@ -5,7 +5,7 @@ AI-Powered Resume Management and Job Description Analysis System
 ## Features
 
 ✅ **User Authentication** - JWT-based authentication with role-based access (user/admin)  
-✅ **Resume Upload & Parsing** - AI-powered resume parsing using GPT-4  
+✅ **Resume Upload & Parsing** - AI-powered resume parsing using Ollama  
 ✅ **JD Analysis** - Intelligent job description analysis and keyword extraction  
 ✅ **Smart Matching** - Hybrid matching algorithm (Traditional + AI semantic matching)  
 ✅ **Candidate Scoring** - Score candidates 0-100 based on skills, experience, and semantic fit  
@@ -15,7 +15,7 @@ AI-Powered Resume Management and Job Description Analysis System
 
 - **FastAPI** - Modern Python web framework
 - **PostgreSQL** - All data storage (users, resumes, JD analysis)
-- **OpenAI GPT-4** - AI-powered parsing and matching
+- **Ollama** - AI-powered parsing and matching
 - **JWT** - Secure authentication
 - **SQLAlchemy** - PostgreSQL ORM
 - **Pydantic** - Data validation
@@ -24,7 +24,7 @@ AI-Powered Resume Management and Job Description Analysis System
 
 - Python 3.11+
 - PostgreSQL 15+ (running on localhost:5432)
-- OpenAI API Key
+- Ollama endpoint and model
 
 ## Installation
 
@@ -68,8 +68,9 @@ JWT_SECRET_KEY=your-secret-key-here
 JWT_ALGORITHM=HS256
 JWT_EXPIRATION_HOURS=24
 
-# OpenAI
-OPENAI_API_KEY=your-openai-api-key
+# Ollama
+OLLAMA_BASE_URL=http://172.16.200.30:11434
+OLLAMA_MODEL=llama3.1:latest
 ```
 
 ### 4. Setup Database
@@ -151,7 +152,7 @@ backend/
 │   │       ├── user_profile.py
 │   │       └── gmail.py
 │   ├── services/
-│   │   ├── openai_service.py  # OpenAI GPT-4 integration
+│   │   ├── openai_service.py  # Ollama integration (legacy filename)
 │   │   ├── resume_parser.py    # Resume parsing
 │   │   ├── jd_extractor.py    # JD extraction
 │   │   ├── matching_engine.py # Candidate matching
@@ -203,7 +204,7 @@ This ensures the code can be run with `python -m src.main` and follows Python be
 
 1. **Upload JD File** - Admin uploads PDF/DOC job description
 2. **Text Extraction** - Extract text using pdfplumber/python-docx
-3. **AI Analysis** - GPT-4 extracts:
+3. **AI Analysis** - Ollama extracts:
    - Required skills
    - Preferred skills
    - Experience requirements
@@ -211,16 +212,16 @@ This ensures the code can be run with `python -m src.main` and follows Python be
    - Keywords
 4. **Resume Matching** - Compare against all stored resumes:
    - **Phase 1**: Quick traditional scoring (skill overlap, experience, keywords)
-   - **Phase 2**: AI semantic matching for top candidates (GPT-4)
+   - **Phase 2**: AI semantic matching for top candidates (Ollama)
 5. **Scoring** - Hybrid score (0-100):
    - Skill match: 40%
    - Experience match: 30%
    - Keyword/Semantic match: 30%
 6. **Results** - Return top N candidates above threshold (e.g., 80%)
 
-## OpenAI Integration
+## Ollama Integration
 
-The system uses GPT-4 for:
+The system uses Ollama for:
 - **Resume Parsing**: Extract name, email, skills, experience, education
 - **JD Analysis**: Extract requirements and keywords intelligently
 - **Semantic Matching**: Understand context beyond keyword matching
@@ -243,10 +244,10 @@ psql -U postgres -d techbank
 - Check `.env` file has correct credentials
 - Restart backend to create tables automatically
 
-### OpenAI API Error
-- Verify API key in `.env` file
-- Check API key has credits
-- Ensure model name is correct (`gpt-4-turbo-preview`)
+### Ollama Connection Error
+- Verify `OLLAMA_BASE_URL` in `.env`
+- Verify the Ollama host is reachable from backend server
+- Ensure `OLLAMA_MODEL` is available on the Ollama server
 
 ### File Upload Error
 - Check `uploads/resumes/` and `uploads/jd/` directories exist

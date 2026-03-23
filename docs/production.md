@@ -10,7 +10,7 @@ Use this checklist when deploying the Docker stack to production.
 
 ## HTTPS
 
-- Place TLS certificates in `nginx/ssl/` as `cert.pem` and `key.pem`, or terminate TLS at a reverse proxy (Traefik, Caddy, or cloud load balancer) in front of nginx.
+- Place TLS certificates in `nginx/ssl/` as `cert.pem` and `key.pem`, or terminate TLS at a reverse proxy (Traefik, cloud load balancer, etc.) in front of nginx.
 - For Let’s Encrypt, use certbot or a reverse proxy that handles ACME.
 
 ## Running in production mode

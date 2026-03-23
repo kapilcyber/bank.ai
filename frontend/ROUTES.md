@@ -91,9 +91,7 @@ The application uses React state for:
 ### Future Routes (To Be Implemented)
 
 - `/profile` - User profile page
-- `/admin` - Admin dashboard
-- `/admin/users` - Admin user management
-- `/admin/applications` - Admin application management
+- `/techbank` - Admin dashboard (legacy `/admin` redirects to `/techbank`)
 - `/applications` - User's submitted applications
 - `/application/:id` - View specific application
 

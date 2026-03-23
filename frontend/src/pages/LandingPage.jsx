@@ -21,7 +21,7 @@ const LandingPage = () => {
         const checkAuth = async () => {
             if (isAuthenticated) {
                 if (isAdminRole(userProfile?.mode)) {
-                    navigate('/admin', { replace: true })
+                    navigate('/techbank', { replace: true })
                 } else {
                     await logout()
                 }
@@ -101,7 +101,7 @@ const LandingPage = () => {
                 setIsAuthenticated(true)
                 setUserProfile(userProfileData)
                 sessionStorage.setItem('adminEntranceShown', 'true')
-                navigate('/admin', { replace: true })
+                navigate('/techbank', { replace: true })
             } else {
                 setAuthError('Access Denied: Admin credentials required.')
                 await logout()

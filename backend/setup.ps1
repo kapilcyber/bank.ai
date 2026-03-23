@@ -48,7 +48,7 @@ Write-Host ""
 Write-Host "Checking environment configuration..." -ForegroundColor Yellow
 if (Test-Path ".env") {
     Write-Host "✅ .env file exists" -ForegroundColor Green
-    Write-Host "⚠️  Please update .env with your OpenAI API key!" -ForegroundColor Yellow
+    Write-Host "⚠️  Please update .env with your Ollama URL/model settings!" -ForegroundColor Yellow
 } else {
     Write-Host "⚠️  .env file not found. Copying from .env.example..." -ForegroundColor Yellow
     Copy-Item ".env.example" ".env"
@@ -68,7 +68,7 @@ Write-Host "================================" -ForegroundColor Cyan
 Write-Host "✅ Setup Complete!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Cyan
-Write-Host "1. Update .env file with your OpenAI API key" -ForegroundColor White
+Write-Host "1. Update .env file with your Ollama URL/model settings" -ForegroundColor White
 Write-Host "2. Make sure MongoDB is running on localhost:27017" -ForegroundColor White
 Write-Host "3. Make sure PostgreSQL is running on localhost:5432" -ForegroundColor White
 Write-Host "4. Run: python app.py" -ForegroundColor White

@@ -1,31 +1,101 @@
-"""OpenAI service for AI-powered parsing and matching."""
+"""Ollama service for AI-powered parsing and matching."""
 import json
-from openai import AsyncOpenAI
+import httpx
 from typing import Dict, List
 from src.utils.logger import get_logger
 from src.config.settings import settings
 
 logger = get_logger(__name__)
 
-# OpenAI Configuration from settings
-OPENAI_API_KEY = settings.openai_api_key
-OPENAI_MODEL = settings.openai_model
-OPENAI_MAX_TOKENS = settings.openai_max_tokens
-
-# Initialize OpenAI client lazily to avoid import-time errors
-_client = None
-
+# Ollama configuration from settings
+OLLAMA_BASE_URL = settings.ollama_base_url.rstrip("/")
+OLLAMA_MODEL = settings.ollama_model
+OLLAMA_MAX_TOKENS = settings.ollama_max_tokens
+# Backward-compatible aliases used in other modules
+OPENAI_MODEL = OLLAMA_MODEL
 
 def get_openai_client():
-    """Get or create OpenAI client (lazy initialization)."""
-    global _client
-    if _client is None and OPENAI_API_KEY:
-        try:
-            _client = AsyncOpenAI(api_key=OPENAI_API_KEY)
-        except Exception as e:
-            logger.warning(f"Failed to initialize OpenAI client: {e}")
-            _client = None
-    return _client
+    """Backward-compatible health check for AI backend availability."""
+    return bool(OLLAMA_BASE_URL and OLLAMA_MODEL)
+
+
+def _fallback_ollama_model(model: str) -> str:
+    """Use a practical local fallback if configured model tag is unavailable."""
+    if ":" in model:
+        return f"{model.split(':', 1)[0]}:latest"
+    return f"{model}:latest"
+
+
+async def _ollama_chat_json(system_prompt: str, user_prompt: str, max_tokens: int, temperature: float) -> Dict:
+    """Call Ollama chat API and parse JSON response content."""
+    ollama_payload = {
+        "model": OLLAMA_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "stream": False,
+        "format": "json",
+        "options": {
+            "temperature": temperature,
+            "num_predict": max(64, min(int(max_tokens or OLLAMA_MAX_TOKENS), 4096)),
+        },
+    }
+    openai_compatible_payload = {
+        "model": OLLAMA_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "response_format": {"type": "json_object"},
+        "max_tokens": max(64, min(int(max_tokens or OLLAMA_MAX_TOKENS), 4096)),
+        "temperature": temperature,
+    }
+    generate_prompt = (
+        "You must return valid JSON only. No markdown.\n\n"
+        f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_prompt}"
+    )
+    ollama_generate_payload = {
+        "model": OLLAMA_MODEL,
+        "prompt": generate_prompt,
+        "stream": False,
+        "format": "json",
+        "options": {
+            "temperature": temperature,
+            "num_predict": max(64, min(int(max_tokens or OLLAMA_MAX_TOKENS), 4096)),
+        },
+    }
+    fallback_model = _fallback_ollama_model(OLLAMA_MODEL)
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(f"{OLLAMA_BASE_URL}/api/chat", json=ollama_payload)
+            if response.status_code == 404 and fallback_model != OLLAMA_MODEL:
+                ollama_payload["model"] = fallback_model
+                response = await client.post(f"{OLLAMA_BASE_URL}/api/chat", json=ollama_payload)
+            if response.status_code == 404:
+                openai_compatible_payload["model"] = ollama_payload["model"]
+                response = await client.post(
+                    f"{OLLAMA_BASE_URL}/v1/chat/completions",
+                    json=openai_compatible_payload,
+                )
+            if response.status_code == 404:
+                ollama_generate_payload["model"] = ollama_payload["model"]
+                response = await client.post(
+                    f"{OLLAMA_BASE_URL}/api/generate",
+                    json=ollama_generate_payload,
+                )
+            response.raise_for_status()
+            data = response.json()
+            content = (
+                ((data.get("message") or {}).get("content") or "").strip()
+                or (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+                or (data.get("response") or "").strip()
+            )
+            if not content:
+                raise ValueError("Empty response from Ollama")
+            return json.loads(content)
+    except json.JSONDecodeError as json_error:
+        raise ValueError(f"Invalid JSON response from Ollama: {json_error}") from json_error
 
 
 async def parse_resume_with_gpt(resume_text: str) -> Dict:
@@ -33,10 +103,9 @@ async def parse_resume_with_gpt(resume_text: str) -> Dict:
     Use GPT-4 to extract structured data from resume text.
     Returns: Structured resume data as dictionary matching ParsedResume schema.
     """
-    client = get_openai_client()
-    if not client:
-        logger.error("OpenAI client not initialized - API key missing or invalid")
-        raise ValueError("OpenAI API key not configured")
+    if not get_openai_client():
+        logger.error("Ollama configuration missing")
+        raise ValueError("Ollama is not configured")
     
     try:
         system_prompt = """You are an expert resume parser and HR analyst. 
@@ -90,18 +159,12 @@ IMPORTANT EXTRACTION RULES:
 - If zip code is in location string (e.g., "New York, NY 10001"), extract it to resume_zip_code
 """
         
-        response = await client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            response_format={"type": "json_object"},
-            max_tokens=min(OPENAI_MAX_TOKENS, 4096),
-            temperature=0.1 # High precision
+        result = await _ollama_chat_json(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            max_tokens=min(OLLAMA_MAX_TOKENS, 4096),
+            temperature=0.1,
         )
-        
-        result = json.loads(response.choices[0].message.content)
         
         # Normalize skills to lowercase and deduplicate
         if "resume_technical_skills" in result:
@@ -153,11 +216,11 @@ IMPORTANT EXTRACTION RULES:
         result.setdefault("resume_certificates", [])
         result.setdefault("all_skills", [])
         
-        logger.info(f"Successfully parsed resume with GPT-4")
+        logger.info("Successfully parsed resume with Ollama")
         return result
     
     except Exception as e:
-        logger.error(f"GPT-4 resume parsing failed: {e}")
+        logger.error(f"Ollama resume parsing failed: {e}")
         raise
 
 
@@ -166,10 +229,9 @@ async def extract_jd_requirements(jd_text: str) -> Dict:
     Use GPT-4 to analyze job description and extract requirements.
     Returns: Structured JD requirements.
     """
-    client = get_openai_client()
-    if not client:
-        logger.error("OpenAI client not initialized - API key missing or invalid")
-        raise ValueError("OpenAI API key not configured")
+    if not get_openai_client():
+        logger.error("Ollama configuration missing")
+        raise ValueError("Ollama is not configured")
     
     try:
         system_prompt = """You are an enterprise-grade Job Description (JD) Decomposition Engine.
@@ -253,20 +315,13 @@ Decompose into the strict JSON format required.
 """
         
         # Use a safe maximum for tokens
-        max_tokens = min(OPENAI_MAX_TOKENS, 4096)
-        
-        response = await client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            response_format={"type": "json_object"},
+        max_tokens = min(OLLAMA_MAX_TOKENS, 4096)
+        result = await _ollama_chat_json(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
             max_tokens=max_tokens,
-            temperature=0.2 # Low temperature for consistency
+            temperature=0.2,
         )
-        
-        result = json.loads(response.choices[0].message.content)
         
         # Backward compatibility mapping for `jd_analysis.py` which expects flat structure
         # We perform this mapping here so the rest of the app continues to work while we transition
@@ -308,7 +363,7 @@ Decompose into the strict JSON format required.
                     "key_responsibilities": result.get("key_responsibilities", [])
                 }
             
-            logger.info(f"Successfully extracted JD requirements with GPT-4. Skills: {len(flattened_result.get('required_skills', []))}")
+            logger.info(f"Successfully extracted JD requirements with Ollama. Skills: {len(flattened_result.get('required_skills', []))}")
             return flattened_result
         except Exception as mapping_error:
             logger.error(f"Error mapping JD requirements structure: {mapping_error}. Raw result: {result}")
@@ -325,12 +380,8 @@ Decompose into the strict JSON format required.
                 "key_responsibilities": result.get("key_responsibilities", [])
             }
     
-    except json.JSONDecodeError as json_error:
-        logger.error(f"Failed to parse OpenAI JSON response: {json_error}")
-        logger.error(f"Response content: {response.choices[0].message.content if 'response' in locals() else 'No response'}")
-        raise ValueError(f"Invalid JSON response from OpenAI: {str(json_error)}")
     except Exception as e:
-        logger.error(f"GPT-4 JD extraction failed: {e}", exc_info=True)
+        logger.error(f"Ollama JD extraction failed: {e}", exc_info=True)
         raise
 
 
@@ -349,10 +400,9 @@ async def extract_jd_structure_v2(jd_text: str, dimension_library: List[Dict]) -
     """
     from src.schemas.jd_v2 import JDStructureV2, JDSelectedDimensionV2
 
-    client = get_openai_client()
-    if not client:
-        logger.error("OpenAI client not initialized - API key missing or invalid")
-        raise ValueError("OpenAI API key not configured")
+    if not get_openai_client():
+        logger.error("Ollama configuration missing")
+        raise ValueError("Ollama is not configured")
 
     allowed_ids = {d.get("id") for d in (dimension_library or []) if isinstance(d, dict)}
     if not allowed_ids:
@@ -414,19 +464,12 @@ Extract required_skills and preferred_skills per selected dimension.
 IMPORTANT: Be consistent - the same JD text must always produce the same dimension selection.
 Return JSON only."""
 
-    response = await client.chat.completions.create(
-        model=OPENAI_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        response_format={"type": "json_object"},
-        max_tokens=min(OPENAI_MAX_TOKENS, 2048),
+    result = await _ollama_chat_json(
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        max_tokens=min(OLLAMA_MAX_TOKENS, 2048),
         temperature=0.0,
     )
-
-    raw = response.choices[0].message.content
-    result = json.loads(raw)
 
     # Validate schema
     parsed = JDStructureV2.model_validate(result)
@@ -499,10 +542,9 @@ async def extract_resume_evidence_v2(resume_data: Dict, jd_structure_v2: Dict) -
     """
     from src.schemas.jd_v2 import ResumeEvidenceV2
 
-    client = get_openai_client()
-    if not client:
-        logger.error("OpenAI client not initialized - API key missing or invalid")
-        raise ValueError("OpenAI API key not configured")
+    if not get_openai_client():
+        logger.error("Ollama configuration missing")
+        raise ValueError("Ollama is not configured")
 
     # Compact JD structure for prompt
     selected = (jd_structure_v2 or {}).get("selected_dimensions", []) or []
@@ -604,19 +646,12 @@ Resume Raw Text:
 
 Return JSON only."""
 
-    response = await client.chat.completions.create(
-        model=OPENAI_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        response_format={"type": "json_object"},
-        max_tokens=min(OPENAI_MAX_TOKENS, 2048),
+    result = await _ollama_chat_json(
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        max_tokens=min(OLLAMA_MAX_TOKENS, 2048),
         temperature=0.0,
     )
-
-    raw = response.choices[0].message.content
-    result = json.loads(raw)
 
     parsed = ResumeEvidenceV2.model_validate(result)
     return parsed.model_dump()
@@ -627,10 +662,9 @@ async def calculate_intelligent_match(resume_data: Dict, jd_requirements: Dict) 
     Use GPT-4 to perform intelligent semantic matching.
     Returns: Match score and detailed analysis.
     """
-    client = get_openai_client()
-    if not client:
-        logger.error("OpenAI client not initialized - API key missing or invalid")
-        raise ValueError("OpenAI API key not configured")
+    if not get_openai_client():
+        logger.error("Ollama configuration missing")
+        raise ValueError("Ollama is not configured")
     
     try:
         system_prompt = """You are an enterprise-grade Resume Analysis Engine.
@@ -815,21 +849,15 @@ For EACH JD category above, provide:
 Return ONLY the JSON structure specified in the system prompt.
 """
         
-        response = await client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            response_format={"type": "json_object"},
-            max_tokens=min(OPENAI_MAX_TOKENS, 4096),
-            temperature=0.1 # Very low temperature for deterministic scoring
+        result = await _ollama_chat_json(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            max_tokens=min(OLLAMA_MAX_TOKENS, 4096),
+            temperature=0.1,
         )
-        
-        result = json.loads(response.choices[0].message.content)
-        logger.info(f"Successfully calculated intelligent match with GPT-4")
+        logger.info("Successfully calculated intelligent match with Ollama")
         return result
     
     except Exception as e:
-        logger.error(f"GPT-4 matching failed: {e}")
+        logger.error(f"Ollama matching failed: {e}")
         raise

@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import './AdminPortalLinks.css'
 
-// Each portal runs on a separate port (admin stays on 3003).
-const PORT_GUEST = Number(import.meta.env.VITE_PORT_GUEST) || 3005
+// Main app: npm run dev → :3005. Guest/Freelancer/Employee portals use separate dev servers.
+const PORT_GUEST = Number(import.meta.env.VITE_PORT_GUEST) || 3008
 const PORT_FREELANCER = Number(import.meta.env.VITE_PORT_FREELANCER) || 3006
 const PORT_EMPLOYEE = Number(import.meta.env.VITE_PORT_EMPLOYEE) || 3007
 
@@ -17,11 +17,24 @@ const getPortalBaseUrl = (port) => {
   return `${window.location.protocol}//${window.location.hostname}:${port}`
 }
 
+/** Reverse proxy on default HTTP port (:80) — same host, path only (no :3006–:3008 in URL). */
+const usePathOnlyPortalUrls = () => {
+  const p = window.location.port
+  return !p || p === '80' || p === '443'
+}
+
+const getPortalPublicUrl = (path, port) => {
+  if (usePathOnlyPortalUrls()) {
+    return `${window.location.origin}${path}`
+  }
+  return `${getPortalBaseUrl(port)}${path}`
+}
+
 const AdminPortalLinks = () => {
   const [copiedLink, setCopiedLink] = useState(null)
 
   const copyPortalLink = (path, port) => {
-    const url = `${getPortalBaseUrl(port)}${path}`
+    const url = getPortalPublicUrl(path, port)
 
     const doCopy = () => {
       setCopiedLink(path)
@@ -66,7 +79,7 @@ const AdminPortalLinks = () => {
       >
         <div className="portal-links-list">
           {portalLinks.map(({ label, path, port }) => {
-            const url = `${getPortalBaseUrl(port)}${path}`
+            const url = getPortalPublicUrl(path, port)
             const isCopied = copiedLink === path
             return (
               <div key={path} className="portal-link-row">

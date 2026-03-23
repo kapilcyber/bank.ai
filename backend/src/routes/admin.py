@@ -687,7 +687,7 @@ async def send_invite(
         await db.refresh(user)
 
         token = create_invite_token(email)
-        base_url = (getattr(settings, "frontend_base_url", None) or "http://localhost:3003").rstrip("/")
+        base_url = (getattr(settings, "frontend_base_url", None) or "http://localhost:3005").rstrip("/")
         set_password_link = f"{base_url}/set-password?token={token}"
         custom_stripped = (payload.custom_set_password_link or "").strip()
         link_for_email = custom_stripped if custom_stripped else set_password_link

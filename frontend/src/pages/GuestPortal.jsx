@@ -19,7 +19,10 @@ const GuestPortal = () => {
     setPortalEmployeeId(null)
     setSelectedEmploymentType(GUEST_TYPE)
     const jobId = searchParams.get('jobId')
-    navigate('/application' + (jobId ? `?jobId=${jobId}` : ''), { replace: true })
+    // Defer navigation so AppContext updates before /application mounts (avoids Application redirecting to "/")
+    queueMicrotask(() => {
+      navigate('/application' + (jobId ? `?jobId=${jobId}` : ''), { replace: true })
+    })
   }, [navigate, setSelectedEmploymentType, setPortalEmployeeId, searchParams])
 
   return null

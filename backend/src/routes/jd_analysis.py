@@ -82,23 +82,23 @@ async def analyze_jd(
         
         logger.info(f"Proceeding with JD text (length: {len(jd_text)})")
         
-        # Step 4: Extract JD requirements using OpenAI
-        logger.info("Analyzing JD with OpenAI GPT-4")
+        # Step 4: Extract JD requirements using Ollama
+        logger.info("Analyzing JD with Ollama")
         try:
-            # Check if OpenAI client is available before attempting extraction
+            # Check if AI backend is available before attempting extraction
             from src.services.openai_service import get_openai_client
             client = get_openai_client()
             if not client:
-                logger.error("OpenAI client not initialized - API key missing or invalid")
+                logger.error("Ollama client not initialized")
                 raise HTTPException(
                     status_code=500, 
-                    detail="OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment variables."
+                    detail="Ollama is not configured. Please set OLLAMA_BASE_URL and OLLAMA_MODEL in your environment variables."
                 )
             
             jd_requirements = await openai_service.extract_jd_requirements(jd_text)
             # Ensure all required fields exist with defaults
             if not jd_requirements:
-                raise HTTPException(status_code=500, detail="Failed to extract JD requirements: Empty response from OpenAI")
+                raise HTTPException(status_code=500, detail="Failed to extract JD requirements: Empty response from Ollama")
             # Set defaults for missing fields
             jd_requirements.setdefault('required_skills', [])
             jd_requirements.setdefault('preferred_skills', [])
@@ -110,14 +110,14 @@ async def analyze_jd(
         except HTTPException:
             raise
         except ValueError as ve:
-            logger.error(f"OpenAI configuration error: {ve}")
-            raise HTTPException(status_code=500, detail=f"OpenAI service not configured: {str(ve)}")
+            logger.error(f"Ollama configuration error: {ve}")
+            raise HTTPException(status_code=500, detail=f"Ollama service not configured: {str(ve)}")
         except Exception as e:
             logger.error(f"Failed to extract JD requirements: {e}", exc_info=True)
             import traceback
             error_trace = traceback.format_exc()
             logger.error(f"Full traceback: {error_trace}")
-            raise HTTPException(status_code=500, detail=f"Failed to analyze JD with OpenAI: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to analyze JD with Ollama: {str(e)}")
         
         # Step 5: Generate unique job ID
         job_id = f"JOB-{uuid.uuid4().hex[:8].upper()}"

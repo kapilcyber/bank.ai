@@ -58,10 +58,10 @@ JWT_SECRET_KEY=your-secret-key-change-this
 JWT_ALGORITHM=HS256
 JWT_EXPIRATION_HOURS=24
 
-# OpenAI Configuration
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4-turbo-preview
-OPENAI_MAX_TOKENS=10000
+# Ollama Configuration
+OLLAMA_BASE_URL=http://172.16.200.30:11434
+OLLAMA_MODEL=llama3.1:latest
+OLLAMA_MAX_TOKENS=10000
 
 # CORS Configuration
 CORS_ORIGINS=http://localhost:3000,http://localhost:3001

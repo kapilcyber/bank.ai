@@ -22,9 +22,9 @@ async def test_deterministic_scoring():
     print("TESTING DETERMINISTIC SCORING ARCHITECTURE")
     print("=" * 80)
     
-    # Check OpenAI Key
-    if not settings.openai_api_key:
-        print("❌ ERROR: OpenAI API Key not found")
+    # Check Ollama settings
+    if not settings.ollama_base_url or not settings.ollama_model:
+        print("❌ ERROR: Ollama configuration not found")
         return
 
     # Sample JD (Network Security Lead - 8+ years)

@@ -58,7 +58,7 @@ const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, show
   }, [notificationsOpen])
 
   const handleAdminToggle = () => {
-    navigate('/admin')
+    navigate('/techbank')
   }
 
   const handleLogout = async () => {
@@ -84,7 +84,7 @@ const Navbar = ({ userProfile, showAdminToggle = false, showProfile = true, show
             className="navbar-heading"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => !isPortalMode && navigate('/admin')}
+            onClick={() => !isPortalMode && navigate('/techbank')}
             style={{ cursor: isPortalMode ? 'default' : 'pointer' }}
           >
             TechBankAI

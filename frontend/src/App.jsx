@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -12,7 +12,51 @@ import EmployeePortal from './pages/EmployeePortal'
 import Careers from './pages/Careers'
 import Application from './pages/Application'
 
+/** Old bookmarks: /admin → /techbank (SPA has no nested /admin paths, but keep query string). */
+function LegacyAdminRedirect() {
+  const { pathname, search } = useLocation()
+  const tail = pathname.slice('/admin'.length)
+  const to = '/techbank' + (tail.startsWith('/') ? tail : tail ? `/${tail}` : '') + search
+  return <Navigate to={to} replace />
+}
+
+/** Separate Vite dev servers behind /guest, /freelancer, /employee (see vite.config.portal.js). */
+function PortalOnlyRoutes({ portal }) {
+  const Page =
+    portal === 'guest'
+      ? GuestPortal
+      : portal === 'freelancer'
+        ? FreelancerPortal
+        : EmployeePortal
+  return (
+    <Routes>
+      <Route path="/" element={<Page />} />
+      {/* Portals redirect here; without this route the catch-all sent users back to "/" → blank / loop */}
+      <Route path="/application" element={<Application />} />
+      <Route path="/careers" element={<Careers />} />
+      <Route path="/Careers" element={<Navigate to="/careers" replace />} />
+      <Route path="/careers.html" element={<Navigate to="/careers" replace />} />
+      <Route path="/dashboard" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function resolvePortalMode() {
+  const mode = import.meta.env.MODE
+  if (!mode.startsWith('portal-')) return null
+  let rest = mode.slice('portal-'.length)
+  if (rest.endsWith('-proxy')) rest = rest.slice(0, -'-proxy'.length)
+  if (rest === 'guest' || rest === 'freelancer' || rest === 'employee') return rest
+  return null
+}
+
 function AppRoutes() {
+  const portal = resolvePortalMode()
+  if (portal) {
+    return <PortalOnlyRoutes portal={portal} />
+  }
+
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
@@ -33,8 +77,9 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/admin/*" element={<LegacyAdminRedirect />} />
       <Route
-        path="/admin/*"
+        path="/techbank/*"
         element={
           <ProtectedRoute adminOnly={true}>
             <Admin />

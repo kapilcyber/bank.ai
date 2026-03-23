@@ -56,7 +56,7 @@ export default defineConfig({
   plugins: [react(), networkIPPlugin()],
   server: {
     port: 3010,
-    host: '0.0.0.0', // Allow external connections (3005 reserved for Guest portal)
+    host: '0.0.0.0', // Allow external connections (main app uses :3005; guest portal dev :3008)
     open: false, // Don't auto-open, user can navigate manually
     strictPort: false,
   },

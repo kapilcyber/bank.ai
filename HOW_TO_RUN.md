@@ -8,7 +8,7 @@ Complete guide to properly start and run both services.
 - ✅ **Python 3.11+** - For backend
 - ✅ **Node.js 18+** - For frontend
 - ✅ **PostgreSQL 15+** - Database (running on localhost:5432)
-- ✅ **OpenAI API Key** - For AI features (optional but recommended)
+- ✅ **Ollama Endpoint** - For AI features (optional but recommended)
 
 ### Check Versions
 ```bash
@@ -68,10 +68,10 @@ JWT_SECRET_KEY=your-secret-key-change-this-to-random-string
 JWT_ALGORITHM=HS256
 JWT_EXPIRATION_HOURS=24
 
-# OpenAI Configuration (Required for AI features)
-OPENAI_API_KEY=sk-your-openai-api-key-here
-OPENAI_MODEL=gpt-4-turbo-preview
-OPENAI_MAX_TOKENS=10000
+# Ollama Configuration (Required for AI features)
+OLLAMA_BASE_URL=http://172.16.200.30:11434
+OLLAMA_MODEL=llama3.1:latest
+OLLAMA_MAX_TOKENS=10000
 
 # CORS Configuration (Allow frontend to connect)
 CORS_ORIGINS=http://localhost:3000,http://localhost:3001
@@ -93,7 +93,7 @@ CELERY_RESULT_BACKEND=redis://localhost:6379/0
 **⚠️ Important:**
 - Replace `your_postgres_password` with your actual PostgreSQL password
 - Replace `your-secret-key-change-this-to-random-string` with a secure random string
-- Add your OpenAI API key for AI features to work
+- Ensure your Ollama endpoint/model are reachable for AI features to work
 
 ### Step 5: Ensure PostgreSQL is Running
 
@@ -163,36 +163,79 @@ npm install
 Create `.env` file in `frontend/` directory (optional):
 
 ```env
-# API Base URL (defaults to http://localhost:8000/api if not set)
-REACT_APP_API_URL=http://localhost:8000/api
+# API base (Vite). Optional — see frontend/.env.example
+# Direct dev on :3005 defaults to http://<hostname>:8000/api
+# Behind nginx on :80, omit this so the app uses same-origin /api
+# VITE_API_URL=http://127.0.0.1:8002/api
 ```
 
-**Note:** The frontend is already configured to use `http://localhost:8000/api` by default, so this file is optional.
+**Note:** If unset, the app picks the API URL from the current page (see `frontend/src/config/api.js`).
 
 ### Step 4: Start Frontend Development Server
 
+**Direct (URL shows `:3005`):**
 ```bash
 npm run dev
 ```
 
-**Expected Output:**
-```
-  VITE v5.0.8  ready in 500 ms
+**Clean URL (no port in the address bar — `http://127.0.0.1/`):**
 
-  ➜  Local:   http://localhost:3000/
-  ➜  Network: use --host to expose
-  ➜  press h + enter to show help
+Vite still listens on **3005** internally; **nginx** on port **80** proxies to it so the browser never shows `:3005`.
+
+1. Start backend on `0.0.0.0` (e.g. port **8002** — must match `api_dev` in `nginx/nginx.host-dev-native.conf`).
+2. **Native nginx on Windows (no Docker):** install nginx (`winget install nginxinc.nginx`), then from repo root:
+   ```powershell
+   .\scripts\start-nginx-local-reverse-proxy.ps1
+   ```
+   Config: **`nginx/nginx.host-dev-native.conf`**. Reload after edits: `.\scripts\start-nginx-local-reverse-proxy.ps1 -Reload`. Stop: `-Stop`.
+3. **Or Docker nginx:** from repo root:
+   ```powershell
+   .\start-nginx-host-dev.ps1 -BackendPort 8002
+   ```
+4. In **`frontend`**, use the proxy mode (do **not** set `VITE_API_URL` so the app uses same-origin `/api`):
+   ```bash
+   npm run dev:behind-proxy
+   ```
+5. Open **http://127.0.0.1/** (or **http://localhost/**).
+
+**Same PC + LAN (`http://<your-ip>/`):**
+
+nginx listens on **0.0.0.0:80**. After backend + `dev:behind-proxy` + nginx are running, use your LAN IP.
+
+- **Windows Firewall:** if the LAN URL does not load, allow inbound **TCP 80** (PowerShell **as Administrator**):
+
+  ```powershell
+  New-NetFirewallRule -DisplayName "nginx dev HTTP 80" -Direction Inbound -LocalPort 80 -Protocol TCP -Action Allow
+  ```
+
+- `dev:behind-proxy` can open your LAN URL automatically (see `frontend/vite.config.js`).
+
+**Portals without ports in the URL (`/guest`, `/freelancer`, `/employee`):**
+
+With nginx on **:80**, start portal Vite apps in **proxy** mode:
+
+```bash
+cd frontend
+npm run dev:portals:proxy
+```
+
+Then open **`http://<your-ip>/guest`**, **`/freelancer`**, **`/employee`**. You still need **`npm run dev:behind-proxy`** for the main app on `/`.
+
+Without nginx, use **`npm run dev:portals`** and open e.g. **`http://127.0.0.1:3008/guest/`**.
+
+**Expected Output (direct `npm run dev`):**
+```
+  VITE v5.x  ready in …
+
+  ➜  Local:   http://127.0.0.1:3005/
 ```
 
 **✅ Frontend is running when you see:**
-- Local: http://localhost:3000/ (or http://localhost:3001/ if 3000 is busy)
+- Local URL as above (or clean URL via nginx)
 - No error messages
-- Browser opens automatically
+- Browser opens automatically (if configured)
 
-**Note:** If port 3000 is busy, Vite will automatically use port 3001. Make sure your backend `.env` has both ports in `CORS_ORIGINS`:
-```env
-CORS_ORIGINS=http://localhost:3000,http://localhost:3001
-```
+**Note:** Vite is fixed to port **3005** (`strictPort`). If 3005 is busy, free that port or stop the other process.
 
 ---
 

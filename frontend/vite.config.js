@@ -1,101 +1,40 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { networkInterfaces } from 'os'
+import os from 'node:os'
 
-// Get network IP address
-function getNetworkIP() {
-  const interfaces = networkInterfaces()
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name] || []) {
-      // Skip internal (loopback) and non-IPv4 addresses
-      if (iface.family === 'IPv4' && !iface.internal) {
-        // Prefer private network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-        if (iface.address.startsWith('192.168.') || 
-            iface.address.startsWith('10.') || 
-            iface.address.startsWith('172.')) {
-          return iface.address
-        }
-      }
+/** First non-internal IPv4 — for opening http://<ip>/ when using a :80 reverse proxy (no port in URL). */
+function getLanIPv4() {
+  for (const nets of Object.values(os.networkInterfaces())) {
+    if (!nets) continue
+    for (const n of nets) {
+      if (n.family === 'IPv4' && !n.internal) return n.address
     }
   }
-  // Fallback: return first non-internal IPv4 address
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name] || []) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address
-      }
-    }
-  }
-  return 'localhost'
+  return '127.0.0.1'
 }
 
-const networkIP = getNetworkIP()
+// npm run dev:behind-proxy → use nginx (or similar) on :80 so the browser shows no :3005 (works for 127.0.0.1 and LAN IP).
+export default defineConfig(({ mode }) => {
+  const behindProxy = mode === 'behind-proxy'
+  const lan = getLanIPv4()
 
-// Plugin to filter out localhost and customize server output
-const networkIPPlugin = () => {
   return {
-    name: 'network-ip',
-    configureServer(server) {
-      // Get actual port after server starts
-      server.httpServer?.once('listening', () => {
-        const address = server.httpServer?.address()
-        const actualPort = typeof address === 'object' && address?.port ? address.port : (server.config.server?.port || 3003)
-        const networkURL = `http://${networkIP}:${actualPort}`
-        
-        // Show network IP prominently
-        console.log(`\n🌐 Network Access: ${networkURL}\n`)
-      })
-      
-      // Override printUrls to filter localhost
-      const originalPrintUrls = server.printUrls
-      server.printUrls = function() {
-        // Intercept console output temporarily to filter localhost
-        const originalLog = console.log
-        const originalInfo = console.info
-        
-        const filterLocalhost = (args) => {
-          const message = args.join(' ')
-          return !message.includes('Local:') && 
-                 !message.includes('localhost:') &&
-                 !message.match(/➜\s+Local:/)
-        }
-        
-        console.log = function(...args) {
-          if (filterLocalhost(args)) {
-            originalLog.apply(console, args)
-          }
-        }
-        
-        console.info = function(...args) {
-          if (filterLocalhost(args)) {
-            originalInfo.apply(console, args)
-          }
-        }
-        
-        // Call original printUrls
-        if (originalPrintUrls) {
-          originalPrintUrls.call(this)
-        }
-        
-        // Restore console methods
-        console.log = originalLog
-        console.info = originalInfo
+    plugins: [react()],
+    server: {
+      port: 3005,
+      host: '0.0.0.0', // Allow external connections
+      // Direct dev: show :3005. Behind proxy on :80: open LAN URL so phones/other PCs can use the same pattern.
+      open: behindProxy ? `http://${lan}/` : 'http://127.0.0.1:3005/',
+      strictPort: true, // Always use port 3005 internally; exit if busy
+      // Allow Host header from reverse proxy (http://<lan-ip>/ without :3005)
+      allowedHosts: true,
+      // HMR via proxy on :80 (client uses same hostname as the URL — 127.0.0.1 or LAN IP)
+      hmr: behindProxy ? { protocol: 'ws', clientPort: 80 } : undefined,
+    },
+    build: {
+      rollupOptions: {
+        input: './index.html'
       }
-    }
-  }
-}
-
-export default defineConfig({
-  plugins: [react(), networkIPPlugin()],
-  server: {
-    port: 3003,
-    host: '0.0.0.0', // Allow external connections
-    open: `http://${networkIP}:3003`, // Open network IP instead of localhost
-    strictPort: false, // Allow Vite to use next available port if 3003 is busy
-  },
-  build: {
-    rollupOptions: {
-      input: './index.html'
     }
   }
 })

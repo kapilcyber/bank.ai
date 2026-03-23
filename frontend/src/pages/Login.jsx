@@ -29,14 +29,14 @@ const Login = () => {
           const isAdmin = userProfile?.mode?.toLowerCase().includes('admin')
           if (isAdmin) {
             // Already an admin, just go to admin panel
-            navigate('/admin', { replace: true })
+            navigate('/techbank', { replace: true })
           } else {
             // Logged in as user but wants admin, clear session
             await logout()
           }
         } else if (userProfile?.mode === 'admin') {
           // Already logged in as admin, visiting regular login, send to admin
-          navigate('/admin', { replace: true })
+          navigate('/techbank', { replace: true })
         } else {
           // Already logged in as user, visiting regular login, send to dashboard
           navigate('/dashboard', { replace: true })
@@ -150,7 +150,7 @@ const Login = () => {
 
       if (isAdmin) {
         sessionStorage.setItem('adminEntranceShown', 'true')
-        navigate('/admin', { replace: true })
+        navigate('/techbank', { replace: true })
       } else {
         const from = location.state?.from?.pathname
         if (from) {
@@ -336,7 +336,7 @@ const Login = () => {
 
                       if (isAdmin) {
                         sessionStorage.setItem('adminEntranceShown', 'true');
-                        navigate('/admin', { replace: true });
+                        navigate('/techbank', { replace: true });
                       } else {
                         const from = location.state?.from?.pathname;
                         if (from) {
