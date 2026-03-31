@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Starts native nginx on :80 → main Vite :3005, portals :3008/:3006/:3007, API :8002 (no Docker).
+  Starts native nginx on :8080 → main Vite :3005, portals :3008/:3006/:3007, API :8002 (no Docker).
 
 .PARAMETER Reload
   If nginx is already running with this setup, reload config instead of starting.
@@ -86,12 +86,12 @@ try {
     Write-Host "prefix: $prefix" -ForegroundColor Gray
     Write-Host "config: $conf" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "http://127.0.0.1/" -ForegroundColor Green
-    foreach ($ip in $ips) { Write-Host "http://$ip/" -ForegroundColor Green }
+    Write-Host "http://127.0.0.1:8080/" -ForegroundColor Green
+    foreach ($ip in $ips) { Write-Host "http://$ip:8080/" -ForegroundColor Green }
     Write-Host "  /guest /freelancer /employee" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "Needs: backend :8002, npm run dev:behind-proxy, npm run dev:portals:proxy" -ForegroundColor Yellow
-    Write-Host "Firewall: New-NetFirewallRule -DisplayName 'nginx dev HTTP 80' -Direction Inbound -LocalPort 80 -Protocol TCP -Action Allow  (Admin)" -ForegroundColor DarkYellow
+    Write-Host "Firewall: New-NetFirewallRule -DisplayName 'nginx dev HTTP 8080' -Direction Inbound -LocalPort 8080 -Protocol TCP -Action Allow  (Admin)" -ForegroundColor DarkYellow
     Write-Host "Reload config: .\scripts\start-nginx-local-reverse-proxy.ps1 -Reload" -ForegroundColor DarkGray
     Write-Host "Stop:        .\scripts\start-nginx-local-reverse-proxy.ps1 -Stop" -ForegroundColor DarkGray
     Write-Host ""

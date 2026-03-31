@@ -2,39 +2,30 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import './AdminPortalLinks.css'
 
-// Main app: npm run dev → :3005. Guest/Freelancer/Employee portals use separate dev servers.
-const PORT_GUEST = Number(import.meta.env.VITE_PORT_GUEST) || 3008
-const PORT_FREELANCER = Number(import.meta.env.VITE_PORT_FREELANCER) || 3006
-const PORT_EMPLOYEE = Number(import.meta.env.VITE_PORT_EMPLOYEE) || 3007
-
 const portalLinks = [
-  { label: 'Guest Portal', path: '/guest', port: PORT_GUEST },
-  { label: 'Freelancer Portal', path: '/freelancer', port: PORT_FREELANCER },
-  { label: 'Company Employee Portal', path: '/employee', port: PORT_EMPLOYEE }
+  { label: 'Guest Portal', path: '/guest' },
+  { label: 'Freelancer Portal', path: '/freelancer' },
+  { label: 'Company Employee Portal', path: '/employee' }
 ]
 
-const getPortalBaseUrl = (port) => {
-  return `${window.location.protocol}//${window.location.hostname}:${port}`
-}
-
-/** Reverse proxy on default HTTP port (:80) — same host, path only (no :3006–:3008 in URL). */
-const usePathOnlyPortalUrls = () => {
-  const p = window.location.port
-  return !p || p === '80' || p === '443'
-}
-
-const getPortalPublicUrl = (path, port) => {
-  if (usePathOnlyPortalUrls()) {
-    return `${window.location.origin}${path}`
+const getPublicOrigin = () => {
+  const envOrigin = (import.meta.env.VITE_PUBLIC_BASE_URL || '').trim()
+  if (envOrigin) {
+    return envOrigin.replace(/\/+$/, '')
   }
-  return `${getPortalBaseUrl(port)}${path}`
+  // Intentionally hide port in generated/copied links.
+  return `${window.location.protocol}//${window.location.hostname}`
+}
+
+const getPortalPublicUrl = (path) => {
+  return `${getPublicOrigin()}${path}`
 }
 
 const AdminPortalLinks = () => {
   const [copiedLink, setCopiedLink] = useState(null)
 
-  const copyPortalLink = (path, port) => {
-    const url = getPortalPublicUrl(path, port)
+  const copyPortalLink = (path) => {
+    const url = getPortalPublicUrl(path)
 
     const doCopy = () => {
       setCopiedLink(path)
@@ -78,8 +69,8 @@ const AdminPortalLinks = () => {
         transition={{ duration: 0.3 }}
       >
         <div className="portal-links-list">
-          {portalLinks.map(({ label, path, port }) => {
-            const url = getPortalPublicUrl(path, port)
+          {portalLinks.map(({ label, path }) => {
+            const url = getPortalPublicUrl(path)
             const isCopied = copiedLink === path
             return (
               <div key={path} className="portal-link-row">
@@ -88,7 +79,7 @@ const AdminPortalLinks = () => {
                 <button
                   type="button"
                   className="portal-link-copy-btn"
-                  onClick={() => copyPortalLink(path, port)}
+                  onClick={() => copyPortalLink(path)}
                   title="Copy link"
                 >
                   {isCopied ? 'Copied!' : 'Copy'}

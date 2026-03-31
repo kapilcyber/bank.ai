@@ -14,11 +14,19 @@ const getJdPdfUrl = (jdFileUrl) => {
 }
 
 // Standalone careers build (vite.config.careers.js uses port 3010) or careers.html root
-const MAIN_APP_DEV_PORT = import.meta.env.VITE_PORT_MAIN || '3005'
 const isStandalone = typeof window !== 'undefined' && (
   window.location.port === '3010' ||
   document.getElementById('careers-root') !== null
 )
+
+const getPublicOrigin = () => {
+  const envOrigin = (import.meta.env.VITE_PUBLIC_BASE_URL || '').trim()
+  if (envOrigin) {
+    return envOrigin.replace(/\/+$/, '')
+  }
+  // Intentionally hide port in public links.
+  return `${window.location.protocol}//${window.location.hostname}`
+}
 
 // Display label for job_type (internship, full_time, remote, hybrid, contract)
 const getJobTypeLabel = (jobType) => {
@@ -100,7 +108,7 @@ const Careers = () => {
     if (isStandalone) {
       const guestBaseUrl =
         import.meta.env.VITE_CAREERS_GUEST_REDIRECT_URL ||
-        `${window.location.protocol}//${window.location.hostname}:${MAIN_APP_DEV_PORT}`
+        getPublicOrigin()
       window.location.href = `${guestBaseUrl}/guest?jobId=${jobId}`
     } else {
       navigate(`/guest?jobId=${jobId}`)

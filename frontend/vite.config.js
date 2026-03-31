@@ -13,7 +13,7 @@ function getLanIPv4() {
   return '127.0.0.1'
 }
 
-// npm run dev:behind-proxy → use nginx (or similar) on :80 so the browser shows no :3005 (works for 127.0.0.1 and LAN IP).
+// npm run dev:behind-proxy → use nginx (or similar) on :80/:8080 so the browser avoids Vite's dev port.
 export default defineConfig(({ mode }) => {
   const behindProxy = mode === 'behind-proxy'
   const lan = getLanIPv4()
@@ -23,13 +23,13 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3005,
       host: '0.0.0.0', // Allow external connections
-      // Direct dev: show :3005. Behind proxy on :80: open LAN URL so phones/other PCs can use the same pattern.
+      // Direct dev: show :3005. Behind proxy on :80/:8080: open LAN URL so phones/other PCs can use the same pattern.
       open: behindProxy ? `http://${lan}/` : 'http://127.0.0.1:3005/',
       strictPort: true, // Always use port 3005 internally; exit if busy
       // Allow Host header from reverse proxy (http://<lan-ip>/ without :3005)
       allowedHosts: true,
-      // HMR via proxy on :80 (client uses same hostname as the URL — 127.0.0.1 or LAN IP)
-      hmr: behindProxy ? { protocol: 'ws', clientPort: 80 } : undefined,
+      // HMR via proxy on :8080 (client uses same hostname as the URL — 127.0.0.1 or LAN IP)
+      hmr: behindProxy ? { protocol: 'ws', clientPort: 8080 } : undefined,
     },
     build: {
       rollupOptions: {
